@@ -1,0 +1,27 @@
+{
+  "name": "payments-smart-contracts",
+  "version": "0.1.0",
+  "description": "Smart contracts for Mysterium payments flow",
+  "main": "index.js",
+  "scripts": {
+    "test": "truffle test",
+    "compile": "truffle compile",
+    "migrate": "truffle migrate"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mysteriumnetwork/payments-smart-contracts.git"
+  },
+  "author": "Jaro <me@jaro.lt>",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/mysteriumnetwork/payments-smart-contracts/issues"
+  },
+  "homepage": "https://github.com/mysteriumnetwork/payments-smart-contracts#readme",
+  "dependencies": {
+    "ganache-cli": "^6.3.0",
+    "openzeppelin-solidity": "^2.1.3",
+    "solc": "^0.5.4",
+    "truffle": "^5.0.5"
+  }
+}
