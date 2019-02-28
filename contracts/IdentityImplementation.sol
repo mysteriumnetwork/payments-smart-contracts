@@ -70,7 +70,7 @@ contract IdentityImplementation {
         paidAmounts[_to] = _totalPaidAmount;
 
         // Send tokens
-        token.transfer(_to, _amount);
+        token.transfer(_to, _unpaidAmount);
 
         if (_fee > 0) {
             token.transfer(msg.sender, _fee);
