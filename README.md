@@ -13,12 +13,17 @@ npm install
 
 2. Run local ethereum node, e.g. `ganache`.
 ```bash
-ganache-cli
+npx ganache-cli --port 7545
 ```
 
 3. Run tests
 ```bash
 npm test
+```
+
+4. Testing migration/deployment
+```bash
+npm run migrate
 ```
 
 ## Current deployment (ethereum Ropsten testnet)
