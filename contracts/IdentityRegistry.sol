@@ -59,7 +59,7 @@ contract IdentityRegistry is Ownable {
 
         // Deploy identity contract (mini proxy which is pointing to implementation)
         // Possible recheck:
-        // require(deployMiniProxy(uint256(_identity)) == getIdentityContractAddress(_identity), "Wrong identity contract address");
+        // require(deployMiniProxy(uint256(_identityHash)) == getIdentityContractAddress(_identity), "Wrong identity contract address");
         IdentityImplementation _identityContract = IdentityImplementation(deployMiniProxy(uint256(_identityHash)));
         _identityContract.initialize(address(token), _identityHash);
 
@@ -76,7 +76,7 @@ contract IdentityRegistry is Ownable {
                 revert(0, 0)
             }
         }
-        
+
         return _addr;
     }
 
@@ -85,18 +85,23 @@ contract IdentityRegistry is Ownable {
     function getProxyCode() public view returns (bytes memory) {
         // `_code` is EIP 1167 - Minimal Proxy Contract
         // more information: https://eips.ethereum.org/EIPS/eip-1167
-        bytes memory _code = "0x363d3d373d3d3d363d73bebebebebebebebebebebebebebebebebebebebe5af43d82803e903d91602b57fd5bf3";
+        bytes memory _code = hex"3d602d80600a3d3981f3363d3d373d3d3d363d73bebebebebebebebebebebebebebebebebebebebe5af43d82803e903d91602b57fd5bf3";
 
         bytes20 _targetBytes = bytes20(identityContractImplementation);
-        for (uint i = 0; i < 20; i++) {
+        for (uint8 i = 0; i < 20; i++) {
             _code[20 + i] = _targetBytes[i];
         }
 
         return _code;
     }
 
-    function getIdentityContractAddress(address _identity) public view returns (address) {
-        return address(uint256(keccak256(abi.encodePacked(uint256(0xff), address(this), _identity, keccak256(getProxyCode())))));
+    function getIdentityContractAddress(address _identityHash) public view returns (address) {
+        return address(uint256(keccak256(abi.encodePacked(
+            bytes1(0xff),
+            address(this),
+            bytes32(uint256(_identityHash)),
+            bytes32(keccak256(getProxyCode()))
+        ))));
     }
 
     function isRegistered(address _identityHash) public view returns (bool) {
