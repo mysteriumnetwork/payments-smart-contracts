@@ -26,6 +26,11 @@ contract IdentityRegistry is Ownable {
         identityContractImplementation = _implementation;
     }
 
+    // Reject any ethers send to this smart-contract
+    function () external payable {
+        revert("Rejecting tx with ethers sent");
+    }
+
     // Alternative implementation when pubKeys are stored in blockchain
     // function registerIdentity(bytes32 _pubKeyPart1, bytes32 _pubKeyPart2, bytes memory _signature) public {
     //     address _identity = keccak256(abi.encodePacked(REGISTER_PREFIX, _pubKeyPart1, _pubKeyPart2)).recover(_signature);

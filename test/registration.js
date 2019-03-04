@@ -19,6 +19,7 @@ async function genCreate2Address(identityHash, registry) {
     ].join('')}`).slice(-40)}`.toLowerCase()
 }
 
+const OneEther = web3.utils.toWei('1', 'ether')
 const identityHash = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
 
 contract('Identity registry', ([_, minter, ...otherAccounts]) => {
@@ -60,5 +61,13 @@ contract('Identity registry', ([_, minter, ...otherAccounts]) => {
         ].join('').toLocaleLowerCase()
         
         expect(byteCode).to.be.equal(expectedByteCode)
+    })
+
+    it('should revert when ethers are sent to registry', async () => {
+        await registry.sendTransaction({
+            from: minter,
+            value: OneEther,
+            gas: 200000
+        }).should.be.rejected
     })
 })

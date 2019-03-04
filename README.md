@@ -36,6 +36,5 @@ Registry smart contract:
 * Fixed price DEX + Proxy
 * Call dex on ether send into IdentityContract
 * Recover any tokens function for registry and Identity contracts
-* Reject ether send into registry
 * Bounty or fee for registration tx sender
 * README on how to use smart-contracts (main idea of payments)
