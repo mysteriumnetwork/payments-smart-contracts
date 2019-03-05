@@ -8,15 +8,15 @@ import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 contract MystDEX is Ownable {
     using SafeMath for uint256;
 
-    bool initialised;
-    uint256 rate;   // Tokens per ether
+    bool public initialised;
+    uint256 rate;   // Wei per token
     IERC20 token;
     
     // Default function - converts ethers to MYST
     function () external payable {
         require(initialised, "Contract is not initialised");
 
-        uint256 tokensAmount = msg.value.mul(rate);
+        uint256 tokensAmount = msg.value.div(rate).mul(1e18);
 
         require(token.balanceOf(address(this)) >= tokensAmount);
         token.transfer(msg.sender, tokensAmount);
