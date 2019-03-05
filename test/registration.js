@@ -5,6 +5,7 @@ require('chai')
 const IdentityRegistry = artifacts.require("IdentityRegistry")
 const IdentityImplementation = artifacts.require("IdentityImplementation")
 const MystToken = artifacts.require("MystToken")
+const MystDex = artifacts.require("MystDEX")
 
 // CREATE2 address is calculated this way:
 // keccak("0xff++msg.sender++salt++keccak(byteCode)")
@@ -23,10 +24,11 @@ const OneEther = web3.utils.toWei('1', 'ether')
 const identityHash = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
 
 contract('Identity registry', ([_, minter, ...otherAccounts]) => {
-    let token, identityImplementation, registry
+    let token, identityImplementation, dex, registry
     before(async () => {
         token = await MystToken.new()
-        identityImplementation = await IdentityImplementation.new()
+        dex = await MystDex.new()
+        identityImplementation = await IdentityImplementation.new(dex.address, _)
         registry = await IdentityRegistry.new(token.address, 0, identityImplementation.address)
     })
 

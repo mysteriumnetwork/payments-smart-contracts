@@ -3,8 +3,10 @@ pragma solidity ^0.5.0;
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
-import { IdentityImplementation } from "./IdentityImplementation.sol";
 
+contract IdentityImplementation {
+    function initialize(address _token, address _identityHash) public;
+}
 
 contract IdentityRegistry is Ownable {
     using SafeMath for uint256;

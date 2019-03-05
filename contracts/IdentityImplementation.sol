@@ -3,7 +3,11 @@ pragma solidity ^0.5.0;
 import { ECDSA } from "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import { DEXProxy } from "./DEXProxy.sol";
 
+contract MystDEX {
+    function initialise(address _dexOwner, address _token, uint256 _rate) public;
+}
 
 contract IdentityImplementation {
     using ECDSA for bytes32;
@@ -11,6 +15,7 @@ contract IdentityImplementation {
 
     IERC20 public token;  // NOTE: token can be actually constant or be received from external config
     address public identityHash;
+    address public dex;
 
     string constant WITHDRAW_PREFIX = "Withdraw request:";
     string constant ISSUER_PREFIX = "Issuer prefix:";
@@ -19,6 +24,22 @@ contract IdentityImplementation {
 
     event Withdrawn(address indexed receiver, uint256 amount, uint256 totalBalance);
     event PromiseSettled(address indexed receiver, uint256 amount, uint256 totalSettled);
+
+    constructor (address _token, address _DEXImplementation, address _DEXOwner, uint256 _rate) public {
+        require(_token != address(0));
+        require(_DEXImplementation != address(0));
+        require(_DEXOwner != address(0));
+
+        // Deploy MystDex proxy and set default target to `_DEXImplementation`
+        dex = address(new DEXProxy(_DEXImplementation, _DEXOwner));
+        MystDEX(dex).initialise(_DEXOwner, _token, _rate);
+    }
+
+    // Fallback function - redirect ethers topup into DEX
+    function () external payable {
+        (bool success, bytes memory data) = address(dex).call.value(msg.value)(msg.data);
+        require(success, "Tx was rejected by DEX");
+    }
 
     // Because of proxy pattern this function is used insted of constructor.
     // Have to be called right after proxy deployment.
