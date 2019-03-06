@@ -1,16 +1,16 @@
-const { BN, expect } = require('openzeppelin-test-helpers');
+const { BN } = require('openzeppelin-test-helpers');
 
 const MystToken = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
 
 const OneEther = web3.utils.toWei(new BN(1), 'ether')
 
-contract.only('Mysterium simplified DEX', ([_, owner, ...otherAccounts]) => {
+contract('Mysterium simplified DEX', ([_, owner, ...otherAccounts]) => {
     let token, dex
     before(async () => {
         token = await MystToken.new()
         dex = await MystDex.new()
-        
+
         // Mint 10 000 tokens into dex account
         const tokensToMint = web3.utils.toWei(new BN(10000), 'ether')
         await token.mint(dex.address, tokensToMint)
@@ -19,6 +19,8 @@ contract.only('Mysterium simplified DEX', ([_, owner, ...otherAccounts]) => {
         balance.should.be.bignumber.equal(tokensToMint)
     })
     
+    it('should always work', () => {})
+
     it('tx should fail when DEX is not initialised', async () => {
         await dex.sendTransaction({
             from: otherAccounts[0],

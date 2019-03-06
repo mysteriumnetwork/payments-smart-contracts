@@ -37,4 +37,6 @@ Registry smart contract:
 * Call dex on ether send into IdentityContract
 * Recover any tokens function for registry and Identity contracts
 * Bounty or fee for registration tx sender
+* Timelock for withdrawals
 * README on how to use smart-contracts (main idea of payments)
+* Add tests for __upgradeToAndCall proxy function
