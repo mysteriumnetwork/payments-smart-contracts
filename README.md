@@ -33,10 +33,11 @@ Registry smart contract:
 
 
 ## TODO
-* Fixed price DEX + Proxy
 * Call dex on ether send into IdentityContract
 * Recover any tokens function for registry and Identity contracts
 * Bounty or fee for registration tx sender
 * Timelock for withdrawals
 * README on how to use smart-contracts (main idea of payments)
 * Add tests for __upgradeToAndCall proxy function
+* Bidable DEX (no centralised rate, each bidder can suggest own rate, conversion always on market price)
+* Stateless Proxy (mutates target's storage, avoids delegatecall)
