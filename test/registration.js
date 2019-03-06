@@ -23,12 +23,12 @@ async function genCreate2Address(identityHash, registry) {
 const OneEther = web3.utils.toWei('1', 'ether')
 const identityHash = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
 
-contract('Identity registry', ([_, minter, ...otherAccounts]) => {
+contract('Identity registry', ([owner, minter, ...otherAccounts]) => {
     let token, identityImplementation, dex, registry
     before(async () => {
         token = await MystToken.new()
         dex = await MystDex.new()
-        identityImplementation = await IdentityImplementation.new(dex.address, _)
+        identityImplementation = await IdentityImplementation.new(token.address, dex.address, owner, OneEther)
         registry = await IdentityRegistry.new(token.address, 0, identityImplementation.address)
     })
 

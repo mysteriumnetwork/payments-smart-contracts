@@ -7,14 +7,15 @@ const IdentityImplementation = artifacts.require("IdentityImplementation")
 const MystToken = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
 
+const OneEther = web3.utils.toWei('1', 'ether')
 const identityHash = '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
 
-contract('Paid identity registry', ([_, minter, ...otherAccounts]) => {
+contract('Paid identity registry', ([owner, ...otherAccounts]) => {
     let token, identityImplementation, dex, registry
     before(async () => {
         token = await MystToken.new()
         dex = await MystDex.new()
-        identityImplementation = await IdentityImplementation.new(dex.address, _)
+        identityImplementation = await IdentityImplementation.new(token.address, dex.address, owner, OneEther)
         registry = await IdentityRegistry.new(token.address, 0, identityImplementation.address)
     })
 
