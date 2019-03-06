@@ -1,16 +1,12 @@
 const { BN } = require('openzeppelin-test-helpers');
 
-const MystToken = artifacts.require("MystToken")
 const DEXProxy = artifacts.require("DEXProxy")
 const ProxyTarget = artifacts.require("ProxyTarget")
 const SecondProxyTarget = artifacts.require("SecondProxyTarget")
 
-const OneEther = web3.utils.toWei(new BN(1), 'ether')
-
 contract('DEX Proxy', ([_, owner, ...otherAccounts]) => {
-    let token, dex, proxy, proxiedImplementation
+    let proxy, implementation, proxiedImplementation
     before (async () => {
-        token = await MystToken.new()
         implementation = await ProxyTarget.new()
         proxy = await DEXProxy.new(implementation.address, owner)
         proxiedImplementation = await ProxyTarget.at(proxy.address)
