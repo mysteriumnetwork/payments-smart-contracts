@@ -1,24 +1,13 @@
 require('chai')
-    .use(require('chai-as-promised'))
-    .should()
+.use(require('chai-as-promised'))
+.should()
+
+const genCreate2Address = require('./utils.js').genCreate2Address
 
 const IdentityRegistry = artifacts.require("IdentityRegistry")
 const IdentityImplementation = artifacts.require("IdentityImplementation")
 const MystToken = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
-
-// CREATE2 address is calculated this way:
-// keccak("0xff++msg.sender++salt++keccak(byteCode)")
-async function genCreate2Address(identityHash, registry) {
-    const byteCode = (await registry.getProxyCode())
-    const salt = `0x${'0'.repeat(64-identityHash.length+2)}${identityHash.replace(/0x/, '')}`
-    return `0x${web3.utils.keccak256(`0x${[
-        'ff',
-        registry.address.replace(/0x/, ''),
-        salt.replace(/0x/, ''),
-        web3.utils.keccak256(byteCode).replace(/0x/, '')
-    ].join('')}`).slice(-40)}`.toLowerCase()
-}
 
 const OneEther = web3.utils.toWei('1', 'ether')
 const identityHash = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'

@@ -18,7 +18,7 @@ contract IdentityImplementation {
     address public dex;
 
     string constant WITHDRAW_PREFIX = "Withdraw request:";
-    string constant ISSUER_PREFIX = "Issuer prefix:";
+    string constant SETTLE_PREFIX = "Settlement request:";
 
     mapping(address => uint256) public paidAmounts;
 
@@ -65,14 +65,15 @@ contract IdentityImplementation {
     }
 
     function withdraw(address _to, uint256 _amount, bytes memory _signature) public {
-        uint256 _paidAmount = sendByCheque(_to, _amount, 0, "", _signature);
+        bytes32 _extraDataHash = keccak256("");
+        uint256 _paidAmount = sendByCheque(_to, _amount, 0, _extraDataHash, _signature);
         emit Withdrawn(_to, _paidAmount, token.balanceOf(address(this)));
     }
 
     function sendByCheque(address _to, uint256 _amount, uint256 _fee, bytes32 _extraDataHash, bytes memory _signature) internal returns (uint256) {
         require(_to != address(0));
 
-        address _signer = keccak256(abi.encodePacked(ISSUER_PREFIX, _to, _amount, _fee, _extraDataHash)).recover(_signature);
+        address _signer = keccak256(abi.encodePacked(SETTLE_PREFIX, _to, _amount, _fee, _extraDataHash)).recover(_signature);
         require(_signer == identityHash, "Have to be signed by proper identity");
 
         // Calculate amount of tokens to be claimed.
@@ -99,4 +100,12 @@ contract IdentityImplementation {
 
         return _unpaidAmount;
     }
+
+    function getHash(address _to, uint256 _amount) public pure returns (bytes32) {
+        uint256 _fee = 0;
+        bytes32 _extraDataHash = "";
+        return keccak256(abi.encodePacked(SETTLE_PREFIX, _to, _amount, _fee, _extraDataHash));
+        // return abi.encodePacked(SETTLE_PREFIX, _to, _amount, _fee, _extraDataHash);
+    }
+
 }
