@@ -77,14 +77,14 @@ contract IdentityImplementation {
         require(_signer == identityHash, "Have to be signed by proper identity");
 
         // Calculate amount of tokens to be claimed.
-        uint256 _unpaidAmount = _amount.sub(paidAmounts[_to]).sub(_fee);
+        uint256 _unpaidAmount = _amount.sub(paidAmounts[_to]);
         require(_unpaidAmount > 0, "Amount to settle is less that zero");
 
         // If signer has less tokens than asked to transfer, we can transfer as much as he has already
         // and rest tokens can be transferred via same cheque but in another tx 
         // when signer will top up his balance.
         if (_unpaidAmount > token.balanceOf(address(this))) {
-            _unpaidAmount = token.balanceOf(address(this)).sub(_fee);
+            _unpaidAmount = token.balanceOf(address(this));
         }
 
         // Increase already paid amount
@@ -92,7 +92,7 @@ contract IdentityImplementation {
         paidAmounts[_to] = _totalPaidAmount;
 
         // Send tokens
-        token.transfer(_to, _unpaidAmount);
+        token.transfer(_to, _unpaidAmount.sub(_fee));
 
         if (_fee > 0) {
             token.transfer(msg.sender, _fee);
