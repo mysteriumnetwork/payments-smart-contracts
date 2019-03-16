@@ -4,7 +4,6 @@ const MystToken = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
 const DEXProxy = artifacts.require("DEXProxy")
 
-
 const OneEther = web3.utils.toWei(new BN(1), 'ether')
 
 contract('DEX over Proxy', ([_, owner, ...otherAccounts]) => {
@@ -18,7 +17,7 @@ contract('DEX over Proxy', ([_, owner, ...otherAccounts]) => {
         // Mint 10 000 tokens into dex account
         const tokensToMint = web3.utils.toWei(new BN(10000), 'ether')
         await token.mint(proxiedDEX.address, tokensToMint)
-                
+
         const balance = await token.balanceOf(proxiedDEX.address)
         balance.should.be.bignumber.equal(tokensToMint)
     })

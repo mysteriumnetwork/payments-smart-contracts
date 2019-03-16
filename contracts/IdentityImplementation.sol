@@ -4,12 +4,13 @@ import { ECDSA } from "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import { DEXProxy } from "./DEXProxy.sol";
+import { FundsRecovery } from "./FundsRecovery.sol";
 
-contract MystDEX {
-    function initialise(address _dexOwner, address _token, uint256 _rate) public;
+interface MystDEX {
+    function initialise(address _dexOwner, address _token, uint256 _rate) external;
 }
 
-contract IdentityImplementation {
+contract IdentityImplementation is FundsRecovery {
     using ECDSA for bytes32;
     using SafeMath for uint256;
 

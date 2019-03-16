@@ -1,5 +1,6 @@
 const secp256k1 = require('secp256k1')
 const ethUtils = require('ethereumjs-util')
+const rlp = require('rlp')
 const { randomBytes } = require('crypto')
 
 // CREATE2 address is calculated this way:
@@ -28,7 +29,7 @@ function privateToPublic(privKey) {
     return ethUtils.privateToPublic(privKey)
 }
 
-function getIdentityHash(pubKey) {
+function toAddress(pubKey) {
     const hash = ethUtils.keccak(pubKey).slice(-20)
     return `0x${hash.toString('hex')}`
 }
@@ -57,13 +58,21 @@ function verifySignature(message, signature, pubKey) {
     return secp256k1.verify(messageHash, signature.slice(0, 64), pubKey)
 }
 
+// Derive address of smart contract created by creator.
+function deriveContractAddress(creator, nonce = 0) {
+    const input = [ creator, nonce ]
+    const rlp_encoded = rlp.encode(input)
+    return toAddress(rlp_encoded)
+}
+
 module.exports = { 
     genCreate2Address,
     generatePrivateKey,
     privateToPublic,
-    getIdentityHash,
+    getIdentityHash: toAddress,
     signMessage,
     verifySignature,
+    deriveContractAddress,
     keccak: ethUtils.keccak,
     setLengthLeft: ethUtils.setLengthLeft
 }

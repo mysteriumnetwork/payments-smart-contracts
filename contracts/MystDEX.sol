@@ -3,9 +3,10 @@ pragma solidity ^0.5.0;
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import { FundsRecovery } from "./FundsRecovery.sol";
 
 
-contract MystDEX is Ownable {
+contract MystDEX is Ownable, FundsRecovery {
     using SafeMath for uint256;
 
     bool public initialised;
