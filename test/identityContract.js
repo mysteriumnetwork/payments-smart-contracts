@@ -48,13 +48,11 @@ async function getContract(identityHash, registry) {
 }
 
 contract('Identity Contract full flow', ([txMaker, owner, ...otherAccounts]) => {
-    let token, dex, registry
+    let token, registry
     before(async () => {
         token = await MystToken.new()
-
         const dexImplementation = await MystDex.new()
         const identityImplementation = await IdentityImplementation.new(token.address, dexImplementation.address, owner, OneEther)
-        dex = await MystDex.at(await identityImplementation.address)
         registry = await IdentityRegistry.new(token.address, OneToken, identityImplementation.address)
     })
 

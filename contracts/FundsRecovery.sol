@@ -5,7 +5,7 @@ import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 
 contract FundsRecovery is Ownable {
-    address payable private fundsDestination;
+    address payable internal fundsDestination;
 
     event DestinationChanged(address indexed previousDestination, address indexed newDestination);
 
@@ -18,6 +18,9 @@ contract FundsRecovery is Ownable {
         fundsDestination = _newDestination;
     }
 
+    /**
+     * Getting funds destination address.
+     */
     function getFundsDestination() public view returns (address) {
         return fundsDestination;
     }

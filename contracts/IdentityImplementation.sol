@@ -18,7 +18,7 @@ contract IdentityImplementation is FundsRecovery {
     address public identityHash;
     address public dex;
 
-    string constant WITHDRAW_PREFIX = "Withdraw request:";
+    string constant FUNDS_DESTINATION_PREFIX = "Set funds destination:";
     string constant SETTLE_PREFIX = "Settlement request:";
 
     mapping(address => uint256) public paidAmounts;
@@ -102,11 +102,16 @@ contract IdentityImplementation is FundsRecovery {
         return _unpaidAmount;
     }
 
-    function getHash(address _to, uint256 _amount) public pure returns (bytes32) {
-        uint256 _fee = 0;
-        bytes32 _extraDataHash = "";
-        return keccak256(abi.encodePacked(SETTLE_PREFIX, _to, _amount, _fee, _extraDataHash));
-        // return abi.encodePacked(SETTLE_PREFIX, _to, _amount, _fee, _extraDataHash);
-    }
+    /**
+     * Setting new destination of funds recovery.
+     */
+    function setFundsDestinationByCheque(address payable _newDestination, bytes memory _signature) public {
+        require(_newDestination != address(0));
 
+        address _signer = keccak256(abi.encodePacked(FUNDS_DESTINATION_PREFIX, _newDestination)).recover(_signature);
+        require(_signer == identityHash, "Have to be signed by proper identity");
+
+        emit DestinationChanged(fundsDestination, _newDestination);
+        fundsDestination = _newDestination;
+    }
 }
