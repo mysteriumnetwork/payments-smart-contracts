@@ -33,7 +33,6 @@ Registry smart contract:
 
 
 ## TODO
-* Recover any tokens function for registry and Identity contracts
 * Bounty or fee for registration tx sender
 * README on how to use smart-contracts (main idea of payments)
 * Add tests for __upgradeToAndCall proxy function
@@ -44,3 +43,4 @@ Registry smart contract:
 * Staking with timelock for withdrawals and settlement
 * Bidable DEX (no centralised rate, each bidder can suggest own rate, conversion always on market price)
 * Stateless Proxy (mutates target's storage, avoids delegatecall)
+* Downvoting for provider identity (if client already paid some amount to identity) -> downvoting can reduce staking
