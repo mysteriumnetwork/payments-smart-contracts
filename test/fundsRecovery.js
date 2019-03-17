@@ -1,5 +1,9 @@
 const { BN } = require('openzeppelin-test-helpers')
-const { deriveContractAddress } = require('./utils')
+const { 
+    deriveContractAddress,
+    topUpEthers,
+    topUpTokens
+} = require('./utils')
 
 const IdentityRegistry = artifacts.require("IdentityRegistry")
 const IdentityImplementation = artifacts.require("IdentityImplementation")
@@ -10,23 +14,6 @@ const FundsRecovery = artifacts.require("FundsRecovery")
 
 const OneEther = web3.utils.toWei(new BN(1), 'ether')
 const ZeroAddress = '0x0000000000000000000000000000000000000000'
-
-// Topup given amount of ethers into give to address
-async function topUpEthers(from, to, value) {
-    const initialBalance = new BN(await web3.eth.getBalance(to))
-    await web3.eth.sendTransaction({from, to, value})
-
-    const expectedBalance = initialBalance.add(new BN(value.toString()))
-    expect(await web3.eth.getBalance(to)).to.be.equal(expectedBalance.toString())
-}
-
-// Mint some tokens into expected dexAddress
-async function topUpTokens(token, to, amount) {
-     await token.mint(to, amount.toString())
-
-     const expectedBalance = await token.balanceOf(to)
-     expectedBalance.should.be.bignumber.equal(amount.toString())
-}
 
 async function getExpectedSmartContractAddress(deployer) {
     const nonce = await web3.eth.getTransactionCount(deployer)
@@ -89,21 +76,10 @@ contract('Dex funds recovery', ([_, txMaker, fundsDestination, ...otherAccounts]
         const nonce = await web3.eth.getTransactionCount(txMaker)
         const dexAddress = deriveContractAddress(txMaker, nonce)
 
-        // Topup some ethers into expected dexAddress
-        topupAmount = 0.7 * OneEther
-        await web3.eth.sendTransaction({
-            from: otherAccounts[3],
-            to: dexAddress,
-            value: topupAmount
-        })
-        expect(await web3.eth.getBalance(dexAddress)).to.be.equal(topupAmount.toString())
-
-        // Mint some tokens into expected dexAddress
-        tokensToMint = web3.utils.toWei(new BN(7), 'ether')
-        await token.mint(dexAddress, tokensToMint)
-
-        const balance = await token.balanceOf(dexAddress)
-        balance.should.be.bignumber.equal(tokensToMint)
+        // Toup some tokens and ethers into expected address
+        topupAmount = tokensToMint = 0.7 * OneEther
+        await topUpEthers(otherAccounts[3], dexAddress, topupAmount)
+        await topUpTokens(token, dexAddress, topupAmount)
 
         // Deploy dex smart contract
         dex = await MystDex.new({from: txMaker})

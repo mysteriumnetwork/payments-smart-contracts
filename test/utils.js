@@ -2,6 +2,7 @@ const secp256k1 = require('secp256k1')
 const ethUtils = require('ethereumjs-util')
 const rlp = require('rlp')
 const { randomBytes } = require('crypto')
+const { BN } = require('openzeppelin-test-helpers')
 
 // CREATE2 address is calculated this way:
 // keccak("0xff++msg.sender++salt++keccak(byteCode)")
@@ -65,6 +66,23 @@ function deriveContractAddress(creator, nonce = 0) {
     return toAddress(rlp_encoded)
 }
 
+// Topup given amount of ethers into give to address
+async function topUpEthers(from, to, value) {
+    const initialBalance = new BN(await web3.eth.getBalance(to))
+    await web3.eth.sendTransaction({from, to, value})
+
+    const expectedBalance = initialBalance.add(new BN(value.toString()))
+    expect(await web3.eth.getBalance(to)).to.be.equal(expectedBalance.toString())
+}
+
+// Mint some tokens into expected dexAddress
+async function topUpTokens(token, to, amount) {
+     await token.mint(to, amount.toString())
+
+     const expectedBalance = await token.balanceOf(to)
+     expectedBalance.should.be.bignumber.equal(amount.toString())
+}
+
 module.exports = { 
     genCreate2Address,
     generatePrivateKey,
@@ -73,6 +91,8 @@ module.exports = {
     signMessage,
     verifySignature,
     deriveContractAddress,
+    topUpEthers,
+    topUpTokens,
     keccak: ethUtils.keccak,
     setLengthLeft: ethUtils.setLengthLeft
 }
