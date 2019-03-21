@@ -1,4 +1,4 @@
-# Mysterium Network payments
+# Mysterium Network payments [![Build Status](https://travis-ci.com/mysteriumnetwork/payments-smart-contracts.svg?token=t9FwiYsxwDxkJWnSMpfr&branch=master)](https://travis-ci.com/mysteriumnetwork/payments-smart-contracts)
 
 Set of smart contracts needed for mysterium identity registration and promise/checque settling (one directional channels).
 

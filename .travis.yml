@@ -1,8 +1,9 @@
 language: node_js
-node: "6"
+node_js: "9"
 
 install:
   npm install
 
 script:
-  npx ganache-cli --port 7545 && npm test
+  - npx ganache-cli --port 7545 &
+  - npm test
