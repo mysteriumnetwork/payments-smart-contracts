@@ -1,0 +1,60 @@
+// Mysterium Network Payments sequence diagram
+
+Consumer
+Accountant
+Provider
+
+@Starter(Consumer)
+// 
+// <<<<<<<<<< Green Path Diagram >>>>>>>>>>>
+// 
+// Register MN identity on BC paying for identity and initial TopUP
+BlockChain.RegisterTopupIdentity(ConsumerID, totalAmount, Csig)
+// Opens payment channel allocating 'amount' for spending
+// returns consumer cheque signed by Accountant 
+// that can be cleared anytime via BC or Transactor
+// Payment channel open is perfomed via BC SC transaction
+// Allocate funds that can be spent for specific provider
+// To topup a channel, consumer has to increase current amount by extending old amount value
+Accountant.OpenPaymentChannel(PayerID, AcountantID, amount, PYsig){
+  status = BlockChain.CommitTransaction(PayerID, AcountantID, amount, PYsig, Asig) 
+  if(userBalance >= amount) {
+    Consumer.SendWithdrawal(PayerID, amount, Asig, TimeLock)
+  } else {
+    Consumer.RejectPaymentChannel(PayerID, userBalance)
+  } 
+}
+
+// Issue promise to Provider
+// payoutAddress is provided by provider in Proposal
+// extraData { ConsumerID, ProviderID, ProposalID, R }
+// agreementID == hash(consumerID, providerID)
+// amount is growing within a scope of agreementID
+// agreementID sovles ambiguous accounting decision when PP CP C P (pools) are used
+balance = Provider.IssuePromise(PayerID, BeneficieryAddress, PYsig, amount, hashlock, extraData, aggreementID)
+// Consumer increases promised amount
+// Multiple promisses can be issued to Provider before Provider calls to Accountant
+// Hashlock == sha3(R) ensures that peer will send
+// signed promise back; without R - BC should reject tx
+// R is known by sender only
+Provider.IssuePromise(PayerID, BeneficieryAddress, PYsig, amount, hashlock, extraData, aggreementID) {
+  // Accountant returns signed check for provider
+  // 'to' ETH address where tokens should be sent to
+  // consumerPromise: PayerID, BeneficieryAddress, PYsig, amount, hashlock, extraDataHash
+  Accountant.ReqPromiseExchange(consumerPromise){
+    Provider.SendAccoutantPromise(BeneficieryAddress, Asig, hashlock, totalProviderAmount)
+  }
+
+  // Confirm cheque by sending R value for which hashlock was calculated
+  Accountant.ConfirmConsumerPromise(ProviderID, amount, hashlock_R)
+  Consumer.SendConsumerBalance()
+  ProviderContinuesToCollectPromisses()
+  Accountant.RequestSettleToBC(){
+    status = BlockChain.SettleProviderBalance(BeneficieryAddress, Asig, hashlock_R)    
+  } 
+}
+
+// Alternatively Consumer may decide to close channel via BC by sending directly
+Asig = Accountant.ClosePaymentChannel(PayerID, AcountantID, residualBalance, PYsig){
+    BlockChain.ClosePaymentChannel(PayerID, AcountantID, residualBalance, PYsig, Asig)
+}
