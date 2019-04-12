@@ -44,15 +44,15 @@ contract ChannelImplementation is FundsRecovery {
     Withdrawal public pendingWithdrawal; 
 
     // Only usefull in tests
-    // constructor (address _token, address _DEXImplementation, address _DEXOwner, uint256 _rate) public {
-    //     require(_token != address(0));
-    //     require(_DEXImplementation != address(0));
-    //     require(_DEXOwner != address(0));
+    constructor (address _token, address _DEXImplementation, address _DEXOwner, uint256 _rate) public {
+        require(_token != address(0));
+        require(_DEXImplementation != address(0));
+        require(_DEXOwner != address(0));
 
-    //     // Deploy MystDex proxy and set default target to `_DEXImplementation`
-    //     dex = address(new DEXProxy(_DEXImplementation, _DEXOwner));
-    //     MystDEX(dex).initialise(_DEXOwner, _token, _rate);
-    // }
+        // Deploy MystDex proxy and set default target to `_DEXImplementation`
+        dex = address(new DEXProxy(_DEXImplementation, _DEXOwner));
+        MystDEX(dex).initialise(_DEXOwner, _token, _rate);
+    }
 
     // Fallback function - redirect ethers topup into DEX
     function () external payable {
