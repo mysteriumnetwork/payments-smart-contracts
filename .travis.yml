@@ -1,0 +1,20 @@
+language: node_js
+node_js: "9"
+
+install:
+  npm install
+
+script:
+  - npx ganache-cli --port 7545 &
+  - npm test
+
+before_deploy:
+  - npm run compile
+deploy:
+  provider: releases
+  api_key: "$GIT_RELEASES_API_KEY"
+  file_glob: true
+  file: build/contracts/*
+  skip_cleanup: true
+  on:
+    tags: true
