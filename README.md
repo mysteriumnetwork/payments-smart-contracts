@@ -1,6 +1,6 @@
 # Mysterium Network payments [![Build Status](https://travis-ci.com/mysteriumnetwork/payments-smart-contracts.svg?token=t9FwiYsxwDxkJWnSMpfr&branch=master)](https://travis-ci.com/mysteriumnetwork/payments-smart-contracts)
 
-Set of smart contracts needed for mysterium identity registration and promise/checque settling (one directional channels).
+Set of smart contracts needed for mysterium identity registration and working with payment channels (using payment hubs).
 
 ## Documentation
 
@@ -38,22 +38,22 @@ npm run migrate
 ## Current deployment (ethereum Ropsten testnet)
 ERC20 Token (Mintable a la myst token): [https://ropsten.etherscan.io/address/0x453c11c058f13b36a35e1aee504b20c1a09667de](https://ropsten.etherscan.io/address/0x453c11c058f13b36a35e1aee504b20c1a09667de)
 
-Registry smart contract: 
-
+Registry smart contract:
 
 ## TODO
 
-* Refactoring to implement accountant pattern
-* Staking (without punishments) instead of registration fee
-* README on how to use smart-contracts (main idea of payments)
+* Add `HubManager` smart contract and register it in `Registry`.
+* Implement Virtual channles functionality.
+* Possibility to lend funds to hub for autochannel topup.
+* Multichannels registration (for same identity).
+* README on how to use smart-contracts (main idea of our payments method).
 * Add `green path` end-to-end test which will cover success flow from register till withdrawal
-* Bounty or fee for registration tx sender
 * Add tests for __upgradeToAndCall proxy function
-* Deploy smart contracts
+* Deploy smart contracts into Ropsten
 
 ## Ideas to discuss
 
-* Staking with timelock for withdrawals and settlement
+* Staking (without punishments) instead of registration fee.
 * Bidable DEX (no centralised rate, each bidder can suggest own rate, conversion always on market price)
 * Stateless Proxy (mutates target's storage, avoids delegatecall)
 * Downvoting for provider identity (if client already paid some amount to identity) -> downvoting can take some funds from stake
