@@ -14,7 +14,7 @@ contract IdentityRegistry is Ownable, FundsRecovery {
     IERC20 public token;
     address public dex;
     uint256 public registrationFee;
-    address channelContractImplementation;
+    address channelImplementation;
     
     event Registered(address indexed identityHash);
 
@@ -28,7 +28,7 @@ contract IdentityRegistry is Ownable, FundsRecovery {
         dex = _dexAddress;
         
         require(_implementation != address(0));
-        channelContractImplementation = _implementation;
+        channelImplementation = _implementation;
     }
 
     // Reject any ethers send to this smart-contract
@@ -65,14 +65,14 @@ contract IdentityRegistry is Ownable, FundsRecovery {
         return _addr;
     }
 
-    // NOTE: in final implementation this function will return static code (with `channelContractImplementation` address hardcoded there).
+    // NOTE: in final implementation this function will return static code (with `channelImplementation` address hardcoded there).
     // We're using this way now for easier testing.
     function getProxyCode() public view returns (bytes memory) {
         // `_code` is EIP 1167 - Minimal Proxy Contract
         // more information: https://eips.ethereum.org/EIPS/eip-1167
         bytes memory _code = hex"3d602d80600a3d3981f3363d3d373d3d3d363d73bebebebebebebebebebebebebebebebebebebebe5af43d82803e903d91602b57fd5bf3";
 
-        bytes20 _targetBytes = bytes20(channelContractImplementation);
+        bytes20 _targetBytes = bytes20(channelImplementation);
         for (uint8 i = 0; i < 20; i++) {
             _code[20 + i] = _targetBytes[i];
         }
@@ -80,7 +80,7 @@ contract IdentityRegistry is Ownable, FundsRecovery {
         return _code;
     }
 
-    function getIdentityChannelAddress(address _identityHash) public view returns (address) {
+    function getChannelAddress(address _identityHash) public view returns (address) {
         return address(uint256(keccak256(abi.encodePacked(
             bytes1(0xff),
             address(this),
@@ -90,7 +90,7 @@ contract IdentityRegistry is Ownable, FundsRecovery {
     }
 
     function isRegistered(address _identityHash) public view returns (bool) {
-        address _addr = getIdentityChannelAddress(_identityHash);
+        address _addr = getChannelAddress(_identityHash);
         uint _codeLength;
 
         assembly {
