@@ -75,7 +75,7 @@ async function topUpEthers(from, to, value) {
     expect(await web3.eth.getBalance(to)).to.be.equal(expectedBalance.toString())
 }
 
-// Mint some tokens into expected dexAddress
+// Mint some tokens
 async function topUpTokens(token, to, amount) {
      await token.mint(to, amount.toString())
 
@@ -83,16 +83,22 @@ async function topUpTokens(token, to, amount) {
      expectedBalance.should.be.bignumber.equal(amount.toString())
 }
 
+function toBytes32Buffer(item) {
+    return ethUtils.setLengthLeft(item.toBuffer(), 32)
+}
+
 module.exports = { 
     genCreate2Address,
     generatePrivateKey,
     privateToPublic,
     getIdentityHash: toAddress,
+    toAddress,
     signMessage,
     verifySignature,
     deriveContractAddress,
     topUpEthers,
     topUpTokens,
     keccak: ethUtils.keccak,
-    setLengthLeft: ethUtils.setLengthLeft
+    setLengthLeft: ethUtils.setLengthLeft,
+    toBytes32Buffer
 }

@@ -12,7 +12,7 @@ const MystDex = artifacts.require("MystDEX")
 const OneEther = web3.utils.toWei('1', 'ether')
 const identityHash = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
 
-contract.only('Identity registry', ([owner, minter, hub, ...otherAccounts]) => {
+contract('Identity registry', ([owner, minter, hub, ...otherAccounts]) => {
     let token, channelImplementation, dex, registry
     before(async () => {
         token = await MystToken.new()
