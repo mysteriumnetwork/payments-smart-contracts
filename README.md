@@ -43,6 +43,7 @@ Registry smart contract:
 ## TODO
 
 * Add `HubManager` smart contract and register it in `Registry`.
+* Opening channel should automatically do allowance for hub's tokens.
 * Implement Virtual channles functionality.
 * Possibility to lend funds to hub for autochannel topup.
 * Multichannels registration (for same identity).
