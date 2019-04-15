@@ -67,7 +67,7 @@ contract ChannelImplementation is FundsRecovery {
         require(_identityHash != address(0), "Identity can't be zero");
         require(_hubId != address(0), "HubID can't be zero");
         require(_token != address(0), "Token can't be deployd into zero address");
-        
+
         token = IERC20(_token);
         dex = _dex;
         identityHash = _identityHash;
@@ -83,12 +83,14 @@ contract ChannelImplementation is FundsRecovery {
 
     // Topup via preliminary allowance. The only way to topup for hub.
     function deposit(address _party, uint256 _amount) public {
+        updateIdentityBalance(); // First make sure that erlier topuped tokens already counted
+
         token.transferFrom(msg.sender, address(this), _amount);
 
         if (_party == hubId) {
-            hubBalance += _amount;
+            hubBalance = hubBalance.add(_amount);
         } else {
-            identityBalance += _amount;
+            identityBalance = identityBalance.add(_amount);
         }
 
         require(
