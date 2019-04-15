@@ -97,6 +97,8 @@ contract ChannelImplementation is FundsRecovery {
             identityBalance.add(hubBalance) == token.balanceOf(address(this)),
             "sum balances must be equal to amount of locked tokens"
         );
+
+        emit ChannelStateUpdated(identityBalance, hubBalance, lastSequence);
     }
 
     // Will check if there was no tokens send into channel, and if founds some, add them into identity balance
@@ -134,12 +136,12 @@ contract ChannelImplementation is FundsRecovery {
     // Fast withdraw request (with rebalancing)
     function updateAndWithdraw(uint256 _identityBalance, uint256 _hubBalance, 
                                uint256 _identityWithdraw, uint256 _hubWithdraw,
-                               uint256 _sequence, uint256 _timeout, bytes memory _identitySig, bytes memory _hubSig) public {
-        require(now <= _timeout, "fast withdraw signatures timeout");
+                               uint256 _sequence, uint256 _deadline, bytes memory _identitySig, bytes memory _hubSig) public {
+        require(now <= _deadline, "fast withdraw deadline passed");
         require(_sequence > lastSequence, "provided sequence must be bigger than already seen");
         require(_identityBalance.add(_hubBalance).add(_identityWithdraw).add(_hubWithdraw) == token.balanceOf(address(this)), "sum of balances must be equal to amount of locked tokens");
 
-        bytes32 _hash = keccak256(abi.encodePacked(REBALANCE_PREFIX, _identityBalance, _hubBalance, _identityWithdraw, _hubWithdraw, _sequence, _timeout));
+        bytes32 _hash = keccak256(abi.encodePacked(REBALANCE_PREFIX, _identityBalance, _hubBalance, _identityWithdraw, _hubWithdraw, _sequence, _deadline));
 
         address _recoveredIdentity = _hash.recover(_identitySig);
         require(_recoveredIdentity == identityHash, "wrong identity signature");

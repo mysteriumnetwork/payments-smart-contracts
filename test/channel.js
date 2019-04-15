@@ -7,11 +7,11 @@ const {
     toBytes32Buffer,
     topUpTokens
 } = require('./utils.js')
-const { requestPayment, signPaymentRequest } = require('./client.js')
+const { requestPayment, signPaymentRequest, requestWithdrawal, signWithdrawRequest } = require('./client.js')
 
 const MystToken = artifacts.require("MystToken")
 const IdentityRegistry = artifacts.require("IdentityRegistry")
-const ChannelImplementation = artifacts.require("ChannelImplementation")
+const TestChannelImplementation = artifacts.require("TestChannelImplementation")
 const MystDex = artifacts.require("MystDEX")
 
 // Generate identity
@@ -28,15 +28,15 @@ const OneToken = web3.utils.toWei(new BN(1), 'ether')
 const OneEther = web3.utils.toWei('1', 'ether')
 
 async function getChannel(identityHash, registry) {
-    return await ChannelImplementation.at(await genCreate2Address(identityHash, registry))
+    return await TestChannelImplementation.at(await genCreate2Address(identityHash, registry))
 }
 
-contract('Channel Contract full flow', ([txMaker, owner, ...otherAccounts]) => {
+contract.only('Channel Contract full flow', ([txMaker, owner, ...otherAccounts]) => {
     let token, registry, channelImplementation
     before(async () => {
         token = await MystToken.new()
         const dexImplementation = await MystDex.new()
-        channelImplementation = await ChannelImplementation.new(token.address, dexImplementation.address, owner, OneEther)
+        channelImplementation = await TestChannelImplementation.new(token.address, dexImplementation.address, owner, OneEther)
         registry = await IdentityRegistry.new(token.address, dexImplementation.address, OneToken, channelImplementation.address)
     })
 
@@ -63,11 +63,11 @@ contract('Channel Contract full flow', ([txMaker, owner, ...otherAccounts]) => {
 
     it("should be able to topup channel", async () => {
         const userAccount = otherAccounts[0]
-        const channelAddress = await genCreate2Address(identityHash, registry)
+        const channel = await getChannel(identityHash, registry)
         const amount = OneToken.mul(new BN(8)) // 8 full tokens
         
-        await token.transfer(channelAddress, amount, {from: userAccount})
-        channelTotalBalance = await token.balanceOf(channelAddress)
+        await token.transfer(channel.address, amount, {from: userAccount})
+        channelTotalBalance = await token.balanceOf(channel.address)
         channelTotalBalance.should.be.bignumber.equal(amount)
     })
 
@@ -84,8 +84,8 @@ contract('Channel Contract full flow', ([txMaker, owner, ...otherAccounts]) => {
         await token.approve(channel.address, tokensToMint, {from: hubOperator})
 
         // Deposit tokens into channel
-        channel.deposit(hub, tokensToMint, {from: hubOperator})
-        
+        await channel.deposit(hub, tokensToMint, {from: hubOperator})
+
         // Check that tokens were deposited into channel
         const channelTotalBalance = await token.balanceOf(channel.address)
         channelTotalBalance.should.be.bignumber.equal(initialBalance.add(tokensToMint))
@@ -106,7 +106,7 @@ contract('Channel Contract full flow', ([txMaker, owner, ...otherAccounts]) => {
         await token.approve(channel.address, amount, {from: userAccount})
 
         // Deposit tokens into channel
-        channel.deposit(userAccount, amount, {from: userAccount})
+        await channel.deposit(userAccount, amount, {from: userAccount})
 
         // Check that channel state was updated properly
         const identityBalanceInChannel = await channel.identityBalance()
@@ -118,8 +118,12 @@ contract('Channel Contract full flow', ([txMaker, owner, ...otherAccounts]) => {
 
         // hub request payment
         const { state, signature } = await requestPayment(hubPrivKey, 2.5, channel)
+
+        // payer agree
         const identitySignature = signPaymentRequest(privKey, state)
-        channel.update(
+
+        // anyone (but usually payer) can send tx into blockchain
+        await channel.update(
             toBytes32Buffer(state.identityBalance),
             toBytes32Buffer(state.hubBalance),
             toBytes32Buffer(state.sequence),
@@ -140,10 +144,109 @@ contract('Channel Contract full flow', ([txMaker, owner, ...otherAccounts]) => {
         channelTotalBalance.should.be.bignumber.equal(state.totalBalance)
     })
 
-    // TODO add tests for exiting channel (a few tests, green path and trying cheating)
     // TODO add tests for cooperative withdrawal (updateAndWithdraw)
-    // TODO add tests for hub deposits
-    // TODO add tests for updateIdentityBalance
+    it("should imidiately withdraw funds when other party is cooperating", async () => {
+        const channel = await getChannel(identityHash, registry)
+
+        // identity request withdraw
+        const amount = new BN((OneToken * 0.5).toString())
+        const { state, signature } = await requestWithdrawal(privKey, amount, 3600, channel)
+
+        // hub agrees on withdrawal request
+        const hubSignature = signWithdrawRequest(hubPrivKey, state)
+
+        // anyone (but usually requester) can send tx into blockchain
+        await channel.updateAndWithdraw(
+            toBytes32Buffer(state.identityBalance),
+            toBytes32Buffer(state.hubBalance),
+            toBytes32Buffer(state.identityWithdraw),
+            toBytes32Buffer(state.hubWithdraw),
+            toBytes32Buffer(state.sequence),
+            toBytes32Buffer(state.deadline),
+            signature,
+            hubSignature
+        )
+
+        const identityBalance = await channel.identityBalance()
+        identityBalance.should.be.bignumber.equal(state.identityBalance)
+
+        const hubBalance = await channel.hubBalance()
+        hubBalance.should.be.bignumber.equal(state.hubBalance)
+
+        const sequence = await channel.lastSequence()
+        sequence.should.be.bignumber.equal(state.sequence)
+
+        const channelTotalBalance = await token.balanceOf(channel.address)
+        channelTotalBalance.should.be.bignumber.equal(state.totalBalance)
+
+        const identityTokens = await token.balanceOf(identityHash)
+        identityTokens.should.be.bignumber.equal(amount)
+
+        // Second attempt sending same withdraw request should fail
+        await channel.updateAndWithdraw(
+            toBytes32Buffer(state.identityBalance),
+            toBytes32Buffer(state.hubBalance),
+            toBytes32Buffer(state.identityWithdraw),
+            toBytes32Buffer(state.hubWithdraw),
+            toBytes32Buffer(state.sequence),
+            toBytes32Buffer(state.deadline),
+            signature,
+            hubSignature
+        ).should.be.rejected
+    })
+
+    it("should fail to update channel when someone send tokens in the middle of process", async () => {
+        const userAccount = otherAccounts[1]
+        const channel = await getChannel(identityHash, registry)
+        const { state, signature } = await requestPayment(hubPrivKey, 7, channel)
+        const identitySignature = signPaymentRequest(privKey, state)
+
+        // Mint 100 tokens into hub account and send part of them into channel
+        const tokensToMint = OneToken.mul(new BN(70))
+        await topUpTokens(token, userAccount, tokensToMint)
+        await token.transfer(channel.address, OneToken.mul(new BN(25)), {from: userAccount})
+
+        // transaction sent into blockchain should fail because of wrong totalChannelBalance
+        await channel.update(
+            toBytes32Buffer(state.identityBalance),
+            toBytes32Buffer(state.hubBalance),
+            toBytes32Buffer(state.sequence),
+            identitySignature,
+            signature
+        ).should.be.rejected
+    })
+
+    it("should fail to update channel when someone send tokens in the middle of process", async () => {
+        const userAccount = otherAccounts[1]
+        const channel = await getChannel(identityHash, registry)
+
+        // rebalance onchain state
+        await channel.updateIdentityBalance()
+
+        // identity request withdraw
+        const amount = new BN((OneToken * 5).toString())
+        const { state, signature } = await requestWithdrawal(privKey, amount, 3600, channel)
+
+        // hub agrees on withdrawal request
+        const hubSignature = signWithdrawRequest(hubPrivKey, state)
+
+        // deposit some tokens before update transaction
+        await token.approve(channel.address, amount, {from: userAccount})
+        await channel.deposit(hub, amount, {from: userAccount})
+
+        // transaction sent into blockchain should fail because of wrong totalChannelBalance
+        await channel.updateAndWithdraw(
+            toBytes32Buffer(state.identityBalance),
+            toBytes32Buffer(state.hubBalance),
+            toBytes32Buffer(state.identityWithdraw),
+            toBytes32Buffer(state.hubWithdraw),
+            toBytes32Buffer(state.sequence),
+            toBytes32Buffer(state.deadline),
+            signature,
+            hubSignature
+        ).should.be.rejected
+    })
+    // TODO add tests for exiting channel (a few tests, green path and trying cheating)
     // TODO check for reentrancy in exit finalisation, topup and withdrawal
     // TODO add tests for chalenge period updates
     // TODO test foreign tokens and ethers recovery
