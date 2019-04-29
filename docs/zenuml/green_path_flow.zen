@@ -13,7 +13,7 @@ Accountant -> BlockChain: RegisterAccountant(accountantOperatorAddress, type)
 
 // Consumer register MN identity on BC paying for identity and initial TopUP
 Consumer -> BlockChain: RegisterIdentity(ConsumerID, AccountantID)
-Consumet -> BlockChain: TopUpChannel(amount)
+Consumer -> BlockChain: TopUpChannel(amount)
 
 // Provider register MN identity BC paying for identity
 Provider -> BlockChain: RegisterIdentity(ProviderID, AccountantID)
