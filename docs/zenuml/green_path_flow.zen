@@ -9,13 +9,14 @@ Accountant
 
 
 // Register Accountant and his type on BC and staking some coins
-Accountant -> BlockChain: RegisterAccountant(AccountantOperatorAddress, type)
+Accountant -> BlockChain: RegisterAccountant(accountantOperatorAddress, type)
 
 // Consumer register MN identity on BC paying for identity and initial TopUP
-Consumer -> BlockChain: RegisterIdentity(ConsumerID, totalAmount, AccountantID, Csig)
+Consumer -> BlockChain: RegisterIdentity(ConsumerID, AccountantID)
+Consumet -> BlockChain: TopUpChannel(amount)
 
 // Provider register MN identity BC paying for identity
-Provider -> BlockChain: RegisterIdentity(ProviderID, feeAmount, AccountantID, Psig)
+Provider -> BlockChain: RegisterIdentity(ProviderID, AccountantID)
 
 // Provider can lend some funds to Accountant so he have to topup channel imidiatelly.
 // Alternatively if provider don't want to lend, then he can ask for collateral from accountant, and agree on bigger fee.
