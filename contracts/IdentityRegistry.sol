@@ -26,7 +26,7 @@ contract IdentityRegistry is Ownable, FundsRecovery {
 
         require(_dexAddress != address(0));
         dex = _dexAddress;
-        
+
         require(_implementation != address(0));
         channelImplementation = _implementation;
     }
@@ -46,7 +46,7 @@ contract IdentityRegistry is Ownable, FundsRecovery {
 
         // Deploy channel contract for given identity (mini proxy which is pointing to implementation)
         ChannelImplementation _channel = ChannelImplementation(deployMiniProxy(uint256(_identityHash)));
-        _channel.initialize(address(token), dex, _identityHash, _hubId, 259200); // 259 200 = 3 days challenge period
+        _channel.initialize(address(token), dex, _identityHash, _hubId);
 
         emit Registered(_identityHash);
     }

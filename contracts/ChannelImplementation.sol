@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.7;
 
 import { ECDSA } from "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
@@ -10,49 +10,41 @@ interface MystDEX {
     function initialise(address _dexOwner, address _token, uint256 _rate) external;
 }
 
-/*
-    Ledger Channel between user and hub.
-    This is channel implementation into which mini proxies will point to.
-*/
+interface AccountantImplementation {
+    function getOperator() external view returns (address);
+}
+
 contract ChannelImplementation is FundsRecovery {
     using ECDSA for bytes32;
     using SafeMath for uint256;
 
-    string constant REBALANCE_PREFIX = "Rebalancing channel balances:";
     string constant EXIT_PREFIX = "Exit request:";
+    uint256 constant DELAY_BLOCKS = 18000;  // +/- 4 days
 
-    event IdentityBalanceUpdated(uint256 balance);
-    event ChannelStateUpdated(uint256 identityBalance, uint256 hubBalance, uint256 sequence);
-    event FundsWithdrawn(address indexed party, address indexed beneficiary, uint256 amount);
-    event ExitRequested(address party, uint256 timeout);
-
-    struct Withdrawal {
-        address party;
-        address beneficiary;
-        uint256 timeout;
+    struct ExitRequest {
+        uint256 timelock;          // block number after which exit can be finalized
+        address beneficiary;       // address where funds will be send after finalizing exit request
     }
 
-    IERC20 public token;             // NOTE: token can be actually constant or be received from external config
+    struct Party {
+        address id;                   // signing address
+        address beneficiary;          // address where funds will be send
+        uint256 settled;              // total amount already settled by accountant 
+    }
+
+    ExitRequest public exitRequest;
+    Party public party;               // accountant
+    address public operator;          // sha3(IdentityPublicKey)[:20]
     address public dex;
 
-    address public identityHash;     // sha3(identityPubKey)[:20]
-    address public hubId;            // TODO get hubOperator here (from hubId contract)
-    uint256 public identityBalance;
-    uint256 public hubBalance;
-    uint256 public lastSequence;
-    uint256 public challengePeriod;  // Time in seconds
-    Withdrawal public pendingWithdrawal; 
+    event PromiseSettled(address beneficiary, uint256 amount, uint256 totalSettled);
+    event ChannelInitialised(address operator, address party);
+    event ExitRequested(uint256 timelock);
+    event FinalizeExit(uint256 amount);
 
-    // Only usefull in tests
-    constructor (address _token, address _DEXImplementation, address _DEXOwner, uint256 _rate) public {
-        require(_token != address(0));
-        require(_DEXImplementation != address(0));
-        require(_DEXOwner != address(0));
-
-        // Deploy MystDex proxy and set default target to `_DEXImplementation`
-        dex = address(new DEXProxy(_DEXImplementation, _DEXOwner));
-        MystDEX(dex).initialise(_DEXOwner, _token, _rate);
-    }
+    /*
+      ------------------------------------------- SETUP -------------------------------------------
+    */
 
     // Fallback function - redirect ethers topup into DEX
     function () external payable {
@@ -62,193 +54,110 @@ contract ChannelImplementation is FundsRecovery {
 
     // Because of proxy pattern this function is used insted of constructor.
     // Have to be called right after proxy deployment.
-    function initialize(address _token, address _dex, address _identityHash, address _hubId, uint256 _challengePeriod) public {
+    function initialize(address _token, address _dex, address _identityHash, address _accountantId) public {
         require(!isInitialized(), "Is already initialized");
         require(_identityHash != address(0), "Identity can't be zero");
-        require(_hubId != address(0), "HubID can't be zero");
+        require(_accountantId != address(0), "AccountantID can't be zero");
         require(_token != address(0), "Token can't be deployd into zero address");
 
         token = IERC20(_token);
         dex = _dex;
-        identityHash = _identityHash;
-        hubId = _hubId;
-        challengePeriod = _challengePeriod;
 
-        updateIdentityBalance(); // in case there were token sent before contract deplyment
+        operator = _identityHash;
+        party = Party(AccountantImplementation(_accountantId).getOperator(), _accountantId, 0);
+
+        emit ChannelInitialised(_identityHash, _accountantId);
     }
 
     function isInitialized() public view returns (bool) {
-        return identityHash != address(0);
-    }
-
-    // Topup via preliminary allowance. The only way to topup for hub.
-    function deposit(address _party, uint256 _amount) public {
-        updateIdentityBalance(); // First make sure that erlier topuped tokens already counted
-
-        token.transferFrom(msg.sender, address(this), _amount);
-
-        if (_party == hubId) {
-            hubBalance = hubBalance.add(_amount);
-        } else {
-            identityBalance = identityBalance.add(_amount);
-        }
-
-        require(
-            identityBalance.add(hubBalance) == token.balanceOf(address(this)),
-            "sum balances must be equal to amount of locked tokens"
-        );
-
-        emit ChannelStateUpdated(identityBalance, hubBalance, lastSequence);
-    }
-
-    // Will check if there was no tokens send into channel, and if founds some, add them into identity balance
-    function updateIdentityBalance() public {
-        identityBalance = token.balanceOf(address(this)).sub(hubBalance);
-        emit IdentityBalanceUpdated(identityBalance);
-    }
-
-    // Alternative way to work with Identity balances TODO: add it in separate PR
-    // function identityBalance() public view returns (uint256) {
-    //     return token.balanceOf(address(this)).sub(hubBalance);
-    // }
-
-    // Update/rebalance channel
-    function update(uint256 _identityBalance, uint256 _hubBalance, uint256 _sequence, bytes memory _identitySig, bytes memory _hubSig) public {
-        require(_sequence > lastSequence, "provided sequence must be bigger than already seen");
-        require(_identityBalance.add(_hubBalance) == token.balanceOf(address(this)), "sum of balances must be equal to amount of locked tokens");
-
-        bytes32 _hash = keccak256(abi.encodePacked(REBALANCE_PREFIX, _identityBalance, _hubBalance, _sequence));
-
-        address _recoveredIdentity = _hash.recover(_identitySig);
-        require(_recoveredIdentity == identityHash, "wrong identity signature");
-
-        address _recoveredHub = _hash.recover(_hubSig);
-        require(_recoveredHub == hubId, "wrong hub signature");
-
-        // Update channel state
-        identityBalance = _identityBalance;
-        hubBalance = _hubBalance;
-        lastSequence = _sequence;
-
-        emit ChannelStateUpdated(identityBalance, hubBalance, lastSequence);
-    }
-
-    // Fast withdraw request (with rebalancing)
-    function updateAndWithdraw(uint256 _identityBalance, uint256 _hubBalance, 
-                               uint256 _identityWithdraw, uint256 _hubWithdraw,
-                               uint256 _sequence, uint256 _deadline, bytes memory _identitySig, bytes memory _hubSig) public {
-        require(now <= _deadline, "fast withdraw deadline passed");
-        require(_sequence > lastSequence, "provided sequence must be bigger than already seen");
-        require(_identityBalance.add(_hubBalance).add(_identityWithdraw).add(_hubWithdraw) == token.balanceOf(address(this)), "sum of balances must be equal to amount of locked tokens");
-
-        bytes32 _hash = keccak256(abi.encodePacked(REBALANCE_PREFIX, _identityBalance, _hubBalance, _identityWithdraw, _hubWithdraw, _sequence, _deadline));
-
-        address _recoveredIdentity = _hash.recover(_identitySig);
-        require(_recoveredIdentity == identityHash, "wrong identity signature");
-
-        address _recoveredHub = _hash.recover(_hubSig);
-        require(_recoveredHub == hubId, "wrong hub signature");
-
-        // Withdraw funds
-        if (_identityWithdraw > 0) {
-            token.transfer(identityHash, _identityWithdraw); // TODO point where to withdraw
-            emit FundsWithdrawn(identityHash, identityHash, _identityWithdraw);
-        }
-
-        if (_hubWithdraw > 0) {
-            token.transfer(hubId, _hubWithdraw);
-            emit FundsWithdrawn(hubId, hubId, _hubWithdraw);
-        }
-
-        require(_identityBalance.add(_hubBalance) == token.balanceOf(address(this)), "sum of balances must be equal to amount of locked tokens");
-
-        // Update channel state
-        identityBalance = _identityBalance;
-        hubBalance = _hubBalance;
-        lastSequence = _sequence;
-
-        emit ChannelStateUpdated(identityBalance, hubBalance, lastSequence);
+        return operator != address(0);
     }
 
     /*
-        Exit (withdrawal with delay for challanges/channel state updates)
+      -------------------------------------- MAIN FUNCTIONALITY -----------------------------------
     */
 
-    // TODO add bounty for challenge.
-    // Start emergency withdrawal of all funds --> usually when another party is not collaborating for `updateAndWithdraw`
-    function exitRequest(address _party, address _beneficiary, bytes memory _signature) public {
-        require(_party == identityHash || _party == hubId, "party should be either identity either hub");
-        require(_beneficiary != address(0), "tokens can't be burned");
-        // require(channel.status == ChannelStatus.Open, "channel must be open");
+    // Settle promise
+    // signedMessage: channelId, totalSettleAmount, fee, hashlock
+    // _lock is random number generated by receiver used in HTLC
+    function settlePromise(uint256 _amount, uint256 _fee, bytes32 _lock, bytes32 _extraDataHash, bytes memory _signature) public {
+        bytes32 _hashlock = keccak256(abi.encode(_lock));
+        address _channelId = address(this);
+        address _signer = keccak256(abi.encodePacked(_channelId, _amount, _fee, _hashlock, _extraDataHash)).recover(_signature);
+        require(_signer == operator, "have to be signed by channel operator");
 
-        address _recoveredParty = keccak256(abi.encodePacked(EXIT_PREFIX, _party, _beneficiary)).recover(_signature);
-        require(_recoveredParty == _party, "wrong signature");
+        // Calculate amount of tokens to be claimed.
+        uint256 _unpaidAmount = _amount.sub(party.settled);
+        require(_unpaidAmount > 0, "amount to settle should be greater that already settled");
 
-        // channel.status = ChannelStatus.ChannelDispute;
-        uint256 _timeout = now.add(challengePeriod);
-        pendingWithdrawal = Withdrawal(_party, _beneficiary,  _timeout);
+        // If signer has less tokens than asked to transfer, we can transfer as much as he has already
+        // and rest tokens can be transferred via same promise but in another tx 
+        // when signer will top up channel balance.
+        uint256 _currentBalance = token.balanceOf(_channelId);
+        if (_unpaidAmount > _currentBalance) {
+            _unpaidAmount = _currentBalance;
+        }
 
-        emit ExitRequested(_party, _timeout);
+        // Increase already paid amount
+        party.settled = party.settled.add(_unpaidAmount);
+
+        // Send tokens
+        token.transfer(party.beneficiary, _unpaidAmount.sub(_fee));
+
+        // Pay fee
+        if (_fee > 0) {
+            token.transfer(msg.sender, _fee);
+        }
+
+        emit PromiseSettled(party.beneficiary, _unpaidAmount, party.settled);
     }
 
-    // Emergency withdrawal when there are not signature from another party
-    function updateAndExit(address _party, address _beneficiary, bytes memory _signature,
-                           uint256 _identityBalance, uint256 _hubBalance, 
-                           uint256 _sequence, bytes memory _identitySig, bytes memory _hubSig) public {
-        require(_party == identityHash || _party == hubId, "party should be either identity either hub");
-        
-        update(_identityBalance, _hubBalance, _sequence, _identitySig, _hubSig); // Update channel into last known state
-        exitRequest(_party, _beneficiary, _signature);
+    // Start withdrawal of deposited but still not  funds --> usually when another party is not collaborating for `updateAndWithdraw`
+    function requestExit(address _beneficiary, uint256 _validUntil, bytes memory _signature) public {
+        uint256 _timelock = block.number + DELAY_BLOCKS;
+
+        require(exitRequest.timelock == 0, "new exit can be requested only when old one was finalised");
+        require(_timelock > _validUntil, "request have to be valid shorter that DELAY_BLOCKS");
+        require(_beneficiary != address(0), "beneficiary can't be zero address");
+
+        if (msg.sender != operator) {
+            address _channelId = address(this);
+            address _signer = keccak256(abi.encodePacked(EXIT_PREFIX, _channelId, _beneficiary, _validUntil)).recover(_signature);
+            require(_signer == operator, "have to be signed by operator");
+        }
+
+        exitRequest = ExitRequest(_timelock, _beneficiary);
+
+        emit ExitRequested(_timelock);
     }
 
+    // Anyone can finalize exit request after timelock block passed
     function finalizeExit() public {
-        require(pendingWithdrawal.party != address(0), "there should be pending withdrawal");
-        require(pendingWithdrawal.timeout != 0 && now > pendingWithdrawal.timeout, "timeout should be passed");
+        require(exitRequest.timelock != 0 && block.number >= exitRequest.timelock, "exit have to be requested and timelock have to be in past");
 
-        uint256 _amount;
+        // Exit with all not settled funds
+        uint256 amount = token.balanceOf(address(this));
+        token.transfer(exitRequest.beneficiary, amount);
 
-        if (pendingWithdrawal.party == identityHash) {
-            _amount = identityBalance;
-            identityBalance = 0;
-        } else {
-            _amount = hubBalance;
-            hubBalance = 0;
-        }
-        
-        token.transfer(pendingWithdrawal.beneficiary, _amount);
-        pendingWithdrawal = Withdrawal(address(0), address(0), 0);
-
-        emit FundsWithdrawn(pendingWithdrawal.party, pendingWithdrawal.beneficiary, _amount);
+        exitRequest = ExitRequest(0, address(0));  // deleting request
+        emit FinalizeExit(amount);
     }
 
     /*
-        Helpers
+      ------------------------------------------ HELPERS ------------------------------------------
     */
-    string constant PERIOD_CHANGE_PREFIX = "Challenge period change request:";
-    event ChallengePeriodChanged(uint256 challengePeriod);
-    function updateChallengePeriod(uint256 _newChallengePediod, bytes memory _identitySig, bytes memory _hubSig) public {
-        bytes32 _hash = keccak256(abi.encodePacked(PERIOD_CHANGE_PREFIX, _newChallengePediod));
-
-        address _recoveredIdentity = _hash.recover(_identitySig);
-        require(_recoveredIdentity == identityHash, "wrong identity signature");
-
-        address _recoveredHub = _hash.recover(_hubSig);
-        require(_recoveredHub == hubId, "wrong hub signature");    
-    
-        challengePeriod = _newChallengePediod;
-
-        emit ChallengePeriodChanged(_newChallengePediod);
-    }
 
     // Setting new destination of funds recovery.
+    // TODO: Protect from replly attack
     string constant FUNDS_DESTINATION_PREFIX = "Set funds destination:";
     function setFundsDestinationByCheque(address payable _newDestination, bytes memory _signature) public {
         require(_newDestination != address(0));
 
         address _signer = keccak256(abi.encodePacked(FUNDS_DESTINATION_PREFIX, _newDestination)).recover(_signature);
-        require(_signer == identityHash, "Have to be signed by proper identity");
+        require(_signer == operator, "Have to be signed by proper identity");
 
         emit DestinationChanged(fundsDestination, _newDestination);
         fundsDestination = _newDestination;
     }
+
 }
