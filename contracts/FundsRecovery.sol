@@ -3,9 +3,9 @@ pragma solidity ^0.5.0;
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
-
 contract FundsRecovery is Ownable {
     address payable internal fundsDestination;
+    IERC20 public token;
 
     event DestinationChanged(address indexed previousDestination, address indexed newDestination);
 
@@ -36,9 +36,11 @@ contract FundsRecovery is Ownable {
     /**
        Transfers selected tokens into owner address.
     */
-    function claimTokens(address token) public {
+    // TODO add reentrancy protection
+    function claimTokens(address _token) public {
         require(fundsDestination != address(0));
-        uint256 _amount = IERC20(token).balanceOf(address(this));
-        IERC20(token).transfer(fundsDestination, _amount);
+        require(_token != address(token), "main token funds can be withdrawn only using channel's withdraw method");
+        uint256 _amount = IERC20(_token).balanceOf(address(this));
+        IERC20(_token).transfer(fundsDestination, _amount);
     }
 }
