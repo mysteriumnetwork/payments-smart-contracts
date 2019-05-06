@@ -77,6 +77,7 @@ contract AccountantImplementation is FundsRecovery {
       -------------------------------------- MAIN FUNCTIONALITY -----------------------------------
     */
 
+    // Open incomming payments (also known as provider) channel.
     function openChannel(address _party, address _beneficiary, uint256 _amountToLend, bytes memory _signature) public {
         // Registry don't need signature to open channel in name of identity
         if (msg.sender != address(registry)) {

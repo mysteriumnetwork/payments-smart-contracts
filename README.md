@@ -42,15 +42,15 @@ Registry smart contract:
 
 ## TODO
 
-* Add `HubManager` smart contract and register it in `Registry`.
-* Opening channel should automatically do allowance for hub's tokens.
-* Implement Virtual channles functionality.
-* Possibility to lend funds to hub for autochannel topup.
-* Multichannels registration (for same identity).
-* README on how to use smart-contracts (main idea of our payments method).
-* Add `green path` end-to-end test which will cover success flow from register till withdrawal
-* Add tests for __upgradeToAndCall proxy function
-* Deploy smart contracts into Ropsten
+*[x] Register Accountant in `Registry`.
+*[ ] Opening channel should automatically do allowance for hub's tokens.
+*[ ] Implement Virtual channles functionality.
+*[ ] Possibility to lend funds to hub for autochannel topup.
+*[ ] Multichannels registration (for same identity).
+*[ ] README on how to use smart-contracts (main idea of our payments method).
+*[ ] Add `green path` end-to-end test which will cover success flow from register till withdrawal
+*[ ] Add tests for __upgradeToAndCall proxy function
+*[ ] Deploy smart contracts into Ropsten
 
 ## Ideas to discuss
 
