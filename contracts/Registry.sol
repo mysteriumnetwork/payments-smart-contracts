@@ -4,9 +4,15 @@ import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
-import { ChannelImplementation } from "./ChannelImplementation.sol";
-import { AccountantImplementation } from "./AccountantImplementation.sol";
 
+interface ChannelImplementation {
+    function initialize(address _token, address _dex, address _identityHash, address _accountantId) external;
+}
+
+interface AccountantImplementation {
+    function initialize(address _token, address _operator) external;
+    function openChannel(address _party, address _beneficiary, uint256 _amountToLend, bytes calldata _signature) external;
+}
 
 contract Registry is Ownable, FundsRecovery {
     using SafeMath for uint256;
@@ -118,7 +124,7 @@ contract Registry is Ownable, FundsRecovery {
 
     // NOTE: in final implementation this function will return static code (with `channelImplementation` address hardcoded there).
     // We're using this way now for easier testing.
-    function getProxyCode(address _implementation) public view returns (bytes memory) {
+    function getProxyCode(address _implementation) public pure returns (bytes memory) {
         // `_code` is EIP 1167 - Minimal Proxy Contract
         // more information: https://eips.ethereum.org/EIPS/eip-1167
         bytes memory _code = hex"3d602d80600a3d3981f3363d3d373d3d3d363d73bebebebebebebebebebebebebebebebebebebebe5af43d82803e903d91602b57fd5bf3";
