@@ -1,4 +1,4 @@
-pragma solidity ^0.5.7;
+pragma solidity ^0.5.8;
 
 import { ECDSA } from "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
