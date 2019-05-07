@@ -3,14 +3,9 @@ pragma solidity ^0.5.8;
 import { ECDSA } from "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
-import { DEXProxy } from "./DEXProxy.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
 
-interface MystDEX {
-    function initialise(address _dexOwner, address _token, uint256 _rate) external;
-}
-
-interface AccountantImplementation {
+interface Accountant {
     function getOperator() external view returns (address);
 }
 
@@ -20,6 +15,7 @@ contract ChannelImplementation is FundsRecovery {
 
     string constant EXIT_PREFIX = "Exit request:";
     uint256 constant DELAY_BLOCKS = 18000;  // +/- 4 days
+    IERC20 public token;
 
     struct ExitRequest {
         uint256 timelock;          // block number after which exit can be finalized
@@ -64,7 +60,7 @@ contract ChannelImplementation is FundsRecovery {
         dex = _dex;
 
         operator = _identityHash;
-        party = Party(AccountantImplementation(_accountantId).getOperator(), _accountantId, 0);
+        party = Party(Accountant(_accountantId).getOperator(), _accountantId, 0);
 
         emit ChannelInitialised(_identityHash, _accountantId);
     }
@@ -159,5 +155,4 @@ contract ChannelImplementation is FundsRecovery {
         emit DestinationChanged(fundsDestination, _newDestination);
         fundsDestination = _newDestination;
     }
-
 }

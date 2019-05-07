@@ -5,11 +5,11 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
 
-interface ChannelImplementation {
+interface Channel {
     function initialize(address _token, address _dex, address _identityHash, address _accountantId) external;
 }
 
-interface AccountantImplementation {
+interface AccountantContract {
     function initialize(address _token, address _operator) external;
     function openChannel(address _party, address _beneficiary, uint256 _amountToLend, bytes calldata _signature) external;
 }
@@ -69,14 +69,14 @@ contract Registry is Ownable, FundsRecovery {
         }
 
         // Deploy channel contract for given identity (mini proxy which is pointing to implementation)
-        ChannelImplementation _channel = ChannelImplementation(deployMiniProxy(uint256(_identityHash), channelImplementation));
+        Channel _channel = Channel(deployMiniProxy(uint256(_identityHash), channelImplementation));
         _channel.initialize(address(token), dex, _identityHash, _accountantId);
 
         // If stake stake amount > 0, then opening incomming (provider's) channel
         if (_loanAmount > 0) {
             require(_beneficiary != address(0), "beneficiary can't be zero address");
             token.transferFrom(msg.sender, address(this), _loanAmount);
-            AccountantImplementation(_accountantId).openChannel(_identityHash, _beneficiary, _loanAmount, "");
+            AccountantContract(_accountantId).openChannel(_identityHash, _beneficiary, _loanAmount, "");
         }
  
         emit RegisteredIdentity(_identityHash);
@@ -94,7 +94,7 @@ contract Registry is Ownable, FundsRecovery {
         totalStaked = totalStaked.add(_stakeAmount);
 
         // Deploy accountant contract (mini proxy which is pointing to implementation)
-        AccountantImplementation _accountant = AccountantImplementation(deployMiniProxy(uint256(_accountantOperator), accountantImplementation));
+        AccountantContract _accountant = AccountantContract(deployMiniProxy(uint256(_accountantOperator), accountantImplementation));
         _accountant.initialize(address(token), _accountantOperator);
 
         accountants[address(_accountant)] = Accountant(_accountantOperator, _stakeAmount);
