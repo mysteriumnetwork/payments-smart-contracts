@@ -87,6 +87,23 @@ function toBytes32Buffer(item) {
     return ethUtils.setLengthLeft(item.toBuffer(), 32)
 }
 
+function toBuffer(item) {
+    if (item instanceof Buffer)
+       return item
+
+    switch (typeof item) {
+        case 'object':
+            if (item instanceof BN)
+               return toBytes32Buffer(item)
+            else
+               throw "Unknown type of given item"
+        case 'number':
+            return toBytes32Buffer(new BN(item))
+        case 'string':
+            return Buffer.from(item.slice(2), 'hex')
+    }
+}
+
 module.exports = { 
     genCreate2Address,
     generatePrivateKey,
@@ -100,5 +117,6 @@ module.exports = {
     topUpTokens,
     keccak: ethUtils.keccak,
     setLengthLeft: ethUtils.setLengthLeft,
-    toBytes32Buffer
+    toBytes32Buffer,
+    toBuffer
 }

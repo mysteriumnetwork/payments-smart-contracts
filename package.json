@@ -22,6 +22,7 @@
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "chai-bn": "^0.1.1",
+    "ethereumjs-tx": "^1.3.7",
     "ethereumjs-util": "^6.1.0",
     "ganache-cli": "^6.3.0",
     "openzeppelin-solidity": "^2.1.3",
