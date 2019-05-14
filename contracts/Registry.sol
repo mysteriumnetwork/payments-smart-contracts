@@ -18,7 +18,6 @@ contract Registry is Ownable, FundsRecovery {
     using SafeMath for uint256;
 
     string constant REGISTER_PREFIX="Register prefix:";
-    IERC20 public token;
     address public dex;
     uint256 public registrationFee;
     uint256 public minimalAccountantStake;

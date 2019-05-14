@@ -3,16 +3,18 @@ const {
     deriveContractAddress,
     topUpEthers,
     topUpTokens
-} = require('./utils')
+} = require('./utils/index.js')
 
-const IdentityRegistry = artifacts.require("IdentityRegistry")
-const IdentityImplementation = artifacts.require("IdentityImplementation")
-const MystToken = artifacts.require("MystToken")
+const Registry = artifacts.require("Registry")
+const ChannelImplementation = artifacts.require("TestChannelImplementation")
+const AccountantImplementation = artifacts.require("AccountantImplementation")
+const Token = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
 const DEXProxy = artifacts.require("DEXProxy")
-const FundsRecovery = artifacts.require("FundsRecovery")
+const FundsRecovery = artifacts.require("TestFundsRecovery")
 
 const OneEther = web3.utils.toWei(new BN(1), 'ether')
+const OneToken = web3.utils.toWei(new BN(1), 'ether')
 const ZeroAddress = '0x0000000000000000000000000000000000000000'
 
 async function getExpectedSmartContractAddress(deployer) {
@@ -21,9 +23,10 @@ async function getExpectedSmartContractAddress(deployer) {
 }
 
 contract('General tests for funds recovery', ([txMaker, owner, fundsDestination, ...otherAccounts]) => {
-    let token, contract, expectedAddress, topupAmount
+    let token, nativeToken, contract, expectedAddress, topupAmount
     before (async () => {
-        token = await MystToken.new()
+        token = await Token.new()
+        nativeToken = await Token.new() // This special token which usually shoudn't be recoverable
 
         // Toup some tokens and ethers into expected address
         expectedAddress = await getExpectedSmartContractAddress(owner)
@@ -33,7 +36,7 @@ contract('General tests for funds recovery', ([txMaker, owner, fundsDestination,
     })
 
     it('should deploy funds recovery contract into expected address', async () => {
-        contract = await FundsRecovery.new({from: owner})
+        contract = await FundsRecovery.new(nativeToken.address, {from: owner})
         expect(contract.address.toLowerCase()).to.be.equal(expectedAddress.toLowerCase())
     })
 
@@ -64,12 +67,17 @@ contract('General tests for funds recovery', ([txMaker, owner, fundsDestination,
         const expectedBalance = Number(initialBalance) + topupAmount;
         (await token.balanceOf(fundsDestination)).should.be.bignumber.equal(expectedBalance.toString())
     })
+
+    it('native tokens should be not possible to claim', async () => {
+        await topUpTokens(nativeToken, contract.address, OneToken)
+        await contract.claimTokens(nativeToken.address).should.be.rejected
+    })
 })
 
 contract('Dex funds recovery', ([_, txMaker, fundsDestination, ...otherAccounts]) => {
     let token, dex, proxy, proxiedDEX, topupAmount, tokensToMint
     before (async () => {
-        token = await MystToken.new()
+        token = await Token.new()
     })
 
     it('should topup some ethers and tokens into dex address', async () => {
@@ -155,36 +163,32 @@ contract('Dex funds recovery', ([_, txMaker, fundsDestination, ...otherAccounts]
 
 })
 
-contract('Registry funds recovery', ([_, txMaker, owner, fundsDestination, ...otherAccounts]) => {
-    let token, identityImplementation, dex, registry, topupAmount, tokensToMint
+contract('Registry funds recovery', ([_, txMaker, identity, account, fundsDestination, ...otherAccounts]) => {
+    let token, channelImplementation, accountantImplementation, dex, registry, topupAmount, tokensAmount
     before (async () => {
-        token = await MystToken.new()
+        token = await Token.new()
         dex = await MystDex.new()
-        identityImplementation = await IdentityImplementation.new(token.address, dex.address, owner, OneEther)
+        accountantImplementation = await AccountantImplementation.new()
+        channelImplementation = await ChannelImplementation.new(token.address, identity, accountantImplementation.address)
     })
 
     it('should topup some ethers and tokens into future registry address', async () => {
         const nonce = await web3.eth.getTransactionCount(txMaker)
         const registryAddress = deriveContractAddress(txMaker, nonce)
 
-        // Topup some ethers into expected proxyAddress
+        // Topup some ethers into expected registry address
         topupAmount = 0.4 * OneEther
-        await web3.eth.sendTransaction({
-            from: otherAccounts[3],
-            to: registryAddress,
-            value: topupAmount
-        })
-        expect(await web3.eth.getBalance(registryAddress)).to.be.equal(topupAmount.toString())
+        await topUpEthers(otherAccounts[3], registryAddress, topupAmount)
 
-        // Mint some tokens into expected registryAddress
-        tokensToMint = web3.utils.toWei(new BN(8), 'ether')
-        await token.mint(registryAddress, tokensToMint)
+        tokensAmount = web3.utils.toWei(new BN(8), 'ether')
+        await topUpTokens(token, registryAddress, tokensAmount)
 
         const balance = await token.balanceOf(registryAddress)
-        balance.should.be.bignumber.equal(tokensToMint)
+        balance.should.be.bignumber.equal(tokensAmount)
 
         // Deploy registry smart contract
-        registry = await IdentityRegistry.new(token.address, dex.address, owner, {from: txMaker})
+        const nativeToken = await Token.new() // Native token is used as main unit of value in channels. We're recovering any other tokens but not this.
+        registry = await Registry.new(nativeToken.address, dex.address, channelImplementation.address, accountantImplementation.address, 0, 0, {from: txMaker})
         expect(registry.address.toLowerCase()).to.be.equal(registryAddress.toLowerCase())
 
         // Set funds destination
@@ -205,16 +209,16 @@ contract('Registry funds recovery', ([_, txMaker, owner, fundsDestination, ...ot
 
         await registry.claimTokens(token.address).should.be.fulfilled
 
-        const expectedBalance = initialBalance.add(tokensToMint)
+        const expectedBalance = initialBalance.add(tokensAmount)
         expect((await token.balanceOf(fundsDestination)).toString()).to.be.equal(expectedBalance.toString())
     })
 })
 
-contract('Identity implementation funds recovery', ([_, txMaker, owner, fundsDestination, ...otherAccounts]) => {
-    let token, identityImplementation, dex, topupAmount, tokensToMint
+contract('Channel implementation funds recovery', ([_, txMaker, identity, fundsDestination, ...otherAccounts]) => {
+    let token, nativeToken, channelImplementation, topupAmount, tokensToMint
     before (async () => {
-        token = await MystToken.new()
-        dex = await MystDex.new()
+        token = await Token.new()
+        nativeToken = await Token.new()
     })
 
     it('should topup some ethers and tokens into future identity implementation smart contract address', async () => {
@@ -223,32 +227,27 @@ contract('Identity implementation funds recovery', ([_, txMaker, owner, fundsDes
 
         // Topup some ethers into expected proxyAddress
         topupAmount = 0.4 * OneEther
-        await web3.eth.sendTransaction({
-            from: otherAccounts[3],
-            to: implementationAddress,
-            value: topupAmount
-        })
-        expect(await web3.eth.getBalance(implementationAddress)).to.be.equal(topupAmount.toString())
+        await topUpEthers(otherAccounts[3], implementationAddress, topupAmount)
 
-        // Mint some tokens into expected identity implementation address
         tokensToMint = web3.utils.toWei(new BN(5), 'ether')
-        await token.mint(implementationAddress, tokensToMint)
+        await topUpTokens(token, implementationAddress, tokensToMint)
 
         const balance = await token.balanceOf(implementationAddress)
         balance.should.be.bignumber.equal(tokensToMint)
 
         // Deploy IdentityImplementation smart contract
-        identityImplementation = await IdentityImplementation.new(token.address, dex.address, owner, OneEther, {from: txMaker})
-        expect(identityImplementation.address.toLowerCase()).to.be.equal(implementationAddress.toLowerCase())
+        const accountantImplementation = await AccountantImplementation.new()
+        channelImplementation = await ChannelImplementation.new(nativeToken.address, identity, accountantImplementation.address, {from: txMaker})
+        expect(channelImplementation.address.toLowerCase()).to.be.equal(implementationAddress.toLowerCase())
 
         // Set funds destination
-        await identityImplementation.setFundsDestination(fundsDestination, {from: txMaker})
+        await channelImplementation.setFundsDestination(fundsDestination, {from: txMaker})
     })
 
     it('should recover ethers sent to identity implementation before its deployment', async () => {
         const initialBalance = await web3.eth.getBalance(fundsDestination)
 
-        await identityImplementation.claimEthers().should.be.fulfilled
+        await channelImplementation.claimEthers().should.be.fulfilled
 
         const expectedBalance = Number(initialBalance) + topupAmount
         expect(await web3.eth.getBalance(fundsDestination)).to.be.equal(expectedBalance.toString())
@@ -257,9 +256,16 @@ contract('Identity implementation funds recovery', ([_, txMaker, owner, fundsDes
     it('should recover any tokens send to identity implementation smart contract', async () => {
         const initialBalance = await token.balanceOf(fundsDestination)
 
-        await identityImplementation.claimTokens(token.address).should.be.fulfilled
+        await channelImplementation.claimTokens(token.address).should.be.fulfilled
 
         const expectedBalance = initialBalance.add(tokensToMint)
         expect((await token.balanceOf(fundsDestination)).toString()).to.be.equal(expectedBalance.toString())
     })
+
+    it('native tokens should be not possible to claim', async () => {
+        await topUpTokens(nativeToken, channelImplementation.address, OneToken)
+        await channelImplementation.claimTokens(nativeToken.address).should.be.rejected
+    })
 })
+
+// TODO add tests for accountant tokens recovery

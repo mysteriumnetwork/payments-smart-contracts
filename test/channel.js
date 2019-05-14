@@ -24,7 +24,7 @@ async function getChannel(identityHash, registry) {
     return await TestChannelImplementation.at(await genCreate2Address(identityHash, registry))
 }
 
-contract.only('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) => {
+contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) => {
     const identity = wallet.generateAccount()     // Generate identity
     const identityHash = identity.address // identity hash = keccak(publicKey)[:20]
     const accountant = wallet.generateAccount()   // Generate hub

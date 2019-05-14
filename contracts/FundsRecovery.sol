@@ -39,7 +39,7 @@ contract FundsRecovery is Ownable {
     // TODO add reentrancy protection
     function claimTokens(address _token) public {
         require(fundsDestination != address(0));
-        require(_token != address(token), "main token funds can be withdrawn only using channel's withdraw method");
+        require(_token != address(token), "native token funds can't be recovered");
         uint256 _amount = IERC20(_token).balanceOf(address(this));
         IERC20(_token).transfer(fundsDestination, _amount);
     }

@@ -15,7 +15,6 @@ contract ChannelImplementation is FundsRecovery {
 
     string constant EXIT_PREFIX = "Exit request:";
     uint256 constant DELAY_BLOCKS = 18000;  // +/- 4 days
-    IERC20 public token;
 
     struct ExitRequest {
         uint256 timelock;          // block number after which exit can be finalized
