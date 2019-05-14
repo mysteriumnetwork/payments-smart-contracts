@@ -11,7 +11,7 @@ const {
     topUpEthers
 } = require('./utils/index.js')
 const wallet = require('./utils/wallet.js')
-const { generatePromise, constructPayload } = require('./utils/client.js')
+const { generatePromise, signExitRequest, constructPayload } = require('./utils/client.js')
 
 const MystToken = artifacts.require("MystToken")
 const TestChannelImplementation = artifacts.require("TestChannelImplementation")
@@ -37,6 +37,15 @@ contract.only('Channel Contract Implementation tests', ([txMaker, ...otherAccoun
         // Give some ethers for gas for accountant
         topUpEthers(txMaker, accountant.address, OneEther)
     })
+
+    it("already initialized channel should reject initialization request", async () => {
+        expect(await channel.isInitialized()).to.be.true
+        await channel.initialize(token.address, otherAccounts[3], identityHash, accountant.address).should.be.rejected
+    })
+
+    /**
+     * Testing promise settlement functionality
+     */
 
     it("should be able to topup channel", async () => {
         const userAccount = otherAccounts[0]
@@ -113,4 +122,90 @@ contract.only('Channel Contract Implementation tests', ([txMaker, ...otherAccoun
         await wallet.sendTx(channel.address, constructPayload(promise), accountant).should.be.rejected
     })
 
+    /**
+     * Testing channel exit scenarios
+     */
+
+    let firstExitRequest
+    it("should successfully request exit channel", async () => {
+        const beneficiary = otherAccounts[1]
+        const {validUntil, signature} = await signExitRequest(channel, beneficiary, identity)
+        await channel.requestExit(beneficiary, validUntil, signature)
+
+        const exitRequest = await channel.exitRequest()
+        expect(exitRequest.beneficiary).to.be.equal(beneficiary)
+
+        // This will be needed in later requests
+        firstExitRequest = {beneficiary, validUntil, signature}
+    })
+
+    it("should fail requesting exit channel, when previous request is still active", async () => {
+        const beneficiary = otherAccounts[2] // different beneficiary
+        const {validUntil, signature} = await signExitRequest(channel, beneficiary, identity)
+        await channel.requestExit(beneficiary, validUntil, signature).should.be.rejected
+
+        const exitRequest = await channel.exitRequest()
+        expect(exitRequest.beneficiary).to.be.not.equal(beneficiary)
+    })
+
+    it("finalise exit should fail if requested before timelock", async () => {
+        const expectedTxBlockNumber = (await web3.eth.getBlock('latest')).number
+        const timelock = (await channel.exitRequest()).timelock
+        expect(timelock.toNumber()).to.be.above(expectedTxBlockNumber)
+
+        await channel.finalizeExit().should.be.rejected
+    })
+
+    it("during exit waiting period, receiving party should be able to settle latest promise", async () => {
+        const channelState = Object.assign({}, await channel.party(), {channelId: channel.address})
+        const channelBalanceBefore = await token.balanceOf(channel.address)
+        const accountantBalanceBefore = await token.balanceOf(channelState.beneficiary)
+
+        const promise = generatePromise(OneToken, new BN(0), channelState, identity)
+        await channel.settlePromise(promise.amount, promise.fee, promise.lock, promise.extraDataHash, promise.signature)
+
+        const channelBalanceAfter = await token.balanceOf(channel.address)
+        channelBalanceAfter.should.be.bignumber.equal(channelBalanceBefore.sub(OneToken))
+
+        const accountantBalanceAfter = await token.balanceOf(channelState.beneficiary)
+        accountantBalanceAfter.should.be.bignumber.equal(accountantBalanceBefore.add(OneToken))
+    })
+
+    it("should finalise exit request and send tokens into beneficiary address", async () => {
+        const beneficiary = otherAccounts[1]
+        const channelTokensBefore = await token.balanceOf(channel.address)
+
+        // Transaction's block number should be bigger or equal to timelock block
+        const expectedTxBlockNumber = (await web3.eth.getBlock('latest')).number + 1
+        const timelock = (await channel.exitRequest()).timelock
+        expect(expectedTxBlockNumber).to.be.at.least(timelock.toNumber())
+
+        // Finalise request should be successful
+        await channel.finalizeExit()
+
+        // All the left in channel tokens have to be sent into beneficiary address
+        expect((await token.balanceOf(channel.address)).toNumber()).to.be.equal(0)
+
+        const beneficiaryBalance = await token.balanceOf(beneficiary)
+        beneficiaryBalance.should.be.bignumber.equal(channelTokensBefore)
+
+        const exitRequest = await channel.exitRequest()
+        expect(exitRequest.timelock.toNumber()).to.be.equal(0)
+    })
+
+    it("should fail requesting exit with already used signature", async () => {
+        const {beneficiary, validUntil, signature} = firstExitRequest
+        await channel.requestExit(beneficiary, validUntil, signature).should.be.rejected
+
+        const exitRequest = await channel.exitRequest()
+        expect(exitRequest.timelock.toNumber()).to.be.equal(0)
+    })
+
+    it("should be possible to request new exit", async () => {
+        const {beneficiary, validUntil, signature} = await signExitRequest(channel, otherAccounts[0], identity)
+        await channel.requestExit(beneficiary, validUntil, signature)
+
+        const exitRequest = await channel.exitRequest()
+        expect(exitRequest.beneficiary).to.be.equal(beneficiary)
+    })
 })

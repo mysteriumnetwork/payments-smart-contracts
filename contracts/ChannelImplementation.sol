@@ -108,12 +108,19 @@ contract ChannelImplementation is FundsRecovery {
         emit PromiseSettled(party.beneficiary, _unpaidAmount, party.settled);
     }
 
-    // Start withdrawal of deposited but still not  funds --> usually when another party is not collaborating for `updateAndWithdraw`
+    // Returns blocknumber until which exit request should be locked
+    function getTimelock() internal view returns (uint256) {
+        return block.number + DELAY_BLOCKS;
+    }
+
+    // Start withdrawal of deposited but still not settled funds
+    // NOTE _validUntil is needed for replay protection
     function requestExit(address _beneficiary, uint256 _validUntil, bytes memory _signature) public {
-        uint256 _timelock = block.number + DELAY_BLOCKS;
+        uint256 _timelock = getTimelock();
 
         require(exitRequest.timelock == 0, "new exit can be requested only when old one was finalised");
-        require(_timelock > _validUntil, "request have to be valid shorter that DELAY_BLOCKS");
+        require(_validUntil > block.number, "valid until have to be greater than current block number");
+        require(_timelock > _validUntil, "request have to be valid shorter than DELAY_BLOCKS");
         require(_beneficiary != address(0), "beneficiary can't be zero address");
 
         if (msg.sender != operator) {

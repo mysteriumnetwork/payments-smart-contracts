@@ -38,6 +38,31 @@ function generatePromise(amountToPay, fee, channelState, operator) {
     return { amount, fee, lock: R, extraDataHash, signature }
 }
 
+async function signExitRequest(channel, beneficiary, operator) {
+    const EXIT_PREFIX = "Exit request:"
+    // const DELAY_BLOCKS = (await channel.DELAY_BLOCKS()).toNumber()
+    const lastBlockNumber = (await web3.eth.getBlock('latest')).number
+    const validUntil = lastBlockNumber + 4//DELAY_BLOCKS
+
+    const message = Buffer.concat([
+        Buffer.from(EXIT_PREFIX),
+        Buffer.from(channel.address.slice(2), 'hex'),  // channelId = channel address
+        Buffer.from(beneficiary.slice(2), 'hex'),
+        toBytes32Buffer(new BN(validUntil))
+    ])
+
+    // sign and verify the signature
+    const signature = signMessage(message, operator.privKey)
+    expect(verifySignature(message, signature, operator.pubKey)).to.be.true
+
+    return {
+        channelId: channel.toAddress,
+        beneficiary,
+        validUntil,
+        signature
+    }
+}
+
 // We're using signature as bytes array (`bytes memory`), so we have properly construct it.
 function serialiseSignature(signature) {
     const bytesArrayPosition = toBytes32Buffer(new BN(160))
@@ -64,5 +89,6 @@ function constructPayload(obj) {
 
 module.exports = {
     generatePromise,
+    signExitRequest,
     constructPayload
 }
