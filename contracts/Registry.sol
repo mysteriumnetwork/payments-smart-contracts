@@ -61,7 +61,7 @@ contract Registry is Ownable, FundsRecovery {
     function registerIdentity(address _identityHash, address _accountantId, uint256 _loanAmount, address _beneficiary) public {
         require(_identityHash != address(0));
         require(!isRegistered(_identityHash));
-        require(!isAccountant(_accountantId));
+        require(!isActiveAccountant(_accountantId));
 
         if (registrationFee > 0) {
             token.transferFrom(msg.sender, address(this), registrationFee);
@@ -163,6 +163,10 @@ contract Registry is Ownable, FundsRecovery {
     }
 
     function isAccountant(address _accountantId) public view returns (bool) {
+        return accountants[_accountantId].operator != address(0);
+    }
+
+    function isActiveAccountant(address _accountantId) public view returns (bool) {
         // If stake is 0, then it's either incactive or unregistered accountant
         return accountants[_accountantId].stake != uint256(0);
     }

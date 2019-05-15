@@ -2,7 +2,7 @@ require('chai')
 .use(require('chai-as-promised'))
 .should()
 
-const genCreate2Address = require('./utils.js').genCreate2Address
+const genCreate2Address = require('./utils/index.js').genCreate2Address
 
 const IdentityRegistry = artifacts.require("IdentityRegistry")
 const ChannelImplementation = artifacts.require("ChannelImplementation")

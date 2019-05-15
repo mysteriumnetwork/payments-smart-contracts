@@ -6,8 +6,8 @@ const { BN } = require('openzeppelin-test-helpers')
 
 // CREATE2 address is calculated this way:
 // keccak("0xff++msg.sender++salt++keccak(byteCode)")
-async function genCreate2Address(identityHash, registry) {
-    const byteCode = (await registry.getProxyCode())
+async function genCreate2Address(identityHash, registry, implementationAddress) {
+    const byteCode = (await registry.getProxyCode(implementationAddress))
     const salt = `0x${'0'.repeat(64-identityHash.length+2)}${identityHash.replace(/0x/, '')}`
     return `0x${web3.utils.keccak256(`0x${[
         'ff',
