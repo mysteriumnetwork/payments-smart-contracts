@@ -3,22 +3,29 @@ require('chai')
 .should()
 
 const genCreate2Address = require('./utils/index.js').genCreate2Address
+const topUpTokens = require('./utils/index.js').topUpTokens
 
-const IdentityRegistry = artifacts.require("IdentityRegistry")
+const Registry = artifacts.require("Registry")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
+const AccountantImplementation = artifacts.require("AccountantImplementation")
 const MystToken = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
 
-const OneEther = web3.utils.toWei('1', 'ether')
+const OneEther = OneToken = web3.utils.toWei('1', 'ether')
 const identityHash = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
 
-contract('Identity registry', ([owner, minter, hub, ...otherAccounts]) => {
-    let token, channelImplementation, dex, registry
+contract('Registry', ([txMaker, minter, accountantOperator, fundsDestination, ...otherAccounts]) => {
+    let token, channelImplementation, accountantId, dex, registry
     before(async () => {
         token = await MystToken.new()
         dex = await MystDex.new()
-        channelImplementation = await ChannelImplementation.new(token.address, dex.address, owner, OneEther)
-        registry = await IdentityRegistry.new(token.address, dex.address, 0, channelImplementation.address)
+        const accountantImplementation = await AccountantImplementation.new()
+        channelImplementation = await ChannelImplementation.new()
+        registry = await Registry.new(token.address, dex.address, channelImplementation.address, accountantImplementation.address, 0, 0)
+
+        // Topup some tokens into txMaker address so it could register accountant
+        await topUpTokens(token, txMaker, 10)
+        await token.approve(registry.address, 10)
     })
 
     it('should have zero registration fee', async () => {
@@ -26,22 +33,28 @@ contract('Identity registry', ([owner, minter, hub, ...otherAccounts]) => {
         expect(Number(registrationFee)).to.be.equal(0)
     })
 
+    it('should register accountant', async () => {
+        await registry.registerAccountant(accountantOperator, 10)
+        accountantId = await registry.getAccountantAddress(accountantOperator)
+        expect(await registry.isActiveAccountant(accountantId)).to.be.true
+    })
+
     it('should register identity having 0 balance', async () => {
         expect(await registry.isRegistered(identityHash)).to.be.false
-        await registry.registerIdentity(identityHash, hub)
+        await registry.registerIdentity(identityHash, accountantId, 0, fundsDestination)
         expect(await registry.isRegistered(identityHash)).to.be.true
     })
 
-    it('registry should have proper IdentityContractAddress calculations', async () => {
+    it('registry should have proper channel address calculations', async () => {
         expect(
-            await genCreate2Address(identityHash, registry)
+            await genCreate2Address(identityHash, registry, channelImplementation.address)
         ).to.be.equal(
             (await registry.getChannelAddress(identityHash)).toLowerCase()
         )
     })
 
     it('identity contract should be deployed into predefined address and be EIP1167 proxy', async () => {
-        const channelAddress = await genCreate2Address(identityHash, registry)
+        const channelAddress = await genCreate2Address(identityHash, registry, channelImplementation.address)
         const byteCode = await web3.eth.getCode(channelAddress)
 
         // We're expecting EIP1167 minimal proxy pointing into identity implementation address

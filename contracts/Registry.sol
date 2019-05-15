@@ -60,8 +60,8 @@ contract Registry is Ownable, FundsRecovery {
     // _loanAmount - it's amount of tokens lended to accountant to guarantee incomming channel's balance.
     function registerIdentity(address _identityHash, address _accountantId, uint256 _loanAmount, address _beneficiary) public {
         require(_identityHash != address(0));
-        require(!isRegistered(_identityHash));
-        require(!isActiveAccountant(_accountantId));
+        require(!isRegistered(_identityHash), "identityHash have to be not registered yet");
+        require(isActiveAccountant(_accountantId), "provided accountant have to be active");
 
         if (registrationFee > 0) {
             token.transferFrom(msg.sender, address(this), registrationFee);

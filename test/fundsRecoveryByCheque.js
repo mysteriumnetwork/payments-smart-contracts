@@ -47,10 +47,14 @@ contract('Full path (in channel using cheque) test for funds recovery', ([txMake
         topupAmount = tokensToMint = 0.7 * OneEther
         await topUpEthers(otherAccounts[3], expectedAddress, topupAmount)
         await topUpTokens(token, expectedAddress, tokensToMint)
+
+        // Topup some tokens into txMaker address so it could register accountant
+        await topUpTokens(nativeToken, txMaker, 10)
+        await nativeToken.approve(registry.address, 10)
     })
 
     it('should register accountant', async () => {
-        await registry.registerAccountant(accountantOperator, 0)
+        await registry.registerAccountant(accountantOperator, 10)
         accountantId = await registry.getAccountantAddress(accountantOperator)
         expect(await registry.isAccountant(accountantId)).to.be.true
     })
