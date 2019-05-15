@@ -8,6 +8,7 @@ const {
 const Registry = artifacts.require("Registry")
 const ChannelImplementation = artifacts.require("TestChannelImplementation")
 const AccountantImplementation = artifacts.require("AccountantImplementation")
+const TestAccountantImplementation = artifacts.require("TestAccountantImplementation")
 const Token = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
 const DEXProxy = artifacts.require("DEXProxy")
@@ -268,4 +269,52 @@ contract('Channel implementation funds recovery', ([_, txMaker, identity, fundsD
     })
 })
 
-// TODO add tests for accountant tokens recovery
+contract('Accountant funds recovery', ([_, txMaker, account, fundsDestination, ...otherAccounts]) => {
+    let token, nativeToken, accountantImplementation, topupAmount, tokensToMint
+    before (async () => {
+        token = await Token.new()
+        nativeToken = await Token.new()
+    })
+
+    it('should topup some ethers and tokens into future accountant smart contract address', async () => {
+        const nonce = await web3.eth.getTransactionCount(txMaker)
+        const implementationAddress = deriveContractAddress(txMaker, nonce)
+
+        // Topup some ethers into expected proxyAddress
+        topupAmount = 0.4 * OneEther
+        await topUpEthers(otherAccounts[3], implementationAddress, topupAmount)
+
+        tokensToMint = web3.utils.toWei(new BN(5), 'ether')
+        await topUpTokens(token, implementationAddress, tokensToMint)
+
+        // Deploy Accountant smart contract
+        accountantImplementation = await TestAccountantImplementation.new(nativeToken.address, account, {from: txMaker})
+        expect(accountantImplementation.address.toLowerCase()).to.be.equal(implementationAddress.toLowerCase())
+
+        // Set funds destination
+        await accountantImplementation.setFundsDestination(fundsDestination, {from: txMaker})
+    })
+
+    it('should recover ethers sent to accountant contract before its deployment', async () => {
+        const initialBalance = await web3.eth.getBalance(fundsDestination)
+
+        await accountantImplementation.claimEthers().should.be.fulfilled
+
+        const expectedBalance = Number(initialBalance) + topupAmount
+        expect(await web3.eth.getBalance(fundsDestination)).to.be.equal(expectedBalance.toString())
+    })
+
+    it('should recover any tokens send to accountant smart contract', async () => {
+        const initialBalance = await token.balanceOf(fundsDestination)
+
+        await accountantImplementation.claimTokens(token.address).should.be.fulfilled
+
+        const expectedBalance = initialBalance.add(tokensToMint)
+        expect((await token.balanceOf(fundsDestination)).toString()).to.be.equal(expectedBalance.toString())
+    })
+
+    it('native tokens should be not possible to claim', async () => {
+        await topUpTokens(nativeToken, accountantImplementation.address, OneToken)
+        await accountantImplementation.claimTokens(nativeToken.address).should.be.rejected
+    })
+})
