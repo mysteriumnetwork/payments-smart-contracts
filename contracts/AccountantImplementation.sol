@@ -24,7 +24,6 @@ contract AccountantImplementation is FundsRecovery {
     address internal operator;
     uint256 public timelock;               // block number after which exit can be finalised
     uint256 internal lockedFunds;
-    uint256 internal totalLoansAmount;     // amount of tokens lended by identities
     uint256 internal lastUsedNonce;        // nonce used to protect signature based calls from repply attack
 
     struct Channel {
@@ -43,6 +42,10 @@ contract AccountantImplementation is FundsRecovery {
 
     function getChannelId(address _party) public view returns (bytes32) {
         return keccak256(abi.encodePacked(_party, address(this)));
+    }
+
+    function getRegistry() public view returns (address) {
+        return address(registry);
     }
 
     event ChannelOpened(bytes32 channelId, uint256 initialBalance);
@@ -82,8 +85,8 @@ contract AccountantImplementation is FundsRecovery {
         // Registry don't need signature to open channel in name of identity
         if (msg.sender != address(registry)) {
             address _signer = keccak256(abi.encodePacked(OPENCHANNEL_PREFIX, address(this), _party, _beneficiary, _amountToLend)).recover(_signature);
-            require(registry.isRegistered(_signer), "identity have to be already registered");
             require(_signer == _party, "request have to be signed by party");
+            require(registry.isRegistered(_signer), "identity have to be already registered");
         }
 
         // channel ID is keccak(identityHash, accountantID)
@@ -95,7 +98,7 @@ contract AccountantImplementation is FundsRecovery {
 
         // During opening new channel user can lend some funds to be guaranteed on channels size
         if (_amountToLend > 0) {
-            token.transferFrom(msg.sender, address(this), _amountToLend);
+            require(token.transferFrom(msg.sender, address(this), _amountToLend), "token transfer should succeed");
             channels[_channelId].loan = _amountToLend;
             emit NewLoan(_channelId, _amountToLend);
         }
@@ -252,6 +255,11 @@ contract AccountantImplementation is FundsRecovery {
 
     function isOpened(bytes32 _channelId) public view returns (bool) {
         return channels[_channelId].beneficiary != address(0);
+    }
+
+    // Funds not locked in any channel and free to be topuped or withdrawned
+    function availableBalance() public view returns (uint256) {
+        return token.balanceOf(address(this)).sub(lockedFunds);
     }
 
     // Setting new destination of funds recovery.

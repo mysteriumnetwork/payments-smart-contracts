@@ -23,7 +23,7 @@ contract Registry is Ownable, FundsRecovery {
     uint256 public minimalAccountantStake;
     uint256 public totalStaked;
     address internal channelImplementation;
-    address internal accountantImplementation;
+    address public accountantImplementation;
 
     struct Accountant {
         address operator;
@@ -32,7 +32,7 @@ contract Registry is Ownable, FundsRecovery {
     mapping(address => Accountant) public accountants;
 
     event RegisteredIdentity(address indexed identityHash);
-    event RegisteredAccountant(address indexed accountantId);
+    event RegisteredAccountant(address accountantId, address accountantOperator);
 
     constructor (address _tokenAddress, address _dexAddress, address _channelImplementation, address _accountantImplementation, uint256 _regFee, uint256 _minimalAccountantStake) public {
         registrationFee = _regFee;
@@ -63,8 +63,10 @@ contract Registry is Ownable, FundsRecovery {
         require(!isRegistered(_identityHash), "identityHash have to be not registered yet");
         require(isActiveAccountant(_accountantId), "provided accountant have to be active");
 
-        if (registrationFee > 0) {
-            token.transferFrom(msg.sender, address(this), registrationFee);
+        // Transfer total tokens amount
+        uint256 totalTokensAmount = registrationFee.add(_loanAmount);
+        if (totalTokensAmount > 0) {
+            token.transferFrom(msg.sender, address(this), totalTokensAmount);
         }
 
         // Deploy channel contract for given identity (mini proxy which is pointing to implementation)
@@ -74,14 +76,13 @@ contract Registry is Ownable, FundsRecovery {
         // If stake stake amount > 0, then opening incomming (provider's) channel
         if (_loanAmount > 0) {
             require(_beneficiary != address(0), "beneficiary can't be zero address");
-            token.transferFrom(msg.sender, address(this), _loanAmount);
+            require(token.approve(_accountantId, _loanAmount), "accountant should get approval to transfer tokens");
             AccountantContract(_accountantId).openChannel(_identityHash, _beneficiary, _loanAmount, "");
         }
- 
+
         emit RegisteredIdentity(_identityHash);
     }
 
-    // TODO token.approval for huge amount, so accountant could get tokens from registry
     function registerAccountant(address _accountantOperator, uint256 _stakeAmount) public {
         require(_accountantOperator != address(0));
         require(_stakeAmount >= minimalAccountantStake, "accountant have to stake at least minimal stake amount");
@@ -98,7 +99,7 @@ contract Registry is Ownable, FundsRecovery {
 
         accountants[address(_accountant)] = Accountant(_accountantOperator, _stakeAmount);
 
-        emit RegisteredAccountant(_accountantOperator);
+        emit RegisteredAccountant(address(_accountant), _accountantOperator);
     }
 
     function getChannelAddress(address _identityHash) public view returns (address) {
@@ -163,7 +164,15 @@ contract Registry is Ownable, FundsRecovery {
     }
 
     function isAccountant(address _accountantId) public view returns (bool) {
-        return accountants[_accountantId].operator != address(0);
+        address accountantOperator = accountants[_accountantId].operator;
+        address _addr = getAccountantAddress(accountantOperator);
+        uint _codeLength;
+
+        assembly {
+            _codeLength := extcodesize(_addr)
+        }
+
+        return _codeLength != 0;
     }
 
     function isActiveAccountant(address _accountantId) public view returns (bool) {

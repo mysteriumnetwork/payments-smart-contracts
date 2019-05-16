@@ -63,6 +63,24 @@ async function signExitRequest(channel, beneficiary, operator) {
     }
 }
 
+function signChannelOpening(accountantId, party, beneficiary, amountToLend = 0) {
+    const OPENCHANNEL_PREFIX = "Open channel request"
+
+    const message = Buffer.concat([
+        Buffer.from(OPENCHANNEL_PREFIX),
+        Buffer.from(accountantId.slice(2), 'hex'),
+        Buffer.from(party.address.slice(2), 'hex'),
+        Buffer.from(beneficiary.slice(2), 'hex'),
+        toBytes32Buffer(amountToLend)
+    ])
+
+    // sign and verify the signature
+    const signature = signMessage(message, party.privKey)
+    expect(verifySignature(message, signature, party.pubKey)).to.be.true
+
+    return signature
+}
+
 // We're using signature as bytes array (`bytes memory`), so we have properly construct it.
 function serialiseSignature(signature) {
     const bytesArrayPosition = toBytes32Buffer(new BN(160))
@@ -90,5 +108,6 @@ function constructPayload(obj) {
 module.exports = {
     generatePromise,
     signExitRequest,
+    signChannelOpening,
     constructPayload
 }

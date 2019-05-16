@@ -84,6 +84,10 @@ async function topUpTokens(token, to, amount) {
 }
 
 function toBytes32Buffer(item) {
+    if(typeof item === 'number' || typeof item === 'string') {
+        item = new BN(item)
+    }
+
     return ethUtils.setLengthLeft(item.toBuffer(), 32)
 }
 
