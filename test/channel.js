@@ -6,7 +6,6 @@
 const { BN } = require('openzeppelin-test-helpers')
 const { 
     genCreate2Address,
-    toBytes32Buffer,
     topUpTokens,
     topUpEthers
 } = require('./utils/index.js')
@@ -20,14 +19,10 @@ const TestAccountantImplementation = artifacts.require("TestAccountantImplementa
 const OneToken = web3.utils.toWei(new BN(1), 'ether')
 const OneEther = web3.utils.toWei('1', 'ether')
 
-async function getChannel(identityHash, registry) {
-    return await TestChannelImplementation.at(await genCreate2Address(identityHash, registry))
-}
-
 contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) => {
     const identity = wallet.generateAccount()     // Generate identity
-    const identityHash = identity.address // identity hash = keccak(publicKey)[:20]
-    const accountant = wallet.generateAccount()   // Generate hub
+    const identityHash = identity.address         // identity hash = keccak(publicKey)[:20]
+    const accountant = wallet.generateAccount()   // Generate accountant operator wallet
     let token, channel
     before(async () => {
         token = await MystToken.new()
