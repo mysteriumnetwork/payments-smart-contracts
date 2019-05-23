@@ -1,60 +1,85 @@
 // Mysterium Network Payments sequence diagram
-
-Consumer
-Accountant
-Provider
-
-@Starter(Consumer)
 // 
 // <<<<<<<<<< Green Path Diagram >>>>>>>>>>>
 // 
-// Register MN identity on BC paying for identity and initial TopUP
-BlockChain.RegisterTopupIdentity(ConsumerID, totalAmount, Csig)
-// Opens payment channel allocating 'amount' for spending
-// returns consumer cheque signed by Accountant 
-// that can be cleared anytime via BC or Transactor
-// Payment channel open is perfomed via BC SC transaction
-// Allocate funds that can be spent for specific provider
-// To topup a channel, consumer has to increase current amount by extending old amount value
-Accountant.OpenPaymentChannel(PayerID, AcountantID, amount, PYsig){
-  status = BlockChain.CommitTransaction(PayerID, AcountantID, amount, PYsig, Asig) 
-  if(userBalance >= amount) {
-    Consumer.SendWithdrawal(PayerID, amount, Asig, TimeLock)
+
+Consumer
+Provider
+Accountant
+
+
+// Register Accountant and his type on BC and staking some coins
+Accountant -> BlockChain: RegisterAccountant(accountantOperatorAddress, type)
+
+// Consumer register MN identity on BC paying for identity and initial TopUP
+Consumer -> BlockChain: RegisterIdentity(ConsumerID, AccountantID)
+Consumer -> BlockChain: TopUpChannel(amount)
+
+// Provider register MN identity BC paying for identity
+Provider -> BlockChain: RegisterIdentity(ProviderID, AccountantID)
+
+// Provider can lend some funds to Accountant so he have to topup channel imidiatelly.
+// Alternatively if provider don't want to lend, then he can ask for collateral from accountant, and agree on bigger fee.
+Provider.OpenIncomingChannel(stakeAmount) {
+  if (stakeAmount > 0) {
+    channelState = BlockChain.LendFunds(AccountantId, stakeAmount)
+    ok = Accountant.Inform(channelState) {
+      ok = BlockChain.CheckChannelState()
+    }
   } else {
-    Consumer.RejectPaymentChannel(PayerID, userBalance)
-  } 
+    fee = Accountant.AskForCollateral(wantedAmount)
+    ok = Accountant.AggreeOnFee(fee) {
+      BlockChain.TopUpChannel(channelAddress, wantedAmount)
+    }
+  }
 }
 
-// Issue promise to Provider
-// payoutAddress is provided by provider in Proposal
+// Pay for services
+// Multiple promisses can be issued to Provider before Provider calls to Accountant
+// BeneficieryAddress is provided by provider in Proposal
 // extraData { ConsumerID, ProviderID, ProposalID, R }
+// hashlock = hash(R) // ensures that peer will exchange tx
 // agreementID == hash(consumerID, providerID)
 // amount is growing within a scope of agreementID
 // agreementID sovles ambiguous accounting decision when PP CP C P (pools) are used
-balance = Provider.IssuePromise(PayerID, BeneficieryAddress, PYsig, amount, hashlock, extraData, aggreementID)
-// Consumer increases promised amount
-// Multiple promisses can be issued to Provider before Provider calls to Accountant
-// Hashlock == sha3(R) ensures that peer will send
-// signed promise back; without R - BC should reject tx
-// R is known by sender only
-Provider.IssuePromise(PayerID, BeneficieryAddress, PYsig, amount, hashlock, extraData, aggreementID) {
-  // Accountant returns signed check for provider
-  // 'to' ETH address where tokens should be sent to
-  // consumerPromise: PayerID, BeneficieryAddress, PYsig, amount, hashlock, extraDataHash
-  Accountant.ReqPromiseExchange(consumerPromise){
-    Provider.SendAccoutantPromise(BeneficieryAddress, Asig, hashlock, totalProviderAmount)
+Consumer.payForServices {
+  balance = Provider.IssuePromise(PayerID, BeneficiaryAddress, amount, hashlock, extraData, aggreementID, Csig)
+  balance = Provider.IssuePromise(PayerID, BeneficiaryAddress, amount, hashlock, extraData, aggreementID, Csig)
+  balance = Provider.IssuePromise(PayerID, BeneficiaryAddress, amount, hashlock, extraData, aggreementID, Csig) {
+    // Accountant exchange consumer's to him into his prommise for provider
+    // consumerPromise: PayerID, BeneficieryAddress, PYsig, amount, hashlock, extraDataHash
+    // accoutantPromise: BeneficieryAddress, hashlock, totalProviderAmount, Asig
+    accoutantPromise = Accountant.ReqPromiseExchange(consumerPromise) 
+    ok = Accountant.RevealingSecret(R)
   }
-
-  // Confirm cheque by sending R value for which hashlock was calculated
-  Accountant.ConfirmConsumerPromise(ProviderID, amount, hashlock_R)
-  Consumer.SendConsumerBalance()
-  ProviderContinuesToCollectPromisses()
-  Accountant.RequestSettleToBC(){
-    status = BlockChain.SettleProviderBalance(BeneficieryAddress, Asig, hashlock_R)    
-  } 
+  balance = Provider.IssuePromise(PayerID, BeneficiaryAddress, PYsig, amount, hashlock, extraData, aggreementID)
 }
 
-// Alternatively Consumer may decide to close channel via BC by sending directly
-Asig = Accountant.ClosePaymentChannel(PayerID, AcountantID, residualBalance, PYsig){
-    BlockChain.ClosePaymentChannel(PayerID, AcountantID, residualBalance, PYsig, Asig)
+// Settle / withdrawal funds (same for provider and accountant)
+Provider -> BlockChain: SettlePromise(accoutantPromise, R)
+Accountant -> BlockChain: SettlePromise(consumerPromise, R)
+
+// Consumer and Accountant may decide to empty channel (even with older state), but with timelock
+// Hub's timelock is always shorter than Consumer's
+channelState = Consumer.ClosePaymentChannel {
+    ok = BlockChain.initialiseExit(CAchannelId, Csig)
+
+    // Wait for X blocks, when Accountant can provide newest promise 
+    // or initialise exit from Provider's channel
+    if (R != unknown) {
+      Accountant -> BlockChain: SettlePromise(consumerPromise, R)
+    } else {
+      Accountant -> BlockChain: initialiseExit(APchannelId, Asig)
+      
+      // Wait for X blocks, when Provider can provide newest promise
+      if (newerPromise != null) {
+        Provider -> BlockChain: SettlePromise(accountantPromise, R)
+        Accountant -> BlockChain: SettlePromise(consumerPromise, R)
+      }
+    }
+
+    // When X blocks pass
+    // Funds will be send exiting party given account
+    // tx can be send by anyone
+    Anyone -> BlockChain: FinaliseExit()
 }
