@@ -6,8 +6,8 @@ const { BN } = require('openzeppelin-test-helpers')
 
 // CREATE2 address is calculated this way:
 // keccak("0xff++msg.sender++salt++keccak(byteCode)")
-async function genCreate2Address(identityHash, registry) {
-    const byteCode = (await registry.getProxyCode())
+async function genCreate2Address(identityHash, registry, implementationAddress) {
+    const byteCode = (await registry.getProxyCode(implementationAddress))
     const salt = `0x${'0'.repeat(64-identityHash.length+2)}${identityHash.replace(/0x/, '')}`
     return `0x${web3.utils.keccak256(`0x${[
         'ff',
@@ -75,7 +75,7 @@ async function topUpEthers(from, to, value) {
     expect(await web3.eth.getBalance(to)).to.be.equal(expectedBalance.toString())
 }
 
-// Mint some tokens into expected dexAddress
+// Mint some tokens
 async function topUpTokens(token, to, amount) {
      await token.mint(to, amount.toString())
 
@@ -83,16 +83,44 @@ async function topUpTokens(token, to, amount) {
      expectedBalance.should.be.bignumber.equal(amount.toString())
 }
 
+function toBytes32Buffer(item) {
+    if(typeof item === 'number' || typeof item === 'string') {
+        item = new BN(item)
+    }
+
+    return ethUtils.setLengthLeft(item.toBuffer(), 32)
+}
+
+function toBuffer(item) {
+    if (item instanceof Buffer)
+       return item
+
+    switch (typeof item) {
+        case 'object':
+            if (item instanceof BN)
+               return toBytes32Buffer(item)
+            else
+               throw "Unknown type of given item"
+        case 'number':
+            return toBytes32Buffer(new BN(item))
+        case 'string':
+            return Buffer.from(item.slice(2), 'hex')
+    }
+}
+
 module.exports = { 
     genCreate2Address,
     generatePrivateKey,
     privateToPublic,
     getIdentityHash: toAddress,
+    toAddress,
     signMessage,
     verifySignature,
     deriveContractAddress,
     topUpEthers,
     topUpTokens,
     keccak: ethUtils.keccak,
-    setLengthLeft: ethUtils.setLengthLeft
+    setLengthLeft: ethUtils.setLengthLeft,
+    toBytes32Buffer,
+    toBuffer
 }
