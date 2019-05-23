@@ -87,7 +87,7 @@ Registry smart contract:
 
 ## TASKS TO DO
 
-*[ ] Opening channel should automatically do allowance for hub's tokens.
+*[x] Opening channel should automatically do allowance for hub's tokens.
 *[ ] README on how to use smart-contracts (main idea of our payments method).
 *[ ] Add `green path` end-to-end test which will cover success flow from register till withdrawal
 *[ ] Add tests for __upgradeToAndCall proxy function
@@ -98,4 +98,4 @@ Registry smart contract:
 * Bidable DEX (no centralised rate, each bidder can suggest own rate, conversion always on market price)
 * Stateless Proxy (mutates target's storage, avoids delegatecall)
 * Downvoting for provider identity (if client already paid some amount to identity) -> downvoting can take some funds from stake
-* Virtual channles (Counterfactually or Perun based).
+* Virtual channels (Counterfactually or Perun based).
