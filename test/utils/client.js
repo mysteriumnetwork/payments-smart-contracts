@@ -18,99 +18,146 @@ const ChannelImplementation = artifacts.require("ChannelImplementation")
 // const TestContract = artifacts.require("TestContract")
 const OneToken = web3.utils.toWei(new BN(1), 'ether')
 
-// State stored by Provider
-// Invoices will store agreement IDs (as key), total payed and generated random `R` number
-const invoices = {
-    "invoiceId": {
-        agreementID: 1,
-        agreementTotal: 0,
-        r: 'abc',
-        // paid: false,
-        exchangeMessage: {}
-    }
-}
-
-const agreements = {
-    'agreementID': 0 // total amount of this agreement
-}
-
-// State stored by Accountant
-const channels = {
-    // 'channelID': {
-    //     settled: 0,
-    //     balance: 0,
-    //     promised: 0,
-    //     agreements: {
-    //         'agreementID': 0
-    //     }
-    // }
-}
-
 const DEFAULT_CHANNEL_STATE = {
     settled: new BN(0),
     balance: new BN(0),
     promised: new BN(0),
-    agreements: {}
+    agreements: {
+        // 'agreementID': 0
+    }
 }
 
+async function createConsumer(identity, registry) {
+    const channelId = await registry.getChannelAddress(identity.address)
+    const state = {channels: {}}
 
-function generateInvoice(amount, agreementId, fee = new BN(0)) {
+    return {
+        identity,
+        state,
+        createExchangeMsg: createExchangeMsg.bind(null, state, identity, channelId)
+    }
+}
+
+function createProvider(identity, accountant) {
+    const state = { 
+        invoices: {
+        // "invoiceId": {
+        //     agreementID: 1,
+        //     agreementTotal: 0,
+        //     r: 'abc',
+        //     // paid: false,
+        //     exchangeMessage: {}
+        // }
+        }, 
+        agreements: {
+        // 'agreementID': 0 // total amount of this agreement
+        },
+        lastAgreementId: 0,
+        promises: []
+    }
+    return { 
+        identity,
+        state,
+        generateInvoice: generateInvoice.bind(null, state),
+        validateExchangeMessage: validateExchangeMessage.bind(null, state, identity.address),
+        savePromise: promise => state.promises.push(promise),
+        settlePromise: settlePromise.bind(null, state, accountant)
+    }
+}
+
+async function createAccountantService(accountant, operator, token) {
+    const state = {channels: {}}
+    this.getChannelState = async (channelId, agreementId) => {
+        if (!state.channels[channelId]) {
+            const channel = await ChannelImplementation.at(channelId)    
+            state.channels[channelId] = Object.assign({}, await channel.party(), { 
+                balance: await token.balanceOf(channelId),
+                promised: new BN(0),
+                agreements: {[agreementId]: new BN(0)} 
+            })
+        }
+
+        return state.channels[channelId]
+    }
+    this.getOutgoingChannel = async (receiver) => {
+        const channelId = await accountant.getChannelId(receiver)
+        expect(await accountant.isOpened(channelId)).to.be.true
+
+        if (!state.channels[channelId]) {
+            state.channels[channelId] = Object.assign({}, DEFAULT_CHANNEL_STATE, await accountant.channels(channelId))
+        }
+
+        return { outgoingChannelId: channelId, outgoingChannelState: state.channels[channelId] }
+    }
+
+    return {
+        state,
+        exchangePromise: exchangePromise.bind(this, state, operator)
+    }
+}
+
+function generateInvoice(state, amount, agreementId, fee = new BN(0)) {
     const R = randomBytes(32)
     const hashlock = keccak(R)
- 
+
     // amount have to be bignumber
     if(typeof amount === 'number') amount = new BN(amount)
 
     // If no agreement id is given, then it's new one
     if (!agreementId) {
-        agreementId = randomBytes(32)
-        agreements[agreementId] = new BN(0)
+        state.lastAgreementId++
+        agreementId = state.lastAgreementId
+        state.agreements[agreementId] = new BN(0)
     }
 
-    agreements[agreementId] = agreements[agreementId].add(amount)
+    state.agreements[agreementId] = state.agreements[agreementId].add(amount)
 
     // save invoice
-    invoices[hashlock] = {R, agreementId, agreementTotal: agreements[agreementId], fee}
-
-    return invoices[hashlock]
+    state.invoices[hashlock] = {R, agreementId, agreementTotal: state.agreements[agreementId], fee}
+    return state.invoices[hashlock]
 }
 
-function validateInvoice(hashlock, agreementId, agreementTotal) {
+function validateInvoice(invoices, hashlock, agreementId, agreementTotal) {
     const invoice = invoices[hashlock]
     expect(agreementId).to.be.equal(invoice.agreementId)
     agreementTotal.should.be.bignumber.equal(invoice.agreementTotal)
 }
 
-function createExchangeMsg(invoice, party, channelId, operator) {
-    const agreementId = invoice.agreementId
-    const agreementTotal = invoice.agreementTotal
-    const channelState = channels[channelId] || DEFAULT_CHANNEL_STATE
+function createExchangeMsg(state, operator, channelId, invoice, party) {
+    const { agreementId, agreementTotal, fee, R } = invoice
+    const channelState = state.channels[channelId] || Object.assign({}, DEFAULT_CHANNEL_STATE)
 
     // TODO: recheck this stuff. Should it really use agreementTotal?
-    const amount = channelState.settled.add(agreementTotal).add(invoice.fee) // we're signing always increasing amount to settle
-    const hashlock = keccak(invoice.R)
-    const extraDataHash = keccak(agreementId)
-    const promise = createPromise(channelId, amount, invoice.fee, hashlock, extraDataHash, operator)
+    const diff = agreementTotal.sub(channelState.agreements[agreementId] || new BN(0))
+    const amount = channelState.promised.add(diff).add(fee) // we're signing always increasing amount to settle
+    const hashlock = keccak(R)
+    const extraDataHash = keccak(agreementId.toString())
+    const promise = createPromise(channelId, amount, fee, hashlock, extraDataHash, operator)
 
     // Create and sign exchange message
     const message = Buffer.concat([
         promise.hash,
-        agreementId,
+        toBytes32Buffer(agreementId),
         toBytes32Buffer(agreementTotal),
         Buffer.from(party.slice(2), 'hex')
     ])
     const signature = signMessage(message, operator.privKey)
 
+    // Write state
+    channelState.agreements[agreementId] = agreementTotal
+    channelState.promised = amount
+    state.channels[channelId] = channelState
+
     return {promise, agreementId, agreementTotal, party, hash: keccak(message), signature}
 }
 
-function validateExchangeMessage(exchangeMsg, payerPubKey, receiver) {
+function validateExchangeMessage(state, receiver, exchangeMsg, payerPubKey) {
     const { promise, agreementId, agreementTotal, party, signature } = exchangeMsg
 
     // Signature have to be valid
     const message = Buffer.concat([
         promise.hash,
-        agreementId,
+        toBytes32Buffer(agreementId),
         toBytes32Buffer(agreementTotal),
         Buffer.from(party.slice(2), 'hex')
     ])
@@ -118,24 +165,15 @@ function validateExchangeMessage(exchangeMsg, payerPubKey, receiver) {
     expect(receiver).to.be.equal(party)
 
     validatePromise(promise, payerPubKey)
-    validateInvoice(promise.hashlock, agreementId, agreementTotal)
+    if (state.invoices) validateInvoice(state.invoices, promise.hashlock, agreementId, agreementTotal)
 }
 
 // TODO Can we avoid payerPubKey as he already known from promise... ?
-async function exchangePromise(exchangeMessage, payerPubKey, receiver, channelId, accountant, operator, token) {
-    validateExchangeMessage(exchangeMessage, payerPubKey, receiver)
+async function exchangePromise(state, operator, exchangeMessage, payerPubKey, receiver) {
+    validateExchangeMessage(state, receiver, exchangeMessage, payerPubKey)
 
     const { promise, agreementId, agreementTotal } = exchangeMessage
-
-    if (!channels[channelId]) {
-        const channel = await ChannelImplementation.at(channelId)    
-        channels[channelId] = Object.assign({}, await channel.party(), { 
-            balance: await token.balanceOf(channelId),
-            promised: new BN(0),
-            agreements: {[agreementId]: new BN(0)} 
-        })
-    }
-    const channelState = channels[channelId]
+    const channelState = await this.getChannelState(promise.channelId, agreementId)
 
     // amount not covered by previous payment promises should be bigger than balance
     const amount = agreementTotal.sub(channelState.agreements[agreementId])
@@ -146,19 +184,13 @@ async function exchangePromise(exchangeMessage, payerPubKey, receiver, channelId
 
     // Save updated channel state
     channelState.balance = channelState.balance.sub(amount)
-    channelState.agreements[agreementId].add(amount)
+    channelState.agreements[agreementId] = channelState.agreements[agreementId].add(amount)
     channelState.promised = channelState.promised.add(amount)
 
     // Update outgoing channel state
-    const outgoingChannelId = await accountant.getChannelId(receiver)
-    expect(await accountant.isOpened(outgoingChannelId)).to.be.true
-
-    if (!channels[outgoingChannelId]) {
-        channels[outgoingChannelId] = Object.assign({}, DEFAULT_CHANNEL_STATE, await accountant.channels(outgoingChannelId))
-    }
-
-    const promiseAmount = channels[outgoingChannelId].promised.add(amount)
-    channels[outgoingChannelId].promised = promiseAmount
+    const { outgoingChannelId, outgoingChannelState } = await this.getOutgoingChannel(receiver)
+    const promiseAmount = outgoingChannelState.promised.add(amount)
+    outgoingChannelState.promised = promiseAmount
 
     // Issue new payment promise for `amount` value
     return createPromise(outgoingChannelId, promiseAmount, new BN(0), promise.hashlock, promise.extraDataHash, operator)
@@ -201,6 +233,16 @@ function validatePromise(promise, pubKey) {
     ])
 
     expect(verifySignature(message, promise.signature, pubKey)).to.be.true 
+}
+
+async function settlePromise(state, accountant, promise) {
+    // If promise is not given, we're going to use biggest of them
+    if (!promise) {
+        promise = state.promises.sort((a, b) => b.amount.sub(a.amount).toNumber())[0]
+    } 
+
+    const invoice = state.invoices[promise.hashlock]
+    await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, invoice.R, promise.extraDataHash, promise.signature)
 }
 
 async function signExitRequest(channel, beneficiary, operator) {
@@ -272,12 +314,11 @@ function constructPayload(obj) {
 
 module.exports = {
     constructPayload,
-    createExchangeMsg,
-    exchangePromise,
+    createAccountantService,
+    createConsumer,
+    createProvider,
     generatePromise,
-    generateInvoice,
     signExitRequest,
     signChannelOpening,
-    validateExchangeMessage,
     validatePromise
 }
