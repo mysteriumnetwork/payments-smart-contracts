@@ -29,7 +29,7 @@ contract AccountantImplementation is FundsRecovery {
     struct Channel {
         address beneficiary;        // address where funds will be send
         uint256 balance;            // amount available to settle
-        uint256 settled;            // total amount already settled by accountant
+        uint256 settled;            // total amount already settled by provider
         uint256 loan;               // amount lended by party to accountant
         uint256 loanTimelock;       // block number after which exit can be finalized
         uint256 lastUsedNonce;      // last known nonce, is used to protect signature based calls from repply attack
@@ -93,7 +93,8 @@ contract AccountantImplementation is FundsRecovery {
         bytes32 _channelId = keccak256(abi.encodePacked(_party, address(this)));
         require(!isOpened(_channelId), "channel should be not opened yet");
 
-        channels[_channelId] = Channel(_beneficiary, _amountToLend, 0, _amountToLend, 0, 0);
+        channels[_channelId].beneficiary = _beneficiary;
+        channels[_channelId].balance = _amountToLend;
         lockedFunds = lockedFunds.add(_amountToLend);
 
         // During opening new channel user can lend some funds to be guaranteed on channels size

@@ -12,7 +12,8 @@ const {
 const {
     createAccountantService,
     createConsumer,
-    createProvider
+    createProvider,
+    signChannelOpening
 } = require('./utils/client.js')
 const wallet = require('./utils/wallet.js')
 
@@ -32,7 +33,17 @@ function generateIdentities(amount) {
     return (amount <= 0) ? [wallet.generateAccount()] : [wallet.generateAccount(), ...generateIdentities(amount - 1)]
 }
 
-contract.only('Channel Contract Implementation tests', ([txMaker, ...beneficiaries]) => {
+async function pay(consumer, provider, accountantService, amount, repetitions = 1) {
+    const agreementId = provider.generateInvoice(new BN(0)).agreementId
+    for (let i=0; i < repetitions; i++) {
+        const invoice = provider.generateInvoice(amount, agreementId)
+        const exchangeMsg = consumer.createExchangeMsg(invoice, provider.identity.address)
+        const promise = await accountantService.exchangePromise(exchangeMsg, consumer.identity.pubKey, provider.identity.address)
+        provider.savePromise(promise)
+    }
+}
+
+contract('Channel Contract Implementation tests', ([txMaker, ...beneficiaries]) => {
     before(async () => {
         token = await MystToken.new()
         const dex = await MystDex.new()
@@ -48,6 +59,8 @@ contract.only('Channel Contract Implementation tests', ([txMaker, ...beneficiari
         await token.approve(registry.address, OneToken)
     })
 
+    // TODO Topup = Register
+    // Ask tx-maker to make tx +  sign cheque for him for that. Works even with registration fee stuff.
     it("register and initialize accountant", async () => {
         await registry.registerAccountant(operator.address, 10)
         const accountantId = await registry.getAccountantAddress(operator.address)
@@ -88,7 +101,7 @@ contract.only('Channel Contract Implementation tests', ([txMaker, ...beneficiari
     it("topup consumer channels", async () => {
         for (let i = 0; i < 4; i++) {
             const channelId = await registry.getChannelAddress(identities[i].address)
-            const amount = new BN(800)
+            const amount = new BN(10000)
             await token.transfer(channelId, amount)
 
             const channelTotalBalance = await token.balanceOf(channelId)
@@ -119,5 +132,57 @@ contract.only('Channel Contract Implementation tests', ([txMaker, ...beneficiari
 
         const beneficiaryBalance = await token.balanceOf(beneficiaries[4])
         beneficiaryBalance.should.be.bignumber.equal(amount)
+    })
+
+    it("should properly aggregate payments for provider", async () => {
+        const consumer1 = await createConsumer(identities[0], registry)
+        const consumer2 = await createConsumer(identities[1], registry)
+        const consumer3 = await createConsumer(identities[2], registry)
+        const provider = await createProvider(identities[4], accountant)
+        const accountantService = await createAccountantService(accountant, operator, token)
+
+        // Let's do a few payments by different consumers
+        await pay(consumer1, provider, accountantService, new BN(77), 3)
+        await pay(consumer2, provider, accountantService, new BN(900), 1)
+        await pay(consumer3, provider, accountantService, new BN(1), 20)
+        await pay(consumer1, provider, accountantService, new BN(10), 1)
+
+        // check aggregated promise amount
+        provider.getBiggestPromise().amount.should.be.bignumber.equal('1161')
+        
+        // settle biggest promise
+        await provider.settlePromise()
+
+        const beneficiaryBalance = await token.balanceOf(beneficiaries[4])
+        beneficiaryBalance.should.be.bignumber.equal('1161')
+    })
+
+    it("should be possible for consumer to become provider", async () => {
+        const consumer = identities[3]
+        const beneficiary = beneficiaries[3]
+        const expectedChannelId = generateChannelId(consumer.address, accountant.address)
+
+        // Consumer should not have invoming channel with accountant
+        expect(await accountant.isOpened(expectedChannelId)).to.be.false
+
+        // Open incoming channel
+        const stakeSize = new BN(1000)
+        await token.approve(accountant.address, stakeSize)
+        const signature = signChannelOpening(accountant.address, consumer, beneficiary, stakeSize)
+        await accountant.openChannel(consumer.address, beneficiary, stakeSize, signature)
+        expect(await accountant.isOpened(expectedChannelId)).to.be.true
+    })
+
+    it("second provider should be able to accept payments", async () => {
+        // Accept payments
+        const consumer = await createConsumer(identities[2], registry)
+        const provider = await createProvider(identities[3], accountant)
+        const accountantService = await createAccountantService(accountant, operator, token)
+        const beneficiary = beneficiaries[3]
+
+        await pay(consumer, provider, accountantService, new BN(900), 1)
+        await provider.settlePromise()
+        const beneficiaryBalance = await token.balanceOf(beneficiary)
+        beneficiaryBalance.should.be.bignumber.equal('900')
     })
 })

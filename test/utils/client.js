@@ -3,6 +3,7 @@
 */
 
 const assert = require('assert')
+const merge = require('lodash').merge
 const { BN } = require('openzeppelin-test-helpers')
 const { randomBytes } = require('crypto')
 const {
@@ -34,6 +35,7 @@ async function createConsumer(identity, registry) {
     return {
         identity,
         state,
+        channelId,
         createExchangeMsg: createExchangeMsg.bind(null, state, identity, channelId)
     }
 }
@@ -61,7 +63,8 @@ function createProvider(identity, accountant) {
         generateInvoice: generateInvoice.bind(null, state),
         validateExchangeMessage: validateExchangeMessage.bind(null, state, identity.address),
         savePromise: promise => state.promises.push(promise),
-        settlePromise: settlePromise.bind(null, state, accountant)
+        settlePromise: settlePromise.bind(null, state, accountant),
+        getBiggestPromise: () => state.promises.reduce((promise, acc) => promise.amount.gt(acc) ? acc : promise, state.promises[0])
     }
 }
 
@@ -77,6 +80,10 @@ async function createAccountantService(accountant, operator, token) {
             })
         }
 
+        if (!state.channels[channelId].agreements[agreementId]) {
+            state.channels[channelId].agreements[agreementId] = new BN(0)
+        }
+
         return state.channels[channelId]
     }
     this.getOutgoingChannel = async (receiver) => {
@@ -84,7 +91,7 @@ async function createAccountantService(accountant, operator, token) {
         expect(await accountant.isOpened(channelId)).to.be.true
 
         if (!state.channels[channelId]) {
-            state.channels[channelId] = Object.assign({}, DEFAULT_CHANNEL_STATE, await accountant.channels(channelId))
+            state.channels[channelId] = merge({}, DEFAULT_CHANNEL_STATE, await accountant.channels(channelId))
         }
 
         return { outgoingChannelId: channelId, outgoingChannelState: state.channels[channelId] }
@@ -125,9 +132,8 @@ function validateInvoice(invoices, hashlock, agreementId, agreementTotal) {
 
 function createExchangeMsg(state, operator, channelId, invoice, party) {
     const { agreementId, agreementTotal, fee, R } = invoice
-    const channelState = state.channels[channelId] || Object.assign({}, DEFAULT_CHANNEL_STATE)
+    const channelState = state.channels[channelId] || merge({}, DEFAULT_CHANNEL_STATE)
 
-    // TODO: recheck this stuff. Should it really use agreementTotal?
     const diff = agreementTotal.sub(channelState.agreements[agreementId] || new BN(0))
     const amount = channelState.promised.add(diff).add(fee) // we're signing always increasing amount to settle
     const hashlock = keccak(R)
