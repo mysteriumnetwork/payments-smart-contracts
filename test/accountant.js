@@ -5,13 +5,13 @@
 
 const { BN } = require('openzeppelin-test-helpers')
 const { 
-    genCreate2Address,
+    generateChannelId,
     topUpTokens,
     topUpEthers,
     keccak
 } = require('./utils/index.js')
 const wallet = require('./utils/wallet.js')
-const { generatePromise, signExitRequest, signChannelOpening, constructPayload } = require('./utils/client.js')
+const { signChannelOpening } = require('./utils/client.js')
 
 const MystToken = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
@@ -21,20 +21,13 @@ const ChannelImplementation = artifacts.require("ChannelImplementation")
 
 const OneToken = OneEther = web3.utils.toWei(new BN(1), 'ether')
 
-function generateChannelId(party, accountantId) {
-    return `0x${keccak(Buffer.concat([
-        Buffer.from(party.slice(2), 'hex'), 
-        Buffer.from(accountantId.slice(2), 'hex')]
-    )).toString('hex')}`
-}
-
 contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
     const operator = wallet.generateAccount()   // Generate accountant operator wallet
     const identityA = wallet.generateAccount()
     const identityB = wallet.generateAccount()
     const identityC = wallet.generateAccount()
 
-    let token, accountant, registry, accountantImplementation
+    let token, accountant, registry
     before(async () => {
         token = await MystToken.new()
         const dex = await MystDex.new()
@@ -162,5 +155,10 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
         const availableBalance = await accountant.availableBalance()
         expect(availableBalance.toNumber()).to.be.equal(0)
     })
+
+    /**
+     * Testing promise settlement functionality
+     */
+
 
 })

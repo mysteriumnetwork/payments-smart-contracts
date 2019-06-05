@@ -5,7 +5,6 @@
 
 const { BN } = require('openzeppelin-test-helpers')
 const { 
-    genCreate2Address,
     topUpTokens,
     topUpEthers
 } = require('./utils/index.js')
@@ -16,8 +15,7 @@ const MystToken = artifacts.require("MystToken")
 const TestChannelImplementation = artifacts.require("TestChannelImplementation")
 const TestAccountantImplementation = artifacts.require("TestAccountantImplementation")
 
-const OneToken = web3.utils.toWei(new BN(1), 'ether')
-const OneEther = web3.utils.toWei('1', 'ether')
+const OneToken = OneEther = web3.utils.toWei(new BN(1), 'ether')
 
 contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) => {
     const identity = wallet.generateAccount()     // Generate identity

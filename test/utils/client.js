@@ -3,11 +3,10 @@
 */
 
 const assert = require('assert')
+const merge = require('lodash').merge
 const { BN } = require('openzeppelin-test-helpers')
 const { randomBytes } = require('crypto')
 const {
-    privateToPublic,
-    toAddress,
     signMessage,
     verifySignature,
     toBytes32Buffer,
@@ -15,16 +14,208 @@ const {
     keccak
 } = require('./index.js')
 
+const ChannelImplementation = artifacts.require("ChannelImplementation")
+
 // const TestContract = artifacts.require("TestContract")
 const OneToken = web3.utils.toWei(new BN(1), 'ether')
+
+const DEFAULT_CHANNEL_STATE = {
+    settled: new BN(0),
+    balance: new BN(0),
+    promised: new BN(0),
+    agreements: {
+        // 'agreementID': 0
+    }
+}
+
+async function createConsumer(identity, registry) {
+    const channelId = await registry.getChannelAddress(identity.address)
+    const state = {channels: {}}
+
+    return {
+        identity,
+        state,
+        channelId,
+        createExchangeMsg: createExchangeMsg.bind(null, state, identity, channelId)
+    }
+}
+
+function createProvider(identity, accountant) {
+    const state = { 
+        invoices: {
+        // "invoiceId": {
+        //     agreementID: 1,
+        //     agreementTotal: 0,
+        //     r: 'abc',
+        //     // paid: false,
+        //     exchangeMessage: {}
+        // }
+        }, 
+        agreements: {
+        // 'agreementID': 0 // total amount of this agreement
+        },
+        lastAgreementId: 0,
+        promises: []
+    }
+    return { 
+        identity,
+        state,
+        generateInvoice: generateInvoice.bind(null, state),
+        validateExchangeMessage: validateExchangeMessage.bind(null, state, identity.address),
+        savePromise: promise => state.promises.push(promise),
+        settlePromise: settlePromise.bind(null, state, accountant),
+        getBiggestPromise: () => state.promises.reduce((promise, acc) => promise.amount.gt(acc) ? acc : promise, state.promises[0])
+    }
+}
+
+async function createAccountantService(accountant, operator, token) {
+    const state = {channels: {}}
+    this.getChannelState = async (channelId, agreementId) => {
+        if (!state.channels[channelId]) {
+            const channel = await ChannelImplementation.at(channelId)    
+            state.channels[channelId] = Object.assign({}, await channel.party(), { 
+                balance: await token.balanceOf(channelId),
+                promised: new BN(0),
+                agreements: {[agreementId]: new BN(0)} 
+            })
+        }
+
+        if (!state.channels[channelId].agreements[agreementId]) {
+            state.channels[channelId].agreements[agreementId] = new BN(0)
+        }
+
+        return state.channels[channelId]
+    }
+    this.getOutgoingChannel = async (receiver) => {
+        const channelId = await accountant.getChannelId(receiver)
+        expect(await accountant.isOpened(channelId)).to.be.true
+
+        if (!state.channels[channelId]) {
+            state.channels[channelId] = merge({}, DEFAULT_CHANNEL_STATE, await accountant.channels(channelId))
+        }
+
+        return { outgoingChannelId: channelId, outgoingChannelState: state.channels[channelId] }
+    }
+
+    return {
+        state,
+        exchangePromise: exchangePromise.bind(this, state, operator)
+    }
+}
+
+function generateInvoice(state, amount, agreementId, fee = new BN(0)) {
+    const R = randomBytes(32)
+    const hashlock = keccak(R)
+
+    // amount have to be bignumber
+    if(typeof amount === 'number') amount = new BN(amount)
+
+    // If no agreement id is given, then it's new one
+    if (!agreementId) {
+        state.lastAgreementId++
+        agreementId = state.lastAgreementId
+        state.agreements[agreementId] = new BN(0)
+    }
+
+    state.agreements[agreementId] = state.agreements[agreementId].add(amount)
+
+    // save invoice
+    state.invoices[hashlock] = {R, agreementId, agreementTotal: state.agreements[agreementId], fee}
+    return state.invoices[hashlock]
+}
+
+function validateInvoice(invoices, hashlock, agreementId, agreementTotal) {
+    const invoice = invoices[hashlock]
+    expect(agreementId).to.be.equal(invoice.agreementId)
+    agreementTotal.should.be.bignumber.equal(invoice.agreementTotal)
+}
+
+function createExchangeMsg(state, operator, channelId, invoice, party) {
+    const { agreementId, agreementTotal, fee, R } = invoice
+    const channelState = state.channels[channelId] || merge({}, DEFAULT_CHANNEL_STATE)
+
+    const diff = agreementTotal.sub(channelState.agreements[agreementId] || new BN(0))
+    const amount = channelState.promised.add(diff).add(fee) // we're signing always increasing amount to settle
+    const hashlock = keccak(R)
+    const extraDataHash = keccak(agreementId.toString())
+    const promise = createPromise(channelId, amount, fee, hashlock, extraDataHash, operator)
+
+    // Create and sign exchange message
+    const message = Buffer.concat([
+        promise.hash,
+        toBytes32Buffer(agreementId),
+        toBytes32Buffer(agreementTotal),
+        Buffer.from(party.slice(2), 'hex')
+    ])
+    const signature = signMessage(message, operator.privKey)
+
+    // Write state
+    channelState.agreements[agreementId] = agreementTotal
+    channelState.promised = amount
+    state.channels[channelId] = channelState
+
+    return {promise, agreementId, agreementTotal, party, hash: keccak(message), signature}
+}
+
+function validateExchangeMessage(state, receiver, exchangeMsg, payerPubKey) {
+    const { promise, agreementId, agreementTotal, party, signature } = exchangeMsg
+
+    // Signature have to be valid
+    const message = Buffer.concat([
+        promise.hash,
+        toBytes32Buffer(agreementId),
+        toBytes32Buffer(agreementTotal),
+        Buffer.from(party.slice(2), 'hex')
+    ])
+    expect(verifySignature(message, signature, payerPubKey)).to.be.true
+    expect(receiver).to.be.equal(party)
+
+    validatePromise(promise, payerPubKey)
+    if (state.invoices) validateInvoice(state.invoices, promise.hashlock, agreementId, agreementTotal)
+}
+
+// TODO Can we avoid payerPubKey as he already known from promise... ?
+async function exchangePromise(state, operator, exchangeMessage, payerPubKey, receiver) {
+    validateExchangeMessage(state, receiver, exchangeMessage, payerPubKey)
+
+    const { promise, agreementId, agreementTotal } = exchangeMessage
+    const channelState = await this.getChannelState(promise.channelId, agreementId)
+
+    // amount not covered by previous payment promises should be bigger than balance
+    const amount = agreementTotal.sub(channelState.agreements[agreementId])
+    channelState.balance.should.be.bignumber.gte(amount)
+
+    // Amount in promise should be set properly
+    promise.amount.should.be.bignumber.equal(channelState.promised.add(amount))
+
+    // Save updated channel state
+    channelState.balance = channelState.balance.sub(amount)
+    channelState.agreements[agreementId] = channelState.agreements[agreementId].add(amount)
+    channelState.promised = channelState.promised.add(amount)
+
+    // Update outgoing channel state
+    const { outgoingChannelId, outgoingChannelState } = await this.getOutgoingChannel(receiver)
+    const promiseAmount = outgoingChannelState.promised.add(amount)
+    outgoingChannelState.promised = promiseAmount
+
+    // Issue new payment promise for `amount` value
+    return createPromise(outgoingChannelId, promiseAmount, new BN(0), promise.hashlock, promise.extraDataHash, operator)
+}
 
 function generatePromise(amountToPay, fee, channelState, operator) {
     const amount = channelState.settled.add(amountToPay).add(fee) // we're signing always increasing amount to settle
     const R = randomBytes(32)
     const hashlock = keccak(R)
     const extraDataHash = keccak("")
+    return Object.assign({}, 
+        createPromise(channelState.channelId, amount, fee, hashlock, extraDataHash, operator),
+        {lock: R}
+    )
+}
+
+function createPromise(channelId, amount, fee, hashlock, extraDataHash, operator) {
     const message = Buffer.concat([
-        Buffer.from(channelState.channelId.slice(2), 'hex'),  // channelId = channel address
+        Buffer.from(channelId.slice(2), 'hex'),  // channelId = channel address
         toBytes32Buffer(amount),   // total promised amount in this channel
         toBytes32Buffer(fee),      // fee to transfer for msg.sender
         hashlock,     // hashlock needed for HTLC scheme
@@ -35,7 +226,29 @@ function generatePromise(amountToPay, fee, channelState, operator) {
     const signature = signMessage(message, operator.privKey)
     expect(verifySignature(message, signature, operator.pubKey)).to.be.true
     
-    return { amount, fee, lock: R, extraDataHash, signature }
+    return { channelId, amount, fee, hashlock, extraDataHash, hash: keccak(message), signature }
+}
+
+function validatePromise(promise, pubKey) {
+    const message = Buffer.concat([
+        Buffer.from(promise.channelId.slice(2), 'hex'),  // channelId = channel address
+        toBytes32Buffer(promise.amount),   // total promised amount in this channel
+        toBytes32Buffer(promise.fee),      // fee to transfer for msg.sender
+        promise.hashlock,     // hashlock needed for HTLC scheme
+        promise.extraDataHash // hash of related data
+    ])
+
+    expect(verifySignature(message, promise.signature, pubKey)).to.be.true 
+}
+
+async function settlePromise(state, accountant, promise) {
+    // If promise is not given, we're going to use biggest of them
+    if (!promise) {
+        promise = state.promises.sort((a, b) => b.amount.sub(a.amount).toNumber())[0]
+    } 
+
+    const invoice = state.invoices[promise.hashlock]
+    await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, invoice.R, promise.extraDataHash, promise.signature)
 }
 
 async function signExitRequest(channel, beneficiary, operator) {
@@ -106,8 +319,12 @@ function constructPayload(obj) {
 }
 
 module.exports = {
+    constructPayload,
+    createAccountantService,
+    createConsumer,
+    createProvider,
     generatePromise,
     signExitRequest,
     signChannelOpening,
-    constructPayload
+    validatePromise
 }

@@ -17,6 +17,13 @@ async function genCreate2Address(identityHash, registry, implementationAddress) 
     ].join('')}`).slice(-40)}`.toLowerCase()
 }
 
+function generateChannelId(party, accountantId) {
+    return `0x${ethUtils.keccak(Buffer.concat([
+        Buffer.from(party.slice(2), 'hex'), 
+        Buffer.from(accountantId.slice(2), 'hex')]
+    )).toString('hex')}`
+}
+
 function generatePrivateKey() {
     let privKey
     do {
@@ -110,6 +117,7 @@ function toBuffer(item) {
 
 module.exports = { 
     genCreate2Address,
+    generateChannelId,
     generatePrivateKey,
     privateToPublic,
     getIdentityHash: toAddress,
