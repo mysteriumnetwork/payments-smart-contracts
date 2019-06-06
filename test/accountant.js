@@ -402,4 +402,12 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
         expect((await accountant.availableBalance()).toNumber()).to.be.equal(accountantInitialAvailableBalace.toNumber())
     })
 
+<<<<<<< HEAD
 })
+=======
+    /**
+     * Testing withdrawal functionality
+     */
+
+})
+>>>>>>> Removed extra data hash
