@@ -11,7 +11,7 @@ const {
     keccak
 } = require('./utils/index.js')
 const wallet = require('./utils/wallet.js')
-const { signChannelOpening } = require('./utils/client.js')
+const { signChannelOpening, generatePromise } = require('./utils/client.js')
 
 const MystToken = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
@@ -21,7 +21,7 @@ const ChannelImplementation = artifacts.require("ChannelImplementation")
 
 const OneToken = OneEther = web3.utils.toWei(new BN(1), 'ether')
 
-contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
+contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
     const operator = wallet.generateAccount()   // Generate accountant operator wallet
     const identityA = wallet.generateAccount()
     const identityB = wallet.generateAccount()
@@ -160,5 +160,17 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
      * Testing promise settlement functionality
      */
 
+    it("should be possible to settle promise issued by accountant", async () => {
+        const channelId = generateChannelId(identityB.address, accountant.address)
+        const channelState = Object.assign({}, {channelId}, await accountant.channels(channelId))
+        const amountToPay = new BN('100')
+        const balanceBefore = await token.balanceOf(beneficiaryB)
+
+        const promise = generatePromise(amountToPay, new BN(0), channelState, operator)
+        await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.extraDataHash, promise.signature)
+
+        const balanceAfter = await token.balanceOf(beneficiaryB)
+        balanceAfter.should.be.bignumber.equal(balanceBefore.add(amountToPay))
+    })
 
 })
