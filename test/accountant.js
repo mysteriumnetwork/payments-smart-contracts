@@ -10,6 +10,7 @@ const {
     topUpEthers 
 } = require('./utils/index.js')
 const wallet = require('./utils/wallet.js')
+<<<<<<< HEAD
 const { 
     signChannelBalanceUpdate,
     signChannelBeneficiaryChange,
@@ -17,6 +18,9 @@ const {
     signChannelOpening,
     generatePromise 
 } = require('./utils/client.js')
+=======
+const { signChannelOpening, generatePromise } = require('./utils/client.js')
+>>>>>>> Test: Accountant promise can be settled
 
 const MystToken = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
@@ -26,7 +30,7 @@ const ChannelImplementation = artifacts.require("ChannelImplementation")
 
 const OneToken = OneEther = web3.utils.toWei(new BN(1), 'ether')
 
-contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
+contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
     const operator = wallet.generateAccount()   // Generate accountant operator wallet
     const identityA = wallet.generateAccount()
     const identityB = wallet.generateAccount()
@@ -175,12 +179,18 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
         const amountToPay = new BN('100')
         const balanceBefore = await token.balanceOf(beneficiaryB)
 
+<<<<<<< HEAD
         promise = generatePromise(amountToPay, new BN(0), channelState, operator)
         await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature)
+=======
+        const promise = generatePromise(amountToPay, new BN(0), channelState, operator)
+        await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.extraDataHash, promise.signature)
+>>>>>>> Test: Accountant promise can be settled
 
         const balanceAfter = await token.balanceOf(beneficiaryB)
         balanceAfter.should.be.bignumber.equal(balanceBefore.add(amountToPay))
     })
+<<<<<<< HEAD
 
     it("should fail while settling same promise second time", async () => {
         await accountant.settlePromise(promise.channelId,
@@ -401,6 +411,8 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
         // Available balance should be not changed because of getting channel's balance back available
         expect((await accountant.availableBalance()).toNumber()).to.be.equal(accountantInitialAvailableBalace.toNumber())
     })
+=======
+>>>>>>> Test: Accountant promise can be settled
 
 <<<<<<< HEAD
 })
