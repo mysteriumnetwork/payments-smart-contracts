@@ -27,3 +27,38 @@ Getting inspiration from Lightning Network and introducing `Accountant` role (hu
 There may be a few accountants deployed in the network and each node can work with multiple accountants.
 
 ![alt text](./img/accountant-pattern.png "Accountant pattern scheme")
+
+### Main concepts
+
+1. Open channel with accountant
+
+2. Topup channel
+
+3. Withdrawal of funds
+
+4. Rebalancing
+
+5. Dispute
+
+6. Virtual channel
+
+
+// Payment flow
+// ------------
+
+// 1. Generate "Invoice"
+
+// 2. Generate "Exchange message"
+
+// 3 and 4. Promise exchanges (P <--> A): return Promise
+
+// 5 and 6. Get R and settle tx on-chain 
+
+// (PromiseCA, AgreementId, AgreementTotal, signature)
+// verify promise
+
+// amout = AgreementTotal - agreements[aggreement]
+// agreements[agreement] = AgreementTotal
+// channelTotalPromissed = agreements.reduce((acc, agr) => acc + agr) // when agreements stores just amounts
+// assert(Promise.totalPaid === channelTotalPromissed)
+// return new Promise(party, amount)

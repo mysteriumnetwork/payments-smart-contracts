@@ -87,11 +87,13 @@ Registry smart contract:
 
 ## TASKS TO DO
 
-* [x] Opening channel should automatically do allowance for hub's tokens.
-* [ ] README on how to use smart-contracts (main idea of our payments method).
-* [ ] Add `green path` end-to-end test which will cover success flow from register till withdrawal
-* [ ] Add tests for __upgradeToAndCall proxy function
-* [ ] Deploy smart contracts into Ropsten
+*[x] Opening channel should automatically do allowance for hub's tokens.
+*[ ] README on how to use smart-contracts (main idea of our payments method).
+*[ ] Add `green path` end-to-end test which will cover success flow from register till withdrawal
+*[ ] Add tests for __upgradeToAndCall proxy function
+*[ ] Deploy smart contracts into Ropsten
+*[ ] Use method to deploy implementations into predefined addresses (like in ERC1820), so tests
+would be simpler and smart contracts would avoid not necessary calculations.
 
 ## Ideas to discuss
 
