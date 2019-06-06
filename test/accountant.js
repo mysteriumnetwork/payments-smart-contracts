@@ -175,12 +175,17 @@ contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiary
         const amountToPay = new BN('100')
         const balanceBefore = await token.balanceOf(beneficiaryB)
 
+<<<<<<< HEAD
         promise = generatePromise(amountToPay, new BN(0), channelState, operator)
+=======
+        const promise = generatePromise(amountToPay, new BN(0), channelState, operator)
+>>>>>>> Test: Accountant promise can be settled
         await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.extraDataHash, promise.signature)
 
         const balanceAfter = await token.balanceOf(beneficiaryB)
         balanceAfter.should.be.bignumber.equal(balanceBefore.add(amountToPay))
     })
+<<<<<<< HEAD
 
     it("should fail while settling same promise second time", async () => {
         await accountant.settlePromise(promise.channelId,
@@ -254,6 +259,8 @@ contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiary
         const beneficiaryBalance = await token.balanceOf(beneficiaryC)
         beneficiaryBalance.should.be.bignumber.equal('1100')  // Two previous promises of 100 + 1000
     })
+=======
+>>>>>>> Test: Accountant promise can be settled
 
     /**
      * Testing channel rebalance and stake/loans management functionality
