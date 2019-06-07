@@ -276,6 +276,22 @@ async function signExitRequest(channel, beneficiary, operator) {
     }
 }
 
+function signChannelBalanceUpdate(channelId, nonce, newBalance, operator) {
+    const UPDATE_PREFIX = "Update channel balance"
+    const message = Buffer.concat([
+        Buffer.from(UPDATE_PREFIX),
+        Buffer.from(channelId.slice(2), 'hex'),
+        toBytes32Buffer(nonce),
+        toBytes32Buffer(newBalance)
+    ])
+
+    // sign and verify the signature
+    const signature = signMessage(message, operator.privKey)
+    expect(verifySignature(message, signature, operator.pubKey)).to.be.true
+
+    return signature
+}
+
 function signChannelOpening(accountantId, party, beneficiary, amountToLend = 0) {
     const OPENCHANNEL_PREFIX = "Open channel request"
 
@@ -325,6 +341,7 @@ module.exports = {
     createProvider,
     generatePromise,
     signExitRequest,
+    signChannelBalanceUpdate,
     signChannelOpening,
     validatePromise
 }

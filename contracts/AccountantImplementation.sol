@@ -149,6 +149,7 @@ contract AccountantImplementation is FundsRecovery {
     function updateChannelBalance(bytes32 _channelId, uint256 _nonce, uint256 _newBalance, bytes memory _signature) public {
         require(isOpened(_channelId), "channel have to be opened");
         require(_nonce > lastUsedNonce, "nonce have to be bigger than already used");
+        require(_newBalance >= channels[_channelId].loan, "balance can't be less than loan amount");
 
         if (msg.sender != operator) {
             address _signer = keccak256(abi.encodePacked(UPDATE_PREFIX, _channelId, _nonce, _newBalance)).recover(_signature);
@@ -157,8 +158,6 @@ contract AccountantImplementation is FundsRecovery {
 
         __channelRebalance(_channelId, _newBalance);
         lastUsedNonce = _nonce;
-
-        // TODO don't allow to decrease less than loan amount
     }
 
     // Possibility to increase channel ballance without operator's signature (up to lended amount)
@@ -171,12 +170,15 @@ contract AccountantImplementation is FundsRecovery {
 
     function __channelRebalance(bytes32 _channelId, uint256 _newBalance) internal {
         Channel storage _channel = channels[_channelId];
+        uint256 diff;
 
-        // Topup channel / increase balance
         if (_newBalance > _channel.balance) {
-            uint256 diff = _channel.balance.sub(_newBalance);
+            diff = _newBalance.sub(_channel.balance);
             lockedFunds = lockedFunds.add(diff);
             require(token.balanceOf(address(this)) >= lockedFunds, "accountant should have enought funds");
+        } else {
+            diff = _channel.balance.sub(_newBalance);
+            lockedFunds = lockedFunds.sub(diff);
         }
 
         _channel.balance = _newBalance;
