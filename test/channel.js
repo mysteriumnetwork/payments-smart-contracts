@@ -56,7 +56,7 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
         const channelBalanceBefore = await token.balanceOf(channel.address)
     
         const promise = generatePromise(amount, new BN(0), channelState, identity)
-        await channel.settlePromise(promise.amount, promise.fee, promise.lock, promise.extraDataHash, promise.signature)
+        await channel.settlePromise(promise.amount, promise.fee, promise.lock, promise.signature)
 
         const channelBalanceAfter = await token.balanceOf(channel.address)
         channelBalanceAfter.should.be.bignumber.equal(channelBalanceBefore.sub(amount))
@@ -73,7 +73,7 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
         const accountantBalanceBefore = await token.balanceOf(channelState.beneficiary)
 
         const promise = generatePromise(amount, fee, channelState, identity)
-        await channel.settlePromise(promise.amount, promise.fee, promise.lock, promise.extraDataHash, promise.signature)
+        await channel.settlePromise(promise.amount, promise.fee, promise.lock, promise.signature)
 
         const channelBalanceAfter = await token.balanceOf(channel.address)
         channelBalanceAfter.should.be.bignumber.equal(channelBalanceBefore.sub(amount).sub(fee))
@@ -98,7 +98,6 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
             promise.amount,
             promise.fee,
             promise.lock,
-            promise.extraDataHash,
             promise.signature
         ).should.be.rejected
 
@@ -155,7 +154,7 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
         const accountantBalanceBefore = await token.balanceOf(channelState.beneficiary)
 
         const promise = generatePromise(OneToken, new BN(0), channelState, identity)
-        await channel.settlePromise(promise.amount, promise.fee, promise.lock, promise.extraDataHash, promise.signature)
+        await channel.settlePromise(promise.amount, promise.fee, promise.lock, promise.signature)
 
         const channelBalanceAfter = await token.balanceOf(channel.address)
         channelBalanceAfter.should.be.bignumber.equal(channelBalanceBefore.sub(OneToken))

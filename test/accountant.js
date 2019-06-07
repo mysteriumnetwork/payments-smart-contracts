@@ -161,4 +161,8 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
      */
 
 
+    /**
+     * Testing withdrawal functionality
+     */
+
 })

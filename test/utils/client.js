@@ -137,8 +137,7 @@ function createExchangeMsg(state, operator, channelId, invoice, party) {
     const diff = agreementTotal.sub(channelState.agreements[agreementId] || new BN(0))
     const amount = channelState.promised.add(diff).add(fee) // we're signing always increasing amount to settle
     const hashlock = keccak(R)
-    const extraDataHash = keccak(agreementId.toString())
-    const promise = createPromise(channelId, amount, fee, hashlock, extraDataHash, operator)
+    const promise = createPromise(channelId, amount, fee, hashlock, operator)
 
     // Create and sign exchange message
     const message = Buffer.concat([
@@ -199,34 +198,32 @@ async function exchangePromise(state, operator, exchangeMessage, payerPubKey, re
     outgoingChannelState.promised = promiseAmount
 
     // Issue new payment promise for `amount` value
-    return createPromise(outgoingChannelId, promiseAmount, new BN(0), promise.hashlock, promise.extraDataHash, operator)
+    return createPromise(outgoingChannelId, promiseAmount, new BN(0), promise.hashlock, operator)
 }
 
 function generatePromise(amountToPay, fee, channelState, operator) {
     const amount = channelState.settled.add(amountToPay).add(fee) // we're signing always increasing amount to settle
     const R = randomBytes(32)
     const hashlock = keccak(R)
-    const extraDataHash = keccak("")
     return Object.assign({}, 
-        createPromise(channelState.channelId, amount, fee, hashlock, extraDataHash, operator),
+        createPromise(channelState.channelId, amount, fee, hashlock, operator),
         {lock: R}
     )
 }
 
-function createPromise(channelId, amount, fee, hashlock, extraDataHash, operator) {
+function createPromise(channelId, amount, fee, hashlock, operator) {
     const message = Buffer.concat([
         Buffer.from(channelId.slice(2), 'hex'),  // channelId = channel address
         toBytes32Buffer(amount),   // total promised amount in this channel
         toBytes32Buffer(fee),      // fee to transfer for msg.sender
-        hashlock,     // hashlock needed for HTLC scheme
-        extraDataHash // hash of related data
+        hashlock     // hashlock needed for HTLC scheme
     ])
 
     // sign and verify the signature
     const signature = signMessage(message, operator.privKey)
     expect(verifySignature(message, signature, operator.pubKey)).to.be.true
     
-    return { channelId, amount, fee, hashlock, extraDataHash, hash: keccak(message), signature }
+    return { channelId, amount, fee, hashlock, hash: keccak(message), signature }
 }
 
 function validatePromise(promise, pubKey) {
@@ -234,8 +231,7 @@ function validatePromise(promise, pubKey) {
         Buffer.from(promise.channelId.slice(2), 'hex'),  // channelId = channel address
         toBytes32Buffer(promise.amount),   // total promised amount in this channel
         toBytes32Buffer(promise.fee),      // fee to transfer for msg.sender
-        promise.hashlock,     // hashlock needed for HTLC scheme
-        promise.extraDataHash // hash of related data
+        promise.hashlock     // hashlock needed for HTLC scheme
     ])
 
     expect(verifySignature(message, promise.signature, pubKey)).to.be.true 
@@ -248,7 +244,7 @@ async function settlePromise(state, accountant, promise) {
     } 
 
     const invoice = state.invoices[promise.hashlock]
-    await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, invoice.R, promise.extraDataHash, promise.signature)
+    await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, invoice.R, promise.signature)
 }
 
 async function signExitRequest(channel, beneficiary, operator) {
