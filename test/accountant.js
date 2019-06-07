@@ -26,7 +26,7 @@ const ChannelImplementation = artifacts.require("ChannelImplementation")
 
 const OneToken = OneEther = web3.utils.toWei(new BN(1), 'ether')
 
-contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
+contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
     const operator = wallet.generateAccount()   // Generate accountant operator wallet
     const identityA = wallet.generateAccount()
     const identityB = wallet.generateAccount()
@@ -36,7 +36,7 @@ contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiary
     before(async () => {
         token = await MystToken.new()
         const dex = await MystDex.new()
-        const accountantImplementation = await AccountantImplementation.new()
+        const accountantImplementation = await AccountantImplementation.new(token.address, operator.address)
         const channelImplementation = await ChannelImplementation.new()
         registry = await Registry.new(token.address, dex.address, channelImplementation.address, accountantImplementation.address, 0, 1)
 
@@ -175,24 +175,18 @@ contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiary
         const amountToPay = new BN('100')
         const balanceBefore = await token.balanceOf(beneficiaryB)
 
-<<<<<<< HEAD
         promise = generatePromise(amountToPay, new BN(0), channelState, operator)
-=======
-        const promise = generatePromise(amountToPay, new BN(0), channelState, operator)
->>>>>>> Test: Accountant promise can be settled
-        await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.extraDataHash, promise.signature)
+        await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature)
 
         const balanceAfter = await token.balanceOf(beneficiaryB)
         balanceAfter.should.be.bignumber.equal(balanceBefore.add(amountToPay))
     })
-<<<<<<< HEAD
 
     it("should fail while settling same promise second time", async () => {
         await accountant.settlePromise(promise.channelId,
             promise.amount,
             promise.fee,
             promise.lock,
-            promise.extraDataHash,
             promise.signature).should.be.rejected
     })
 
@@ -207,7 +201,6 @@ contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiary
             promise.amount,
             promise.fee,
             promise.lock,
-            promise.extraDataHash,
             promise.signature).should.be.rejected
     })
 
@@ -221,7 +214,7 @@ contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiary
         const txMakerBalanceBefore = await token.balanceOf(txMaker)
         
         const promise = generatePromise(amountToPay, fee, channelState, operator)
-        await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.extraDataHash, promise.signature)
+        await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature)
         
         const beneficiaryBalanceAfter = await token.balanceOf(beneficiaryC)
         beneficiaryBalanceAfter.should.be.bignumber.equal(beneficiaryBalanceBefore.add(amountToPay))
@@ -237,7 +230,7 @@ contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiary
         const fee = new BN('0')
 
         promise = generatePromise(amountToPay, fee, channelState, operator)
-        await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.extraDataHash, promise.signature)
+        await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature)
 
         const beneficiaryBalance = await token.balanceOf(beneficiaryC)
         beneficiaryBalance.should.be.bignumber.equal('881') // initial balance of 888 - 7 tokens paid for tx maker
@@ -246,7 +239,6 @@ contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiary
     it("should settle rest of promise amount after channel rebalance", async () => {
         const channelId = generateChannelId(identityC.address, accountant.address)
         const channelBalance = (await accountant.channels(channelId)).balance.toNumber()
-        // const initialBeneficiaryBalance = await token.balanceOf(beneficiaryC)
 
         // Rebalance channel
         expect(channelBalance).to.be.equal(0)
@@ -255,12 +247,10 @@ contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiary
         expect(channelBalanceAfter).to.be.equal(888)
 
         // Settle previous promise to get rest of promised coins
-        await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.extraDataHash, promise.signature)
+        await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature)
         const beneficiaryBalance = await token.balanceOf(beneficiaryC)
         beneficiaryBalance.should.be.bignumber.equal('1100')  // Two previous promises of 100 + 1000
     })
-=======
->>>>>>> Test: Accountant promise can be settled
 
     /**
      * Testing channel rebalance and stake/loans management functionality
@@ -290,7 +280,7 @@ contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiary
         const amountToPay = new BN('5000')
         const fee = new BN('0')
         const promise = generatePromise(amountToPay, fee, channelState, operator)
-        await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.extraDataHash, promise.signature)
+        await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature)
 
         const beneficiaryBalance = await token.balanceOf(beneficiaryC)
         beneficiaryBalance.should.be.bignumber.equal(initialBeneficiaryBalance.add(amountToPay))
@@ -398,7 +388,7 @@ contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiary
         const accountantInitialAvailableBalace = await accountant.availableBalance()
         const loanTimelock = initialChannelState.loanTimelock
         expect(loanTimelock.toNumber()).to.be.above(expectedTxBlockNumber)
-        
+
         await accountant.finalizeLoanReturn(channelId)
         const beneficiaryBalance = await token.balanceOf(otherAccounts[0])
         beneficiaryBalance.should.be.bignumber.equal(initialChannelState.loan)
@@ -411,11 +401,5 @@ contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiary
         // Available balance should be not changed because of getting channel's balance back available
         expect((await accountant.availableBalance()).toNumber()).to.be.equal(accountantInitialAvailableBalace.toNumber())
     })
-
-    /**
-     * Testing withdraw functionality
-     */
-
-    // accountant can withdrawal availableBalance funds without any permission
 
 })
