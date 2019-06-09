@@ -402,4 +402,13 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
         expect((await accountant.availableBalance()).toNumber()).to.be.equal(accountantInitialAvailableBalace.toNumber())
     })
 
+<<<<<<< HEAD
+=======
+    /**
+     * Testing withdraw functionality
+     */
+
+    // accountant can withdrawal availableBalance funds without any permission
+
+>>>>>>> Finalising loan return should rebalance.
 })
