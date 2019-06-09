@@ -146,6 +146,7 @@ contract AccountantImplementation is FundsRecovery {
     }
 
     // Updating collatered to channel amount - executed by operator
+    // TODO accountant should be able to decrease only with timelock
     function updateChannelBalance(bytes32 _channelId, uint256 _nonce, uint256 _newBalance, bytes memory _signature) public {
         require(isOpened(_channelId), "channel have to be opened");
         require(_nonce > lastUsedNonce, "nonce have to be bigger than already used");
@@ -161,6 +162,7 @@ contract AccountantImplementation is FundsRecovery {
     }
 
     // Possibility to increase channel ballance without operator's signature (up to lended amount)
+    // TODO should not allow rebalance if there is loan return request (`_channel.loanTimelock != 0`)
     function rebalanceChannel(bytes32 _channelId) public {
         uint256 _newBalance = channels[_channelId].loan;
         require(_newBalance > channels[_channelId].balance, "new balance should be bigger that current");
@@ -199,16 +201,20 @@ contract AccountantImplementation is FundsRecovery {
 
         require(token.transferFrom(msg.sender, address(this), _amount), "transfer have to be successfull");
         _channel.loan = _channel.loan.add(_amount);
+
+        __channelRebalance(_channelId, _channel.loan);
+
         emit NewLoan(_channelId, _amount);
     } 
 
-    // 
+    // TODO add possibility to decrease loan instead of withdrawing all 
     function requestLoanReturn(address _party, uint256 _nonce, bytes memory _signature) public {
         bytes32 _channelId = getChannelId(_party);
         Channel storage _channel = channels[_channelId];
-        uint256 _timelock = block.number.add(180000);  // block number until which to wait --> around 30 days
 
-        require(_channel.loan > 0 && _channel.loanTimelock == 0, "loan return can be requested only there are no open requests");
+        uint256 _timelock = getTimelock();  // block number until which to wait
+
+        require(_channel.loan > 0 && _channel.loanTimelock == 0, "loan return can be requested only if there are no open requests");
         require(_nonce > _channel.lastUsedNonce, "nonce have to be bigger than already used");
 
         if(msg.sender != _party) {
@@ -263,6 +269,11 @@ contract AccountantImplementation is FundsRecovery {
     // Funds not locked in any channel and free to be topuped or withdrawned
     function availableBalance() public view returns (uint256) {
         return token.balanceOf(address(this)).sub(lockedFunds);
+    }
+
+    // Returns blocknumber until which exit request should be locked
+    function getTimelock() internal view returns (uint256) {
+        return block.number + DELAY_BLOCKS;
     }
 
     // Setting new destination of funds recovery.

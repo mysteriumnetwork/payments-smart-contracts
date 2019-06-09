@@ -7,16 +7,21 @@ const { BN } = require('openzeppelin-test-helpers')
 const { 
     generateChannelId,
     topUpTokens,
-    topUpEthers,
-    keccak
+    topUpEthers 
 } = require('./utils/index.js')
 const wallet = require('./utils/wallet.js')
-const { signChannelBalanceUpdate, signChannelOpening, generatePromise } = require('./utils/client.js')
+const { 
+    signChannelBalanceUpdate,
+    signChannelBeneficiaryChange,
+    signChannelLoanReturnRequest,
+    signChannelOpening,
+    generatePromise 
+} = require('./utils/client.js')
 
 const MystToken = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
 const Registry = artifacts.require("Registry")
-const AccountantImplementation = artifacts.require("AccountantImplementation")
+const AccountantImplementation = artifacts.require("TestAccountantImplementation")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
 
 const OneToken = OneEther = web3.utils.toWei(new BN(1), 'ether')
@@ -251,7 +256,7 @@ contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiary
     })
 
     /**
-     * Testing channel rebalance functionality
+     * Testing channel rebalance and stake/loans management functionality
      */
 
     it("accountant operator can make increase channel balance to settle bigger promises", async () => {
@@ -320,4 +325,92 @@ contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiary
         await accountant.updateChannelBalance(channelId, nonce, newBalance, signature).should.be.rejected
     })
 
+    it("party should be able to increase stake", async () => {
+        const channelId = generateChannelId(identityB.address, accountant.address)
+        const channelInitialState = await accountant.channels(channelId)
+        const accountantInitialBalance = await token.balanceOf(accountant.address)
+        const accountantInitialAvailableBalace = await accountant.availableBalance()
+        const initialBalanceLoanDiff = channelInitialState.loan.sub(channelInitialState.balance)
+        const amountToLend = new BN('1500')
+
+        // Increase stake
+        await token.approve(accountant.address, amountToLend)
+        await accountant.increaseLoan(channelId, amountToLend)
+
+        const channelStake = await accountant.channels(channelId)
+        channelStake.loan.should.be.bignumber.equal(channelInitialState.loan.add(amountToLend))
+        channelStake.balance.should.be.bignumber.equal(channelInitialState.loan.add(amountToLend))
+
+        // Tokens should be properly transfered into accountant smart contract address
+        const accountantBalance = await token.balanceOf(accountant.address)
+        accountantBalance.should.be.bignumber.equal(accountantInitialBalance.add(amountToLend))
+
+        // Accountant abailable balance should be calculated properly
+        const accountantAvailableBalance = await accountant.availableBalance()
+        accountantAvailableBalance.should.be.bignumber.equal(accountantInitialAvailableBalace.sub(initialBalanceLoanDiff))
+    })
+
+    it("party should be able to request loan/stake return", async () => {
+        const channelId = generateChannelId(identityB.address, accountant.address)
+        const nonce = new BN(1)
+        const signature = signChannelLoanReturnRequest(channelId, nonce, identityB)
+        await accountant.requestLoanReturn(identityB.address, nonce, signature)
+
+        const expectedBlockNumber = (await web3.eth.getBlock('latest')).number + 4
+        const channel = await accountant.channels(channelId)
+        expect(channel.loanTimelock.toNumber()).to.be.equal(expectedBlockNumber)
+    })
+
+    it("should fail to request loan return if one alredy requested", async () => {
+        const channelId = generateChannelId(identityB.address, accountant.address)
+        const nonce = new BN(2)
+        const signature = signChannelLoanReturnRequest(channelId, nonce, identityB)
+        await accountant.requestLoanReturn(identityB.address, nonce, signature).should.be.rejected
+    })
+
+    it("should fail finalising loan return until timelock passed", async () => {
+        const channelId = generateChannelId(identityB.address, accountant.address)
+        await accountant.finalizeLoanReturn(channelId).should.be.rejected
+    })
+
+    it("party should be able to change beneficiary", async () => {
+        const newBeneficiary = otherAccounts[0]
+        const channelId = generateChannelId(identityB.address, accountant.address)
+        const nonce = new BN(3)
+        const signature = signChannelBeneficiaryChange(channelId, newBeneficiary, nonce, identityB)
+
+        await accountant.setBeneficiary(identityB.address, newBeneficiary, nonce, signature)
+
+        expect((await accountant.channels(channelId)).beneficiary).to.be.equal(newBeneficiary)
+    })
+
+    it("should finalise loan return", async () => {
+        const channelId = generateChannelId(identityB.address, accountant.address)
+        const expectedTxBlockNumber = (await web3.eth.getBlock('latest')).number
+        const initialChannelState = await accountant.channels(channelId)
+        const loanTimelock = initialChannelState.loanTimelock
+        expect(loanTimelock.toNumber()).to.be.above(expectedTxBlockNumber)
+        
+        await accountant.finalizeLoanReturn(channelId)
+        const beneficiaryBalance = await token.balanceOf(otherAccounts[0])
+        beneficiaryBalance.should.be.bignumber.equal(initialChannelState.loan)
+
+        const channel = await accountant.channels(channelId)
+        expect(channel.loan.toNumber()).to.be.equal(0)
+        expect(channel.loanTimelock.toNumber()).to.be.equal(0)
+
+    })
+
+    /**
+     * Testing withdraw functionality
+     */
+
+    // accountant can withdrawal availableBalance funds without any permission
+
+    /**
+     * Testing other functionality
+     */
+    it("party should be able to change beneficiary", async () => {
+        
+    })
 })

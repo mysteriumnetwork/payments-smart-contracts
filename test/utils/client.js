@@ -292,6 +292,35 @@ function signChannelBalanceUpdate(channelId, nonce, newBalance, operator) {
     return signature
 }
 
+function signChannelBeneficiaryChange(channelId, newBeneficiary, channelNonce, identity) {
+    const message = Buffer.concat([
+        Buffer.from(channelId.slice(2), 'hex'),
+        Buffer.from(newBeneficiary.slice(2), 'hex'),
+        toBytes32Buffer(channelNonce),
+    ])
+
+    // sign and verify the signature
+    const signature = signMessage(message, identity.privKey)
+    expect(verifySignature(message, signature, identity.pubKey)).to.be.true
+
+    return signature
+}
+
+function signChannelLoanReturnRequest(channelId, channelNonce, identity) {
+    const LOAN_RETURN_PREFIX = "Load return request"
+    const message = Buffer.concat([
+        Buffer.from(LOAN_RETURN_PREFIX),
+        Buffer.from(channelId.slice(2), 'hex'),
+        toBytes32Buffer(channelNonce)
+    ])
+
+    // sign and verify the signature
+    const signature = signMessage(message, identity.privKey)
+    expect(verifySignature(message, signature, identity.pubKey)).to.be.true
+
+    return signature
+}
+
 function signChannelOpening(accountantId, party, beneficiary, amountToLend = 0) {
     const OPENCHANNEL_PREFIX = "Open channel request"
 
@@ -342,6 +371,8 @@ module.exports = {
     generatePromise,
     signExitRequest,
     signChannelBalanceUpdate,
+    signChannelBeneficiaryChange,
+    signChannelLoanReturnRequest,
     signChannelOpening,
     validatePromise
 }
