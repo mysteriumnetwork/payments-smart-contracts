@@ -232,6 +232,12 @@ contract AccountantImplementation is FundsRecovery {
         Channel storage _channel = channels[_channelId];
         require(_channel.loanTimelock != 0 && block.number >= _channel.loanTimelock, "loan return have to be requested and block timelock have to be in past");
 
+        // Decrease channel balance
+        uint256 _diff = (_channel.balance > _channel.loan) ? _channel.balance.sub(_channel.loan) : _channel.balance;
+        _channel.balance = _channel.balance.sub(_diff);
+        lockedFunds = lockedFunds.sub(_diff);
+
+        // Return loan
         token.transfer(_channel.beneficiary, _channel.loan);
         _channel.loan = 0;
         _channel.loanTimelock = 0;

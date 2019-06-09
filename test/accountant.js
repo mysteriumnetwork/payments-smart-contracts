@@ -384,10 +384,11 @@ contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiary
         expect((await accountant.channels(channelId)).beneficiary).to.be.equal(newBeneficiary)
     })
 
-    it("should finalise loan return", async () => {
+    it("should properly finalise loan return", async () => {
         const channelId = generateChannelId(identityB.address, accountant.address)
         const expectedTxBlockNumber = (await web3.eth.getBlock('latest')).number
         const initialChannelState = await accountant.channels(channelId)
+        const accountantInitialAvailableBalace = await accountant.availableBalance()
         const loanTimelock = initialChannelState.loanTimelock
         expect(loanTimelock.toNumber()).to.be.above(expectedTxBlockNumber)
         
@@ -398,7 +399,10 @@ contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiary
         const channel = await accountant.channels(channelId)
         expect(channel.loan.toNumber()).to.be.equal(0)
         expect(channel.loanTimelock.toNumber()).to.be.equal(0)
+        expect(channel.balance.toNumber()).to.be.equal(0)
 
+        // Available balance should be not changed because of getting channel's balance back available
+        expect((await accountant.availableBalance()).toNumber()).to.be.equal(accountantInitialAvailableBalace.toNumber())
     })
 
     /**
@@ -407,10 +411,4 @@ contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiary
 
     // accountant can withdrawal availableBalance funds without any permission
 
-    /**
-     * Testing other functionality
-     */
-    it("party should be able to change beneficiary", async () => {
-        
-    })
 })
