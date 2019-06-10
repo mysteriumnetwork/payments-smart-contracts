@@ -10,7 +10,6 @@ const {
     topUpEthers 
 } = require('./utils/index.js')
 const wallet = require('./utils/wallet.js')
-<<<<<<< HEAD
 const { 
     signChannelBalanceUpdate,
     signChannelBeneficiaryChange,
@@ -18,9 +17,6 @@ const {
     signChannelOpening,
     generatePromise 
 } = require('./utils/client.js')
-=======
-const { signChannelOpening, generatePromise } = require('./utils/client.js')
->>>>>>> Test: Accountant promise can be settled
 
 const MystToken = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
@@ -179,18 +175,12 @@ contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiary
         const amountToPay = new BN('100')
         const balanceBefore = await token.balanceOf(beneficiaryB)
 
-<<<<<<< HEAD
         promise = generatePromise(amountToPay, new BN(0), channelState, operator)
         await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature)
-=======
-        const promise = generatePromise(amountToPay, new BN(0), channelState, operator)
-        await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.extraDataHash, promise.signature)
->>>>>>> Test: Accountant promise can be settled
 
         const balanceAfter = await token.balanceOf(beneficiaryB)
         balanceAfter.should.be.bignumber.equal(balanceBefore.add(amountToPay))
     })
-<<<<<<< HEAD
 
     it("should fail while settling same promise second time", async () => {
         await accountant.settlePromise(promise.channelId,
@@ -411,15 +401,5 @@ contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiary
         // Available balance should be not changed because of getting channel's balance back available
         expect((await accountant.availableBalance()).toNumber()).to.be.equal(accountantInitialAvailableBalace.toNumber())
     })
-=======
->>>>>>> Test: Accountant promise can be settled
-
-<<<<<<< HEAD
-})
-=======
-    /**
-     * Testing withdrawal functionality
-     */
 
 })
->>>>>>> Removed extra data hash
