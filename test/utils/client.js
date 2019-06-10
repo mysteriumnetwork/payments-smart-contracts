@@ -319,7 +319,6 @@ function signChannelLoanReturnRequest(channelId, channelNonce, identity) {
 
 function signChannelOpening(accountantId, party, beneficiary, amountToLend = 0) {
     const OPENCHANNEL_PREFIX = "Open channel request"
-
     const message = Buffer.concat([
         Buffer.from(OPENCHANNEL_PREFIX),
         Buffer.from(accountantId.slice(2), 'hex'),
@@ -331,6 +330,22 @@ function signChannelOpening(accountantId, party, beneficiary, amountToLend = 0) 
     // sign and verify the signature
     const signature = signMessage(message, party.privKey)
     expect(verifySignature(message, signature, party.pubKey)).to.be.true
+
+    return signature
+}
+
+function signFundsWithdrawal(beneficiary, amount, nonce, operator) {
+    const WITHDRAW_PREFIX = "Withdraw request"
+    const message = Buffer.concat([
+        Buffer.from(WITHDRAW_PREFIX),
+        Buffer.from(beneficiary.slice(2), 'hex'),
+        toBytes32Buffer(amount),
+        toBytes32Buffer(nonce)
+    ])
+
+    // sign and verify the signature
+    const signature = signMessage(message, operator.privKey)
+    expect(verifySignature(message, signature, operator.pubKey)).to.be.true
 
     return signature
 }
@@ -370,5 +385,6 @@ module.exports = {
     signChannelBeneficiaryChange,
     signChannelLoanReturnRequest,
     signChannelOpening,
+    signFundsWithdrawal,
     validatePromise
 }

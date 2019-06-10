@@ -15,6 +15,7 @@ const {
     signChannelBeneficiaryChange,
     signChannelLoanReturnRequest,
     signChannelOpening,
+    signFundsWithdrawal,
     generatePromise 
 } = require('./utils/client.js')
 
@@ -26,7 +27,7 @@ const ChannelImplementation = artifacts.require("ChannelImplementation")
 
 const OneToken = OneEther = web3.utils.toWei(new BN(1), 'ether')
 
-contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
+contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
     const operator = wallet.generateAccount()   // Generate accountant operator wallet
     const identityA = wallet.generateAccount()
     const identityB = wallet.generateAccount()
@@ -401,5 +402,21 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
         // Available balance should be not changed because of getting channel's balance back available
         expect((await accountant.availableBalance()).toNumber()).to.be.equal(accountantInitialAvailableBalace.toNumber())
     })
+
+     it("Accountant operator should be able to request funds withdrawal", async () => {
+        const initialBalance = await token.balanceOf(accountant.address)
+
+        const amount = new BN(500)
+        const nonce = new BN(5)
+        const beneficiary = otherAccounts[1]
+        const signature = signFundsWithdrawal(beneficiary, amount, nonce, operator)
+        await accountant.withdraw(beneficiary, amount, nonce, signature)
+
+        const accountantBalance = await token.balanceOf(accountant.address)
+        accountantBalance.should.be.bignumber.equal(initialBalance.sub(amount))
+
+        const beneficiaryBalance = await token.balanceOf(beneficiary)
+        beneficiaryBalance.should.be.bignumber.equal(amount)
+     })
 
 })
