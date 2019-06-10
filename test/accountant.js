@@ -183,7 +183,8 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
     })
 
     it("should fail while settling same promise second time", async () => {
-        await accountant.settlePromise(promise.channelId,
+        await accountant.settlePromise(
+            promise.channelId,
             promise.amount,
             promise.fee,
             promise.lock,
