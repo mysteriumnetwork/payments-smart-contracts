@@ -199,8 +199,11 @@ contract AccountantImplementation is FundsRecovery {
             require(_signer == operator, "have to be signed by operator");
         }
 
-        uint256 _amountToTransfer = token.balanceOf(address(this)).sub(max(lockedFunds, totalLoan));
-        token.transfer(_beneficiary, _amountToTransfer);
+        // Accountants can't withdraw locked in channel funds and funds lended to him
+        uint256 _possibleAmountToTransfer = token.balanceOf(address(this)).sub(max(lockedFunds, totalLoan));
+        require(_possibleAmountToTransfer >= _amount, "should be enough funds available to withdraw");
+
+        token.transfer(_beneficiary, _amount);
 
         emit FundsWithdrawned(_amount, _beneficiary);
     }
@@ -298,7 +301,7 @@ contract AccountantImplementation is FundsRecovery {
     function getTimelock() internal view returns (uint256) {
         return block.number + DELAY_BLOCKS;
     }
-    
+
     function max(uint a, uint b) private pure returns (uint) {
         return a > b ? a : b;
     }
