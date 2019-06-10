@@ -183,8 +183,7 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
     })
 
     it("should fail while settling same promise second time", async () => {
-        await accountant.settlePromise(
-            promise.channelId,
+        await accountant.settlePromise(promise.channelId,
             promise.amount,
             promise.fee,
             promise.lock,
@@ -403,13 +402,4 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
         expect((await accountant.availableBalance()).toNumber()).to.be.equal(accountantInitialAvailableBalace.toNumber())
     })
 
-<<<<<<< HEAD
-=======
-    /**
-     * Testing withdraw functionality
-     */
-
-    // accountant can withdrawal availableBalance funds without any permission
-
->>>>>>> Finalising loan return should rebalance.
 })
