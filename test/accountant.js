@@ -27,7 +27,7 @@ const ChannelImplementation = artifacts.require("ChannelImplementation")
 
 const OneToken = OneEther = web3.utils.toWei(new BN(1), 'ether')
 
-contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
+contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
     const operator = wallet.generateAccount()   // Generate accountant operator wallet
     const identityA = wallet.generateAccount()
     const identityB = wallet.generateAccount()
@@ -403,7 +403,11 @@ contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiary
         expect((await accountant.availableBalance()).toNumber()).to.be.equal(accountantInitialAvailableBalace.toNumber())
     })
 
-     it("Accountant operator should be able to request funds withdrawal", async () => {
+    /**
+     * Testing accountant's funds withdrawal functionality
+     */
+
+    it("accountant operator should be able to request funds withdrawal", async () => {
         const initialBalance = await token.balanceOf(accountant.address)
 
         const amount = new BN(500)
@@ -417,6 +421,27 @@ contract.only('Accountant Contract Implementation tests', ([txMaker, beneficiary
 
         const beneficiaryBalance = await token.balanceOf(beneficiary)
         beneficiaryBalance.should.be.bignumber.equal(amount)
-     })
+    })
+
+    it("should be not possible to withdraw not own funds", async () => {
+        // Settle some funds, to make loan > balance
+        const channelId = generateChannelId(identityC.address, accountant.address)
+        const channelState = Object.assign({}, {channelId}, await accountant.channels(channelId))
+        const promise = generatePromise(new BN(700), new BN(0), channelState, operator)
+        await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature)
+        
+        const channel = await accountant.channels(channelId)
+        channel.loan.should.be.bignumber.greaterThan(channel.balance)
+
+        // Withdraw request should be rejected and no funds moved
+        const initialBalance = await token.balanceOf(accountant.address)
+        const amount = await accountant.availableBalance()
+        const nonce = new BN(6)
+        const beneficiary = otherAccounts[2]
+        const signature = signFundsWithdrawal(beneficiary, amount, nonce, operator)
+        await accountant.withdraw(beneficiary, amount, nonce, signature).should.be.rejected
+
+        initialBalance.should.be.bignumber.equal(await token.balanceOf(accountant.address))
+    })
 
 })
