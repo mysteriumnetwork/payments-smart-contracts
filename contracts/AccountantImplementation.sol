@@ -18,12 +18,14 @@ contract AccountantImplementation is FundsRecovery {
     string constant UPDATE_PREFIX = "Update channel balance";
     string constant LOAN_RETURN_PREFIX = "Load return request";
     string constant RESET_LOAN_RETURN_PREFIX = "Reset loan return request";
+    string constant WITHDRAW_PREFIX = "Withdraw request";
     uint256 constant DELAY_BLOCKS = 18000;  // +/- 3 days
 
     IdentityRegistry internal registry;
     address internal operator;
     uint256 public timelock;               // block number after which exit can be finalised
     uint256 internal lockedFunds;
+    uint256 internal totalLoan;
     uint256 internal lastUsedNonce;        // nonce used to protect signature based calls from repply attack
 
     struct Channel {
@@ -55,6 +57,7 @@ contract AccountantImplementation is FundsRecovery {
     event LoanReturnRequestInvalidated(bytes32 channelId);
     event LoanReturned(bytes32 channelId, address beneficiary, uint256 amount);
     event ChannelBeneficiaryChanged(bytes32 _channelId, address _newBeneficiary);
+    event FundsWithdrawned(uint256 amount, address beneficiary);
 
     /*
       ------------------------------------------- SETUP -------------------------------------------
@@ -101,6 +104,7 @@ contract AccountantImplementation is FundsRecovery {
         if (_amountToLend > 0) {
             require(token.transferFrom(msg.sender, address(this), _amountToLend), "token transfer should succeed");
             channels[_channelId].loan = _amountToLend;
+            totalLoan = totalLoan.add(_amountToLend);
             emit NewLoan(_channelId, _amountToLend);
         }
 
@@ -186,8 +190,22 @@ contract AccountantImplementation is FundsRecovery {
         _channel.balance = _newBalance;
     }
 
-    function withdraw() public {
-        // only operator, send some funds out.
+    function withdraw(address _beneficiary, uint256 _amount, uint256 _nonce, bytes memory _signature) public {
+        require(_nonce > lastUsedNonce, "nonce have to be bigger than already used");
+
+        // If transaction sent not by operator signature must be verified
+        if (msg.sender != operator) {
+            address _signer = keccak256(abi.encodePacked(WITHDRAW_PREFIX, _beneficiary, _amount, _nonce)).recover(_signature);
+            require(_signer == operator, "have to be signed by operator");
+        }
+
+        // Accountants can't withdraw locked in channel funds and funds lended to him
+        uint256 _possibleAmountToTransfer = token.balanceOf(address(this)).sub(max(lockedFunds, totalLoan));
+        require(_possibleAmountToTransfer >= _amount, "should be enough funds available to withdraw");
+
+        token.transfer(_beneficiary, _amount);
+
+        emit FundsWithdrawned(_amount, _beneficiary);
     }
 
     /*
@@ -203,6 +221,7 @@ contract AccountantImplementation is FundsRecovery {
         _channel.loan = _channel.loan.add(_amount);
 
         __channelRebalance(_channelId, _channel.loan);
+        totalLoan = totalLoan.add(_amount);
 
         emit NewLoan(_channelId, _amount);
     } 
@@ -239,6 +258,7 @@ contract AccountantImplementation is FundsRecovery {
 
         // Return loan
         token.transfer(_channel.beneficiary, _channel.loan);
+        totalLoan = totalLoan.sub(_channel.loan);
         _channel.loan = 0;
         _channel.loanTimelock = 0;
 
@@ -280,6 +300,10 @@ contract AccountantImplementation is FundsRecovery {
     // Returns blocknumber until which exit request should be locked
     function getTimelock() internal view returns (uint256) {
         return block.number + DELAY_BLOCKS;
+    }
+
+    function max(uint a, uint b) private pure returns (uint) {
+        return a > b ? a : b;
     }
 
     // Setting new destination of funds recovery.

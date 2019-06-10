@@ -15,6 +15,7 @@ const {
     signChannelBeneficiaryChange,
     signChannelLoanReturnRequest,
     signChannelOpening,
+    signFundsWithdrawal,
     generatePromise 
 } = require('./utils/client.js')
 
@@ -400,6 +401,47 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
 
         // Available balance should be not changed because of getting channel's balance back available
         expect((await accountant.availableBalance()).toNumber()).to.be.equal(accountantInitialAvailableBalace.toNumber())
+    })
+
+    /**
+     * Testing accountant's funds withdrawal functionality
+     */
+
+    it("accountant operator should be able to request funds withdrawal", async () => {
+        const initialBalance = await token.balanceOf(accountant.address)
+
+        const amount = new BN(500)
+        const nonce = new BN(5)
+        const beneficiary = otherAccounts[1]
+        const signature = signFundsWithdrawal(beneficiary, amount, nonce, operator)
+        await accountant.withdraw(beneficiary, amount, nonce, signature)
+
+        const accountantBalance = await token.balanceOf(accountant.address)
+        accountantBalance.should.be.bignumber.equal(initialBalance.sub(amount))
+
+        const beneficiaryBalance = await token.balanceOf(beneficiary)
+        beneficiaryBalance.should.be.bignumber.equal(amount)
+    })
+
+    it("should be not possible to withdraw not own funds", async () => {
+        // Settle some funds, to make loan > balance
+        const channelId = generateChannelId(identityC.address, accountant.address)
+        const channelState = Object.assign({}, {channelId}, await accountant.channels(channelId))
+        const promise = generatePromise(new BN(700), new BN(0), channelState, operator)
+        await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature)
+        
+        const channel = await accountant.channels(channelId)
+        channel.loan.should.be.bignumber.greaterThan(channel.balance)
+
+        // Withdraw request should be rejected and no funds moved
+        const initialBalance = await token.balanceOf(accountant.address)
+        const amount = await accountant.availableBalance()
+        const nonce = new BN(6)
+        const beneficiary = otherAccounts[2]
+        const signature = signFundsWithdrawal(beneficiary, amount, nonce, operator)
+        await accountant.withdraw(beneficiary, amount, nonce, signature).should.be.rejected
+
+        initialBalance.should.be.bignumber.equal(await token.balanceOf(accountant.address))
     })
 
 })
