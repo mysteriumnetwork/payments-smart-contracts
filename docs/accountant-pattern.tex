@@ -3,6 +3,7 @@
 \usepackage{float}
 \usepackage{graphicx}
 \usepackage{listings}
+\usepackage{amsfonts}
 
 \usepackage[utf8]{inputenc}
 \usepackage{biblatex}
@@ -777,6 +778,69 @@ either having complicated migration into another (much more popular at that
 time) solution in the future.
 
 \subsection{Comparison and conclusion}
+
+The key insight of \textit{Layer 2} soliutions is that not every transaction has
+to be applied globally. All analysed solutions solves this problem in different 
+ways and has different trade-offs. 
+
+Many state channel developers see \textit{Layer 1} as the Security Layer and 
+\textit{Layer 2} as the Scalability Layer. Furthermore, Layer 2 provides lower 
+latency and cost per transaction that would otherwise not be possible beyond a 
+certain level of throughput with Layer 1 solutions.
+
+\begin{table}[H]\footnotesize
+    \centering
+    \caption{Comparison of researched solutions}
+    {\begin{tabular}{|l|c|c|c|c|c|} \hline
+       & \textbf{Channels} & \textbf{HTLC Network} & \textbf{Payment Hub} & \textbf{Plasma} & \textbf{Sidechain} \\
+      \hline
+      On-chain transactions & $\bullet\bullet\bullet$ & $\bullet\bullet$ & $\bullet\bullet$ & $\bullet$ & $\bullet$ \\
+      Instant finality &  \checkmark &  \checkmark &  \checkmark & & \\
+      Hight throughput & $\bullet\bullet$ & $\bullet\bullet\bullet$  & $\bullet\bullet\bullet$ & $\bullet$ & $\bullet$ \\
+      Off-chain messaging & $\bullet$ & $\bullet\bullet\bullet$ & $\bullet\bullet$ & $\bullet$ & $\bullet$ \\
+      Decentralised & \checkmark & \checkmark & $\pm$ & $?$ & $\pm$ \\
+      Requires specialised wallet & $?$ & \checkmark & \checkmark & \checkmark & \checkmark \\
+      Topup from exchange & $?$ & $-$ & $-$ & $-$ & \checkmark \\
+      Easily embedable & \checkmark & $-$ & $-$ & $\pm$ & $\pm$ \\
+      Overall user experience & $\bullet$ & $\bullet$ & $\bullet\bullet\bullet$ & $\bullet\bullet$ & $\bullet\bullet$ \\
+      Implementation complexity & $\bullet$ & $\bullet\bullet\bullet$ & $\bullet\bullet$ & $\bullet\bullet\bullet$ & $\bullet\bullet\bullet$ \\
+      Fast settlement & $?$ & $-$ & $\pm$ & \checkmark & $-$ \\
+      Security & $\bullet\bullet\bullet$ & $\bullet\bullet\bullet$ & $\bullet\bullet\bullet$ & $\bullet\bullet\bullet$ & $?$ \\
+      Utility token support & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
+      \hline
+    \end{tabular}}
+    \label{tab:comparison}
+  \end{table}
+
+Explanation of meaning of used symbols: 
+$\bullet\bullet\bullet$ -- high, 
+$\bullet\bullet$ -- medium, 
+$\bullet$ -- low, 
+\checkmark -- yes, 
+$\pm$ -- more or less, 
+$?$ -- unknown, depends on implementation. \\
+
+Explanation of compared solutions:
+
+\begin{itemize}
+    \item \textbf{Channels} -- pure payment channels bease solution (without 
+    network), when each pair of consumer and provider have to open new channel.
+    \item \textbf{HTLC Network} -- Micropayment channels networks which is using
+    hashed timelocked contracts for payment routing, e.g. Raiden Networks.
+    \item \textbf{Payment Hub} -- Virtual channels hubs based payment solution,
+    such as Perun, Counterfactual or Connext.
+    \item \textbf{Plasma} -- One of Plasma chain implementations (e.g. Plasma 
+    MVP), dedicated to serve for payment purposes for particular distributed
+    system.
+    \item \textbf{Sidechain} -- Running sidechain using Substrate or Tendermint
+    frameworks and connected to Polkadot or Cosmos.
+\end{itemize}
+
+In table \ref{tab:comparison} we can see comparison of properties given by 
+analysed solutions. It is clear, that because of \textit{instant finality} and 
+higher throughput posibilities, micropayment channels based solutions (such as
+state channels, htlc networks or virtual payment hubs) fits better for high 
+freakquency micropayments in decentralised platforms.
 
 \section{The protocol}
 
