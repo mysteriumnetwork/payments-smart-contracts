@@ -29,6 +29,7 @@
     "openzeppelin-solidity": "^2.3.0",
     "openzeppelin-test-helpers": "^0.4.0",
     "secp256k1": "^3.7.1",
-    "truffle": "^5.0.22"
+    "truffle": "^5.0.22",
+    "diff": ">=3.5.0"
   }
 }
