@@ -101,3 +101,5 @@ would be simpler and smart contracts would avoid not necessary calculations.
 * Stateless Proxy (mutates target's storage, avoids delegatecall)
 * Downvoting for provider identity (if client already paid some amount to identity) -> downvoting can take some funds from stake
 * Virtual channels (Counterfactually or Perun based).
+* Get fee from channel during deployment instead of from `msg.sender`.
+* `msg.sender` could get reward for registration directly from channel during `initialize` stage.

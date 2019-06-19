@@ -1125,7 +1125,7 @@ balance. So if Provider have unsettled promise for smaller amount than he
 lended to Accountant, he is safe even if he will "dissapear" for really long 
 period of time. He still be able to get back all funds promised to him.
 
-\subsection{Transaction maker and watch towers}
+\subsection{Transaction maker}
 
 One of most not user friendly parts of transfering ERC20 tokens is that this
 operation requires to also own ethers to pay for gas. Another problem in
@@ -1167,7 +1167,7 @@ service is integral part.
 Sending transactions into blockchain costs so users could cover that cost, but
 instead of using additional currency (ethers in case of Ethereum), they could
 pay in tokens, and as payment mechanism Payment promises (described in sections
-4.2 and 4.4) could be used (see figure)
+4.2 and 4.4) could be used (see figure \ref{img:transactor-payment}).
 
 \begin{figure}[H]
     \centering
@@ -1188,43 +1188,82 @@ Main properties of protocol are:
 \begin{itemize}
   \item Easy paying channel topup (even from exchange).
   \item Payments aggregation $\Longrightarrow$ minimal on-chain tx amount.
-  \item Fast settlement into blockchain without need for other party to be on-line
-  and cooperate.
+  \item Fast settlement into blockchain without need for other party to be 
+  on-line and cooperate.
   \item Guaranty of incomming channel balance/collateral size.
   \item Simple off-chain communication (one roundtrip payments).
   \item Possibility to avoid accountant for at least part of transactions.
-  \item Pull based interations with accountant $\Longrightarrow$ providers don't have to
-  be externally exposed or maintain live connection with accountant.
-  \item Secure $\Longrightarrow$ double spend protection using non-custodian accountant
-  model.
-  \item Fast channel opening $\Longrightarrow$ possibility not to wait until opening tx
-   will be mined.
+  \item Pull based interations with accountant $\Longrightarrow$ providers don't 
+  have to be externally exposed or maintain live connection with accountant.
+  \item Secure $\Longrightarrow$ double spend protection using non-custodian 
+  accountant model.
+  \item Fast channel opening $\Longrightarrow$ possibility not to wait until 
+  opening tx will be mined.
   \item Instant finality of payments.
 \end{itemize}
 
-\subsection{Potential future work}
+\section{Potential future work}
 
-- Migrate into Connext or Perun 
-- Migrate into Plasma + channels
-- Accountant support Counterfactual channels
+There are three main directions in which future development of payment solution
+could evolve: 
+\begin{itemize}
+    \item migrate into Connext or Perun;
+    \item migrate into Plasma + channels;
+    \item add support of counterfactual channels for accountant pattern.
+\end{itemize}
 
+\subsection{Migration into Connext or Perun}
 
-Author has plans to research possibility to apply similar model for UTXO based statefull 
-chains, such as Cardano or Plasma MVP. Also there is willing to research what would be 
-possible to do on Bitcoin blockchain or how to create lightweight hub for Lightning 
-Network.
+Two most closed and most promissing solutions to described Accontant pattern are
+\textit{Perun virtual payment hubs} and \textit{Connext hub}. While Perun team 
+is still working on their first version of protocol implementation, Connext team 
+already working on thirs iteration of their hub solution (this time using 
+Counterfactual state channels). Unfortunatelly at the moment both solutions are
+not ready to use inside dVPN application written by Mysterium team. 
 
-Identity channels could be implemented as multisig contracts done in 
-\textit{Counterfactual} \cite{counterfactual} way, so in the future there would be 
-possible introduce new payment channels types without need of creating new channels of 
-doing any other on-chain action or upgrade of deployed smart-contracts. 
+In Connext case, they're changing their solution a lot, so it's worth to wait 
+until their implementation will stabilise. Also their client application is 
+written in TypeScript which means that Mysterium would need to reimplement it 
+in golang and take care of all protocol changes. Another problem is, that their
+off-chain messaging is much more complicated and requires storing a quite a lot
+of state by client nodes.
 
-In the future there may be discovered potential applicability of \textit{channel 
-factories} \cite{factories} as way for cross hub communication which may reduce need 
-for users to establish connections with many hubs. This potentially increase 
-decentralisation of the network while maintaining same scalability properties (avoiding 
-complex routing used in Lightning Network).
+Perun team is creating their client node using golang, which makes it good
+choice, but because protocol itself is complicated and implementation is in 
+early stage, there is quite hard to say if it will work as expected and will
+provide all needed features for good user experience (described in 2.3 section, 
+7th requirement).
 
+In the future, when these solutions will be more mature and if Accountat pattern
+will not serve as expected, there may be made migration into one of these 
+solutions.
+
+\subsection{Plasma plus channels}
+
+In Ethereum community there are a lot of development going aroud various Plasma 
+implementations. Unfortunatelly each analysed Plasma implementation had own 
+issues (either centralisation, either mass exit risk, either having support only
+for non-fungible tokens). Additionaly, as was described in 3.2 section, in 
+initial state running own Plasma could be expensive, and there are no popular
+and decentralised Plasma implementation runned by thirs party teams.
+
+In the future however, if there would be proposed Plasma implementation which
+solves earlier mentioned problems, would have already developed tooling which
+would help to run own implementaiton easily or they would appear decentralised
+and popular solution implemented and runned by third party team, Mysterium team 
+could easyly enough adapt their dVPN node software to use uni-directional, 
+payment promise based channels on top of Plasma.
+
+\subsection{Take use of Counterfactual state channels}
+
+Generalized state channels described in Counterfactual \cite{counterfactual} 
+white paper looks like very powerful sulution. Also we see that there is some
+traction around this solution. If this trend will grow, in the future we may
+take some effort to research possibility to refactor Accounant pattern proposed 
+uni-directional channels and implement them in counterfactual way. Ideally there
+could be possible to install them as an application on top of existing opened 
+channel with counterfactual hub. This would help to have minimal changes inside 
+dVPN node software but in same time be part of bigger network.
 
 \newpage
 \printbibliography[heading=bibintoc]
