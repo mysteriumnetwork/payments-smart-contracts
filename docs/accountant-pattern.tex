@@ -4,9 +4,13 @@
 \usepackage{graphicx}
 \usepackage{listings}
 \usepackage{amsfonts}
+\usepackage{amsmath}
 
 \usepackage[utf8]{inputenc}
 \usepackage{biblatex}
+
+\input{./solidity-highlighting.tex}
+\input{./vyper-highlighting.tex}
 
 \addbibresource{bibliography.bib}
 
@@ -158,9 +162,12 @@ blockchain.
 
 Here is snippet from smart contract code which should settle promised value 
 on-chain.
-\begin{lstlisting}[basicstyle=\fontsize{9}{11}\sffamily]
-    function settlePromise(address issuer, address beneficiary, 
-                           uint256 seq, uint256 amount, 
+
+\begin{lstlisting}[language=Solidity]
+    function settlePromise(address issuer, 
+                           address beneficiary, 
+                           uint256 seq, 
+                           uint256 amount, 
                            bytes issuerSignature,
                            bytes beneficiarySignature) public {
         bytes32 promiseHash = keccak256(beneficiary, seq , amount);
@@ -210,7 +217,7 @@ to settle one such cheque can cost from 0.01 till 1 EUR depending on network
 busyness. This means that either big fees will be paid or cheques will be never 
 settled.
 
-\subsection{Requirements for "good" payments solution}
+\subsection{Requirements for "ideal" payments solution}
 
 Because of high level of privacy and anonymity in decentralised networks, actors
 of the network may don’t trust each other and there is no trusted intermediary 
@@ -801,7 +808,7 @@ certain level of throughput with Layer 1 solutions.
       Decentralised & \checkmark & \checkmark & $\pm$ & $?$ & $\pm$ \\
       Requires specialised wallet & $?$ & \checkmark & \checkmark & \checkmark & \checkmark \\
       Topup from exchange & $?$ & $-$ & $-$ & $-$ & \checkmark \\
-      Easily embedable & \checkmark & $-$ & $-$ & $\pm$ & $\pm$ \\
+      Easily embedable & \checkmark & $\pm$ & $-$ & $\pm$ & $\pm$ \\
       Overall user experience & $\bullet$ & $\bullet$ & $\bullet\bullet\bullet$ & $\bullet\bullet$ & $\bullet\bullet$ \\
       Implementation complexity & $\bullet$ & $\bullet\bullet\bullet$ & $\bullet\bullet$ & $\bullet\bullet\bullet$ & $\bullet\bullet\bullet$ \\
       Fast settlement & $?$ & $-$ & $\pm$ & \checkmark & $-$ \\
@@ -842,11 +849,381 @@ higher throughput posibilities, micropayment channels based solutions (such as
 state channels, htlc networks or virtual payment hubs) fits better for high 
 freakquency micropayments in decentralised platforms.
 
-\section{The protocol}
+\section{Accountant pattern - lightweight payment protocol}
 
-In this section idea of \textit{"Accountant pattern"} method will be described. 
-It is essentially solution combining \textit{Lightweight payment Hubs} and 
-\textit{Payment promises} based uni-directional channels.
+After analysing currently available options became obvious that at this stage
+it may be better solution to introduce own, lightweight, state channels based,
+easy to implement and maintain solution. 
+
+In this section idea of \textit{"Accountant pattern"} protocol will be 
+described. Essentially it is solution taking best parts of Payment promises,
+uni-directional channles and paying using single intermediary taking use of 
+hashed timelocked contracts for avoding need of introducing trusted custodian.
+
+\subsection{Payments over "Accountant"}
+
+Digital cheques or \textit{Payment promises} is elegant, efficient and easy to 
+implement solution. Thanks to some modifications (comparing to initial solution,
+described in 2.2 section) they have to be signed by only one party, are easy to 
+verify, don't require complicated setup procedure, have practically unlimited 
+amount of updates and require to store only last version of issued promise.
+
+Main problems of using them is possibility to do double spending which pushes 
+for more often on-chain settlements. To solve this problem there is suggestion 
+to introduce one more party called \textit{Accountant} which should see and 
+verify promises issued by consumer and be aware of actual balance of consumer's
+funds (see figure \ref{img:unidirectional-payments}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.5]{img/unidirectional-payments}
+    \caption{Payments via Accountant}
+    \label{img:unidirectional-payments}
+\end{figure}
+
+Accountant is the most complicated to implement part of this protocol. He have 
+to store state of balance of each consumer and be able to accept many requests 
+to validate if transaction is valid.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.5]{img/multi-accountants}
+    \caption{Multiple accountants may be used in network}
+    \label{img:multi-accountants}
+\end{figure}
+
+To maintain requirement of decentralisation there may be deployed multiple 
+accountants in the network (see figure \ref{img:multi-accountants}). Each 
+consumer usually works with only one accountant while providers may need to be 
+aware of different accountants. Accountants are chosen by consumers but because 
+of cryptographic schemes described in next sections they are non-custodian and 
+can't steal any funds or cooperate with consumers to cheat against providers.
+
+\subsection{Payment Promises based uni-directional channels}
+
+To organise secure, non-custodian and trustless work via accountant, we have to 
+maintain two types of channels: paying channels (consumer $\rightarrow$ 
+accountant) and receiving channels (accountant $\rightarrow$ provider). So 
+accountant plays similar role as intermediary or hub described in section 3.3.3.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.4]{img/accountant-channels}
+    \caption{Two type of channels}
+    \label{img:accountant-channels}
+\end{figure}
+
+Because in our case we have situation when payments are done in one direction 
+(from consumer to provider) we may organise uni-directional state channels 
+which are very similar to payment promises and have most of their properties. 
+The only differences are that there should be done accounting and funds freezing 
+for each channel separately. Also hashlock check (HTLC described in section 
+3.3.4) was added to guaranty that Accountant will not keep funds to itself.
+
+Implementation of promise settlement function can be found above and full 
+state channel smart contract can be found in github repository 
+\cite{smartcontracts}.
+
+\begin{lstlisting}[language=Solidity]
+    struct Party {
+        address beneficiary; // funds destination
+        uint256 settled;     // total amount already settled
+    }
+
+    function settlePromise(uint256 _amount, bytes32 _lock, bytes memory _signature) public {
+
+        bytes32 _hashlock = keccak256(abi.encode(_lock));
+        address _channelId = address(this);
+
+        address _signer = keccak256(abi.encodePacked(
+                _channelId, 
+                _amount, 
+                _hashlock
+        )).recover(_signature);
+        require(_signer == operator);
+
+        // Calculate amount of tokens to be settled.
+        uint256 _unpaidAmount = _amount.sub(party.settled);
+        require(_unpaidAmount > 0);
+
+        // If signer has less tokens than asked to transfer, 
+        // we can transfer as much as he has already and rest 
+        // tokens can be transferred via same promise but in 
+        // another tx when signer will topup channel balance.
+        uint _currentBalance = token.balanceOf(_channelId);
+        if (_unpaidAmount > _currentBalance) {
+            _unpaidAmount = _currentBalance;
+        }
+
+        // Increase already paid amount
+        party.settled = party.settled.add(_unpaidAmount);
+
+        // Send tokens
+        token.transfer(party.beneficiary, _unpaidAmount);
+    }
+\end{lstlisting}
+
+Because our channels are uni-directional instead of sequence number there is 
+simply used total promised amount. Smart contract is calculating difference 
+between amount on given promise and already settled amount.
+
+\[ amountToTransfer = totalPromised - alreadySettled \]
+
+This gives high level of flexibility. Promises can be settled in any order with
+any gaps (e.g. only one of thousand promised can be send to settle) and amounts 
+still will be calculated properly.
+
+\subsection{Identity registry}
+
+Another important component of protocol is \textit{registry} where all 
+identities (both, consumers and providers) and accountants should be registered. 
+During registration there will be also created payment channel between consumer 
+and accountnat (see figure \ref{img:registration}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.4]{img/registration}
+    \caption{Registration of accountant and identities}
+    \label{img:registration}
+\end{figure}
+
+Because there will be need to deploy channel per each registered identity there 
+have to be done optimisation in terms to save of channel deployment transaction 
+fee. This protocol suggests to use \textit{EIP1167} (Minimal Proxy Contract 
+\cite{eip1167}) which will proxy all requests into single 
+\textit{ChannelImplementation} contract while still allow to maintain separate 
+state and address per each channel (see figure \ref{img:proxy}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.5]{img/proxy}
+    \caption{Minical proxies pointing into single implementation}
+    \label{img:proxy}
+\end{figure}
+
+Consumer (paying) channels are deployed using \textit{CREATE2} opcode \cite{create2} 
+which allows deterministically calculate future channel's address.
+
+\[ keccak256(0xff + registry + identity + keccak256(byteCode))[12:]\]
+
+This means, that users can topup their channels even before identity was 
+registered and actual smart contract code was deployed there. Also because each
+channel has separate address and it's topup don't require adding any aditional 
+parameters (payload) to the transaction, they can be topuped using any wallet 
+with token support or directly from exchange.
+
+\subsection{Off-chain messaging and promise exchange}
+
+Differently than in \textit{Lightning Network} or \textit{Hub} based payment 
+networks, in \textit{Accountant pattern} payments are not going thgrough 
+intermediary, but are "verified" by Accountant. There is used payment promise 
+exchange technique (see figure \ref{img:off-chain-interactions}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.5]{img/off-chain-interactions}
+    \caption{HTLC based payment - Bob pays Alice}
+    \label{img:off-chain-interactions}
+\end{figure}
+
+Payment is finalised in five steps. At fist Provider have to \textit{generate 
+invoice} and send it to Consumer.
+
+\[ invoice = [hashlock, agreementId, agreementAmout] \]
+\[ hashlock = keccak256(R) \]
+\[ R = HugeRandomNumber \]
+
+Then Consumer issues payment promise, which allows Accountant to settle given 
+amount of funds, pack it into so called \textit{Exchange message} and send back 
+to Provider. 
+
+\[ Message = keccak256(channelId, totalPromisedAmount, hashlock) \]
+\[ Signature = sign(Message) \]
+\[ Promise = [Message, Signature]\]
+\[ ExchangeMessage = [Promise, agreementId, agreementAmout] \]
+
+In next steps Provider is exchanging promises with Accountant so in the end 
+Accountant have promise to settle funds in Consumer's channel and Provider 
+have payment promise to settle same amount of funds in Accountant's channel.
+
+\[ \Delta amount = newAgreementAmout - seenAgreementAmout \]
+\[ totalPromisedAmount = previousPromisedAmount + \Delta amount \]
+
+Provider can do same promise exchange operations with many consumers at once. 
+After any number of succesfull off-chain interactions, provider at any point, 
+in single transaction, can settle last payment promise with accomulated amount 
+of payments done by couple of consumers (see figure \ref{img:payment}. 
+Aditionally, if Provider is willing to take some risk (up to some amount) he 
+can verify (exchange promises with accountant) not each payment and reduce 
+amount of off-chain communication and fee paid to Accountant.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.4]{img/payment}
+    \caption{Provider settles aggregated promise}
+    \label{img:payment}
+\end{figure}
+
+Accountant is also accomulating payment promises given by same Consumer to 
+different Providers. When he will have payment promise with enought big value 
+he can settle it on-chain (see figure \ref{img:accountant-rebalance}) and 
+rebalance paying and receiving channels.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.5]{img/accountant-rebalance}
+    \caption{Accountant rebalancing is simple settlement of collected promises}
+    \label{img:accountant-rebalance}
+\end{figure}
+
+\subsection{Incoming channel funds guaranties and trustless rebalance}
+
+All analysed micropayment channel based solutions have common problem of need 
+to lock funds in channels with each party. In hub based solutions this problem 
+is even bigger and requires so called \textit{"rich hub"}. Thanks to possibiltiy 
+to take stake and users separation to consumers and providers it is possible to 
+decrease this problem.
+
+\begin{lstlisting}[language=Vyper]
+    lockedFunds: uint256 # amount of accountant funds already locked in channels
+    struct Channel:
+      loan: uint256      # amount lended by provider
+      balance: uint256   # amount available to settle
+      settled: uint256   # total amount settled by provider
+
+    @public
+    def rebalanceChannel(channelId: bytes32):
+      newBalance: uint256 = channels[channelId].loan
+      assert newBalance > channels[channelId].balance
+
+      channel: Channel = channels[channelId]
+
+      if(newBalance > channel.balance):
+        lockedFunds += channel.balance - newBalance
+        assert token.balanceOf(this) >= lockedFunds
+
+      channel.balance = newBalance
+\end{lstlisting}
+
+Provider's stake can be taken and lended into Accounant and imidiatelly locked 
+in his receiving payment channel. In this way, accountant will lock his own 
+funds, which means that Provider can settle payment promises in value of up to 
+his stake size.
+
+Additional benefit is that Accountant can't actually withdraw and use these 
+funds, so channel rebalance can be done by anyone, without accountant's 
+signature.
+
+"Always online" is big problem for payment channels. If Provider is offline or 
+is under DDoS attack, he will be unable to post the finalized state (during 
+dispute period) and Accountant can have possibility to take funds locked in 
+channel.
+
+Proposed method don't have such problem, because funds are double locked. 
+Accountant can't leave channel with more funds than his own locked part of 
+balance. So if Provider have unsettled promise for smaller amount than he 
+lended to Accountant, he is safe even if he will "dissapear" for really long 
+period of time. He still be able to get back all funds promised to him.
+
+\subsection{Transaction maker and watch towers}
+
+One of most not user friendly parts of transfering ERC20 tokens is that this
+operation requires to also own ethers to pay for gas. Another problem in
+working with smart contracts on Ethereum is that in terms to call some function
+user have to add so called Payload (first 4 bytes of keccak of function's
+signature) which looks to his as abracadabra and is not supported by many 
+wallets and especially by exchanges. 
+
+In case of topups, this problem is solved thanks to construct described in 4.3
+section. Unfortunatelly for identity registration and promise settlement, user's 
+application (e.g. dVPN mobile app or provider's node) would need to always have 
+ethers topuped there. This is very inconvenient and may cause many problems for
+both advanced users and beginners.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.5]{img/transactor}
+    \caption{Communication with blockchain via Transaction maker}
+    \label{img:transactor}
+\end{figure}
+
+For identity registration and primise settlement we may take use of additional
+service which we call \textit{"Transaction maker"}. The role of this service is 
+to get user's requests and send transactions into blockchain (see figure 
+\ref{img:transactor}).
+
+All smart contracts created for Accounant pattern are constructed in a way, so
+any their call can be made from any account simply by adding channel's operator
+signature ar parameter into payload. Additionaly we construct payment promises 
+in a way so only one signature is needed and it is possibile to settle them in 
+any order with any gaps. This means that promises can we publicated publicly
+without any risk of attack.
+
+There could be deployed as many such services as needed.
+Each network participant could decide to use own \textit{"Transaction maker"},
+or even there could be version of accountant operator software where such 
+service is integral part.
+
+Sending transactions into blockchain costs so users could cover that cost, but
+instead of using additional currency (ethers in case of Ethereum), they could
+pay in tokens, and as payment mechanism Payment promises (described in sections
+4.2 and 4.4) could be used (see figure)
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.5]{img/transactor-payment}
+    \caption{Paying via Tramsaction maker flow}
+    \label{img:transactor-payment}
+\end{figure}
+
+\subsection{Properties of the protocol}
+
+This protocol was design to be integral part of some decentralised system and 
+is not aimed to work as general purpose payment network used in many 
+application and daily life, when each party in the same time can receive and 
+send funds. 
+
+Main properties of protocol are:
+
+\begin{itemize}
+  \item Easy paying channel topup (even from exchange).
+  \item Payments aggregation $\Longrightarrow$ minimal on-chain tx amount.
+  \item Fast settlement into blockchain without need for other party to be on-line
+  and cooperate.
+  \item Guaranty of incomming channel balance/collateral size.
+  \item Simple off-chain communication (one roundtrip payments).
+  \item Possibility to avoid accountant for at least part of transactions.
+  \item Pull based interations with accountant $\Longrightarrow$ providers don't have to
+  be externally exposed or maintain live connection with accountant.
+  \item Secure $\Longrightarrow$ double spend protection using non-custodian accountant
+  model.
+  \item Fast channel opening $\Longrightarrow$ possibility not to wait until opening tx
+   will be mined.
+  \item Instant finality of payments.
+\end{itemize}
+
+\subsection{Potential future work}
+
+- Migrate into Connext or Perun 
+- Migrate into Plasma + channels
+- Accountant support Counterfactual channels
+
+
+Author has plans to research possibility to apply similar model for UTXO based statefull 
+chains, such as Cardano or Plasma MVP. Also there is willing to research what would be 
+possible to do on Bitcoin blockchain or how to create lightweight hub for Lightning 
+Network.
+
+Identity channels could be implemented as multisig contracts done in 
+\textit{Counterfactual} \cite{counterfactual} way, so in the future there would be 
+possible introduce new payment channels types without need of creating new channels of 
+doing any other on-chain action or upgrade of deployed smart-contracts. 
+
+In the future there may be discovered potential applicability of \textit{channel 
+factories} \cite{factories} as way for cross hub communication which may reduce need 
+for users to establish connections with many hubs. This potentially increase 
+decentralisation of the network while maintaining same scalability properties (avoiding 
+complex routing used in Lightning Network).
 
 
 \newpage
