@@ -16,6 +16,7 @@ const {
     signChannelLoanReturnRequest,
     signChannelOpening,
     signFundsWithdrawal,
+    signIdentityRegistration,
     generatePromise 
 } = require('./utils/client.js')
 
@@ -26,6 +27,7 @@ const AccountantImplementation = artifacts.require("TestAccountantImplementation
 const ChannelImplementation = artifacts.require("ChannelImplementation")
 
 const OneToken = OneEther = web3.utils.toWei(new BN(1), 'ether')
+const Zero = new BN(0)
 
 contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
     const operator = wallet.generateAccount()   // Generate accountant operator wallet
@@ -77,7 +79,8 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
     })
 
     it("registered identity should be able to open incoming channel", async () => {
-        await registry.registerIdentity(identityA.address, accountant.address, 0, beneficiaryA)
+        const regSignature = signIdentityRegistration(registry.address, accountant.address, Zero, Zero, beneficiaryA, identityA)
+        await registry.registerIdentity(identityA.address, accountant.address, Zero, Zero, beneficiaryA, regSignature)
         expect(await registry.isRegistered(identityA.address)).to.be.true
 
         const expectedChannelId = generateChannelId(identityA.address, accountant.address)
@@ -103,7 +106,8 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
         const accountantInitialBalance = await accountant.availableBalance() 
 
         // Register identity first
-        await registry.registerIdentity(identityB.address, accountant.address, 0, beneficiaryB)
+        const regSignature = signIdentityRegistration(registry.address, accountant.address, Zero, Zero, beneficiaryB, identityB)
+        await registry.registerIdentity(identityB.address, accountant.address, Zero, Zero, beneficiaryB, regSignature)
         expect(await registry.isRegistered(identityB.address)).to.be.true
         expect(await accountant.isOpened(expectedChannelId)).to.be.false
 
@@ -135,19 +139,24 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
     })
 
     it("should be possible to open channel during registering identity into registry", async () => {
-        const initialTxMakerBalance = await token.balanceOf(txMaker)
         const initialAccountantBalance = await token.balanceOf(accountant.address)
         const expectedChannelId = generateChannelId(identityC.address, accountant.address)
         const amountToLend = new BN(888)
 
+        // TopUp channel -> send or mint tokens into channel address
+        const channelAddress = await registry.getChannelAddress(identityC.address)
+        await token.mint(channelAddress, amountToLend)
+        expect(Number(await token.balanceOf(channelAddress))).to.be.equal(amountToLend.toNumber())
+
         // Register identity and open channel with accountant
-        await registry.registerIdentity(identityC.address, accountant.address, amountToLend, beneficiaryC)
+        const signature = signIdentityRegistration(registry.address, accountant.address, amountToLend, Zero, beneficiaryC, identityC)
+        await registry.registerIdentity(identityC.address, accountant.address, amountToLend, Zero, beneficiaryC, signature)
         expect(await registry.isRegistered(identityC.address)).to.be.true
         expect(await accountant.isOpened(expectedChannelId)).to.be.true
 
-        // Tokens to lend should be transfered from txMaker to accountant contract
-        const txMakerTokenBalance = await token.balanceOf(txMaker)
-        txMakerTokenBalance.should.be.bignumber.equal(initialTxMakerBalance.sub(amountToLend))
+        // Tokens to lend should be transfered from channel address to accountant contract
+        const channelBalance = await token.balanceOf(channelAddress)
+        channelBalance.should.be.bignumber.equal(Zero)
 
         const accountantTokenBalance = await token.balanceOf(accountant.address)
         accountantTokenBalance.should.be.bignumber.equal(initialAccountantBalance.add(amountToLend))

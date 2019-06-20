@@ -9,9 +9,9 @@ contract TestChannelImplementation is ChannelImplementation {
     uint256 constant DELAY_BLOCKS = 4;
 
     // Constructor is needed only in tests where we don't use minimal Proxies and testing implementation directly
-    constructor (address _token, address _identityHash, address _accountantAddress) public {
+    constructor (address _token, address _identityHash, address _accountantAddress, uint256 _fee) public {
         MystDEX _dex = new MystDEX();
-        initialize(_token, address(_dex), _identityHash, _accountantAddress);
+        initialize(_token, address(_dex), _identityHash, _accountantAddress, _fee);
     }
 
     function getTimelock() internal view returns (uint256) {

@@ -1,12 +1,13 @@
 pragma solidity ^0.5.8;
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import { ECDSA } from "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
 
 interface Channel {
-    function initialize(address _token, address _dex, address _identityHash, address _accountantId) external;
+    function initialize(address _token, address _dex, address _identityHash, address _accountantId, uint256 _fee) external;
 }
 
 interface AccountantContract {
@@ -15,6 +16,7 @@ interface AccountantContract {
 }
 
 contract Registry is Ownable, FundsRecovery {
+    using ECDSA for bytes32;
     using SafeMath for uint256;
 
     string constant REGISTER_PREFIX="Register prefix:";
@@ -58,26 +60,33 @@ contract Registry is Ownable, FundsRecovery {
 
     // Register identity and open spending and incomming channels with given accountant
     // _loanAmount - it's amount of tokens lended to accountant to guarantee incomming channel's balance.
-    function registerIdentity(address _identityHash, address _accountantId, uint256 _loanAmount, address _beneficiary) public {
+    function registerIdentity(address _identityHash, address _accountantId, uint256 _loanAmount, uint256 _fee, address _beneficiary, bytes memory _signature) public {
         require(_identityHash != address(0));
         require(!isRegistered(_identityHash), "identityHash have to be not registered yet");
         require(isActiveAccountant(_accountantId), "provided accountant have to be active");
 
-        // Transfer total tokens amount
-        uint256 totalTokensAmount = registrationFee.add(_loanAmount);
-        if (totalTokensAmount > 0) {
-            token.transferFrom(msg.sender, address(this), totalTokensAmount);
-        }
+        // Check if given signature is valid
+        address _signer = keccak256(abi.encodePacked(address(this), _identityHash, _accountantId, _loanAmount, _fee, _beneficiary)).recover(_signature);
+        require(_signer == _identityHash, "have to be signed by proper identity");
+
+        // Tokens amount to get from channel to cover tx fee, registration fee and stake
+        uint256 _totalFee = registrationFee.add(_loanAmount).add(_fee);
+        require(_totalFee <= token.balanceOf(getChannelAddress(_identityHash)));
 
         // Deploy channel contract for given identity (mini proxy which is pointing to implementation)
         Channel _channel = Channel(deployMiniProxy(uint256(_identityHash), channelImplementation));
-        _channel.initialize(address(token), dex, _identityHash, _accountantId);
+        _channel.initialize(address(token), dex, _identityHash, _accountantId, _totalFee);
 
         // If stake stake amount > 0, then opening incomming (provider's) channel
         if (_loanAmount > 0) {
             require(_beneficiary != address(0), "beneficiary can't be zero address");
             require(token.approve(_accountantId, _loanAmount), "accountant should get approval to transfer tokens");
             AccountantContract(_accountantId).openChannel(_identityHash, _beneficiary, _loanAmount, "");
+        }
+
+        // Pay fee for transaction maker
+        if (_fee > 0) {
+            token.transfer(msg.sender, _fee);
         }
 
         emit RegisteredIdentity(_identityHash);
