@@ -15,7 +15,7 @@
 \addbibresource{bibliography.bib}
 
 \title{Accountant pattern: Lightweight solution for embeded micropayments}
-\author{Jaro Šatkevič, me@jaro.lt} 
+\author{Jaro Šatkevič, me@jaro.lt}
 
 \begin{document}
 
@@ -1130,11 +1130,11 @@ period of time. He still be able to get back all funds promised to him.
 \subsection{Transaction maker}
 
 One of most not user friendly parts of transfering ERC20 tokens is that this
-operation requires to also own ethers to pay for gas. Another problem in
-working with smart contracts on Ethereum is that in terms to call some function
-user have to add so called Payload (first 4 bytes of keccak of function's
-signature) which looks to his as abracadabra and is not supported by many 
-wallets and especially by exchanges. 
+operation requires to own ethers to pay for gas. Another problem in working 
+with smart contracts on Ethereum is that in terms to call some function user 
+have to add so called Payload (first 4 bytes of keccak of function's signature) 
+which looks to him as gibberish and is not supported by many wallets and 
+especially by exchanges. 
 
 In case of topups, this problem is solved thanks to construct described in 4.3
 section. Unfortunatelly for identity registration and promise settlement, user's 
@@ -1144,7 +1144,7 @@ both advanced users and beginners.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[scale=0.5]{../img/transactor}
+    \includegraphics[scale=0.45]{../img/transactor}
     \caption{Communication with blockchain via Transaction maker}
     \label{img:transactor}
 \end{figure}
@@ -1156,20 +1156,47 @@ to get user's requests and send transactions into blockchain (see figure
 
 All smart contracts created for Accounant pattern are constructed in a way, so
 any their call can be made from any account simply by adding channel's operator
-signature ar parameter into payload. Additionaly we construct payment promises 
-in a way so only one signature is needed and it is possibile to settle them in 
-any order with any gaps. This means that promises can we publicated publicly
-without any risk of attack.
+signature as parameter for function call. Additionaly we construct payment 
+promises in a way so only one signature is needed and it is possibile to settle 
+them in any order with any gaps. This means that promises can we published 
+openly without any risk of attack or losing funds.
 
-There could be deployed as many such services as needed.
-Each network participant could decide to use own \textit{"Transaction maker"},
-or even there could be version of accountant operator software where such 
-service is integral part.
+There could be deployed as many such services as needed.vEach network participant 
+could decide to use own \textit{"Transaction maker"}, or even there could be 
+version of accountant operator software where such service is integral part.
 
 Sending transactions into blockchain costs so users could cover that cost, but
 instead of using additional currency (ethers in case of Ethereum), they could
-pay in tokens, and as payment mechanism Payment promises (described in sections
-4.2 and 4.4) could be used (see figure \ref{img:transactor-payment}).
+pay in tokens.
+
+There is potential misbehavior of \textit{"Transaction maker"}, when he is
+getting paid but didn't do his job, or misbehavior of users when they decide
+not pay after transaction was sent to blockchain by \textit{"Transaction 
+maker"}. To resolve this problem, functions of smart contracts usually have fee
+parameter in them.
+
+\begin{lstlisting}[language=Solidity]
+    function settlePromise(uint256 _amount, bytes32 _lock, uint256 _fee, bytes memory _signature) public {
+
+        require(_amount >= _fee);
+        
+        ...
+
+        // Send tokens
+        token.transfer(
+            party.beneficiary, 
+            _unpaidAmount.sub(_fee)
+        );
+
+        // Pay fee for transaction maker
+        if (_fee > 0) {
+            token.transfer(msg.sender, _fee);
+        }
+    }
+\end{lstlisting}
+
+In this way \textit{"Transaction maker"} will get his reward only if he actually 
+will send transtation and users have no chance not to pay.
 
 \begin{figure}[H]
     \centering
