@@ -13,7 +13,8 @@ const {
     createAccountantService,
     createConsumer,
     createProvider,
-    signChannelOpening
+    signChannelOpening,
+    signIdentityRegistration
 } = require('./utils/client.js')
 const wallet = require('./utils/wallet.js')
 
@@ -24,6 +25,7 @@ const AccountantImplementation = artifacts.require("AccountantImplementation")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
 
 const OneToken = OneEther = web3.utils.toWei(new BN(1), 'ether')
+const Zero = new BN(0)
 
 let token, accountant, registry;
 const identities = generateIdentities(5)   // Generates array of identities
@@ -43,7 +45,7 @@ async function pay(consumer, provider, accountantService, amount, repetitions = 
     }
 }
 
-contract('Channel Contract Implementation tests', ([txMaker, ...beneficiaries]) => {
+contract('Green path tests', ([txMaker, ...beneficiaries]) => {
     before(async () => {
         token = await MystToken.new()
         const dex = await MystDex.new()
@@ -73,7 +75,8 @@ contract('Channel Contract Implementation tests', ([txMaker, ...beneficiaries]) 
     it("register consumer identities", async () => {
         // First four identities are consumer identities
         for (let i = 0; i < 4; i++) {
-            await registry.registerIdentity(identities[i].address, accountant.address, 0, beneficiaries[i])
+            const signature = signIdentityRegistration(registry.address, accountant.address, Zero, Zero, beneficiaries[i], identities[i])
+            await registry.registerIdentity(identities[i].address, accountant.address, Zero, Zero, beneficiaries[i], signature)
             expect(await registry.isRegistered(identities[i].address)).to.be.true
         }
     })
@@ -85,8 +88,13 @@ contract('Channel Contract Implementation tests', ([txMaker, ...beneficiaries]) 
         // Guaranteed incomming channel size
         const channelStake = new BN(2000)
 
+        // Topup some tokens into paying channel
+        const channelAddress = await registry.getChannelAddress(providerIdentity)
+        await topUpTokens(token, channelAddress, OneToken)
+
         // Register identity and open channel with accountant
-        await registry.registerIdentity(providerIdentity, accountant.address, channelStake, beneficiaries[4])
+        const signature = signIdentityRegistration(registry.address, accountant.address, channelStake, Zero, beneficiaries[4], identities[4])
+        await registry.registerIdentity(providerIdentity, accountant.address, channelStake, Zero, beneficiaries[4], signature)
         expect(await registry.isRegistered(providerIdentity)).to.be.true
         expect(await accountant.isOpened(expectedChannelId)).to.be.true
 

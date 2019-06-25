@@ -49,7 +49,7 @@ contract ChannelImplementation is FundsRecovery {
 
     // Because of proxy pattern this function is used insted of constructor.
     // Have to be called right after proxy deployment.
-    function initialize(address _token, address _dex, address _identityHash, address _accountantId) public {
+    function initialize(address _token, address _dex, address _identityHash, address _accountantId, uint256 _fee) public {
         require(!isInitialized(), "Is already initialized");
         require(_identityHash != address(0), "Identity can't be zero");
         require(_accountantId != address(0), "AccountantID can't be zero");
@@ -57,6 +57,11 @@ contract ChannelImplementation is FundsRecovery {
 
         token = IERC20(_token);
         dex = _dex;
+
+        // Transfer required fee to msg.sender (most probably Registry)
+        if (_fee > 0) {
+            token.transfer(msg.sender, _fee);
+        }
 
         operator = _identityHash;
         party = Party(Accountant(_accountantId).getOperator(), _accountantId, 0);

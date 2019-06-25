@@ -7,6 +7,7 @@ const {
     topUpTokens
 } = require('./utils/index.js')
 const wallet = require('./utils/wallet.js')
+const signIdentityRegistration = require('./utils/client.js').signIdentityRegistration
 
 const Registry = artifacts.require("Registry")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
@@ -15,6 +16,7 @@ const Token = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
 
 const OneEther = web3.utils.toWei('1', 'ether')
+const Zero = new BN(0)
 const ZeroAddress = '0x0000000000000000000000000000000000000000'
 
 function createCheque(signer, destination) {
@@ -60,7 +62,8 @@ contract('Full path (in channel using cheque) test for funds recovery', ([txMake
     })
 
     it('should register identity', async () => {
-        await registry.registerIdentity(identityHash, accountantId, 0, fundsDestination).should.be.fulfilled
+        const signature = signIdentityRegistration(registry.address, accountantId, Zero, Zero, fundsDestination, identity)
+        await registry.registerIdentity(identityHash, accountantId, Zero, Zero, fundsDestination, signature).should.be.fulfilled
         expect(await registry.isRegistered(identityHash)).to.be.true
         expect((await registry.getChannelAddress(identityHash)).toLowerCase()).to.be.equal(expectedAddress.toLowerCase())
     })

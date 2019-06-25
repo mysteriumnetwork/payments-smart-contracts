@@ -350,6 +350,23 @@ function signFundsWithdrawal(beneficiary, amount, nonce, operator) {
     return signature
 }
 
+function signIdentityRegistration(registryAddress, accountantId, loan, fee, beneficiary, identity) {
+    const message = Buffer.concat([
+        Buffer.from(registryAddress.slice(2), 'hex'),
+        Buffer.from(identity.address.slice(2), 'hex'),
+        Buffer.from(accountantId.slice(2), 'hex'),
+        toBytes32Buffer(loan),
+        toBytes32Buffer(fee),
+        Buffer.from(beneficiary.slice(2), 'hex')
+    ])
+
+    // sign and verify the signature
+    const signature = signMessage(message, identity.privKey)
+    expect(verifySignature(message, signature, identity.pubKey)).to.be.true
+
+    return signature
+}
+
 // We're using signature as bytes array (`bytes memory`), so we have properly construct it.
 function serialiseSignature(signature) {
     const bytesArrayPosition = toBytes32Buffer(new BN(160))
@@ -386,5 +403,6 @@ module.exports = {
     signChannelLoanReturnRequest,
     signChannelOpening,
     signFundsWithdrawal,
+    signIdentityRegistration,
     validatePromise
 }

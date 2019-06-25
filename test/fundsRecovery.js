@@ -16,6 +16,7 @@ const FundsRecovery = artifacts.require("TestFundsRecovery")
 
 const OneEther = web3.utils.toWei(new BN(1), 'ether')
 const OneToken = web3.utils.toWei(new BN(1), 'ether')
+const Zero = new BN(0)
 const ZeroAddress = '0x0000000000000000000000000000000000000000'
 
 async function getExpectedSmartContractAddress(deployer) {
@@ -170,7 +171,7 @@ contract('Registry funds recovery', ([_, txMaker, identity, account, fundsDestin
         token = await Token.new()
         dex = await MystDex.new()
         accountantImplementation = await AccountantImplementation.new()
-        channelImplementation = await ChannelImplementation.new(token.address, identity, accountantImplementation.address)
+        channelImplementation = await ChannelImplementation.new(token.address, identity, accountantImplementation.address, Zero)
     })
 
     it('should topup some ethers and tokens into future registry address', async () => {
@@ -238,7 +239,7 @@ contract('Channel implementation funds recovery', ([_, txMaker, identity, fundsD
 
         // Deploy IdentityImplementation smart contract
         const accountantImplementation = await AccountantImplementation.new()
-        channelImplementation = await ChannelImplementation.new(nativeToken.address, identity, accountantImplementation.address, {from: txMaker})
+        channelImplementation = await ChannelImplementation.new(nativeToken.address, identity, accountantImplementation.address, Zero, {from: txMaker})
         expect(channelImplementation.address.toLowerCase()).to.be.equal(implementationAddress.toLowerCase())
 
         // Set funds destination

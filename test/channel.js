@@ -16,6 +16,7 @@ const TestChannelImplementation = artifacts.require("TestChannelImplementation")
 const TestAccountantImplementation = artifacts.require("TestAccountantImplementation")
 
 const OneToken = OneEther = web3.utils.toWei(new BN(1), 'ether')
+const Zero = new BN(0)
 
 contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) => {
     const identity = wallet.generateAccount()     // Generate identity
@@ -25,7 +26,7 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
     before(async () => {
         token = await MystToken.new()
         accountantImplementation = await TestAccountantImplementation.new(token.address, accountant.address)
-        channel = await TestChannelImplementation.new(token.address, identityHash, accountantImplementation.address)
+        channel = await TestChannelImplementation.new(token.address, identityHash, accountantImplementation.address, Zero)
 
         // Give some ethers for gas for accountant
         topUpEthers(txMaker, accountant.address, OneEther)
