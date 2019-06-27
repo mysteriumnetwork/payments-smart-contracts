@@ -66,7 +66,7 @@ contract Registry is Ownable, FundsRecovery {
         // Check if given signature is valid
         address _identityHash = keccak256(abi.encodePacked(address(this), _accountantId, _loanAmount, _fee, _beneficiary)).recover(_signature);
         require(_identityHash != address(0));
-        require(!isRegistered(_identityHash), "identityHash have to be not registered yet");
+        require(!isRegistered(_identityHash), "identityHash has to be not registered yet");
 
         // Tokens amount to get from channel to cover tx fee, registration fee and stake
         uint256 _totalFee = registrationFee.add(_loanAmount).add(_fee);

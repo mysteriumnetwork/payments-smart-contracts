@@ -5,6 +5,7 @@ Set of smart contracts needed for mysterium identity registration and working wi
 ## Documentation
 
 * [Payments solution white paper](docs/paper/accountant-pattern.pdf)
+* [Smart contracts API description](docs/main.md)
 
 ## Setup and test
 
@@ -38,7 +39,7 @@ npm run migrate
 ERC20 Token (Mintable a la myst token): [0x453c11c058f13b36a35e1aee504b20c1a09667de](https://ropsten.etherscan.io/address/0x453c11c058f13b36a35e1aee504b20c1a09667de)
 
 Registry smart contract:
-[0x6bb8345C9D996be4FAb652f4A15813303d630b66](https://ropsten.etherscan.io/address/0x6bb8345c9d996be4fab652f4a15813303d630b66)
+[0xE6b3a5c92e7c1f9543A0aEE9A93fE2F6B584c1f7](https://ropsten.etherscan.io/address/0xe6b3a5c92e7c1f9543a0aee9a93fe2f6b584c1f7)
 
 
 ### Deloyment log:
@@ -47,13 +48,13 @@ Registry smart contract:
 
     Deploying 'MystDEX'
     -------------------
-    > transaction hash:     0x2b06097c17125713d2f4ca4256ae89f2f2d2660a8ed4291117938ece7d062839
-    > Blocks: 1            Seconds: 8
-    > contract address:    0xA2067b45cbF1379F791F4E373D95dbbdB365141A
-    > block number:        5860790
-    > block timestamp:     1561471166
+    > transaction hash:     0x5b0880c3c3915a6b0b19f8cbdb0e4176d7dcb4fe31522587b7261433eccb43f1
+    > Blocks: 1            Seconds: 12
+    > contract address:    0x5C6881e2811E530D9067cC151981A9C27fAf31A9
+    > block number:        5872378
+    > block timestamp:     1561624076
     > account:             0x4c41f8CB6dB9541004c0B2152D07cD1F2904d33d
-    > balance:             3.920791189
+    > balance:             3.89145553
     > gas used:            1606267
     > gas price:           1 gwei
     > value sent:          0 ETH
@@ -61,13 +62,13 @@ Registry smart contract:
 
     Deploying 'DEXProxy'
     --------------------
-    > transaction hash:  0x8230bf3aac108b918e97cc8040b23c28d9fac86173a9ebf1aa5f6f6d9c8919fa
-    > Blocks: 4            Seconds: 73
-    > contract address:    0x51F8992FA4e10b24b0D1fB5EDf637544a07b96c8
-    > block number:        5860797
-    > block timestamp:     1561471285
+    > transaction hash:     0x44b9c337a4cf9ef5dc663e6cf5d33e1fb09edf91a53b8a5caa89033ab54e8a08
+    > Blocks: 1            Seconds: 40
+    > contract address:    0xC30F3519F43F704E6224b0DB3982c1c494a90d0A
+    > block number:        5872382
+    > block timestamp:     1561624140
     > account:             0x4c41f8CB6dB9541004c0B2152D07cD1F2904d33d
-    > balance:             3.920184436
+    > balance:             3.890848777
     > gas used:            606753
     > gas price:           1 gwei
     > value sent:          0 ETH
@@ -75,13 +76,13 @@ Registry smart contract:
 
     Deploying 'ChannelImplementation'
     ---------------------------------
-    > transaction hash:     0xa26384349bd1fa734f8d6cd6911e8e38afff687dd55539c9c16fdec4c273c9cf
-    > Blocks: 0            Seconds: 28
-    > contract address:    0x99A73D53959a8FCBE6e67631D39DE3cffD3ac9A2
-    > block number:        5860800
-    > block timestamp:     1561471332
+    > transaction hash:     0x4cf0667775ea6d5628b8394a8898f394f192aaa5d15eb550ad1c6a48b746b77b
+    > Blocks: 0            Seconds: 4
+    > contract address:    0xa26b684d8dBa935DD34544FBd3Ab4d7FDe1C4D07
+    > block number:        5872384
+    > block timestamp:     1561624157
     > account:             0x4c41f8CB6dB9541004c0B2152D07cD1F2904d33d
-    > balance:             3.916997487
+    > balance:             3.887661828
     > gas used:            3186949
     > gas price:           1 gwei
     > value sent:          0 ETH
@@ -89,32 +90,31 @@ Registry smart contract:
 
     Deploying 'AccountantImplementation'
     ------------------------------------
-    > transaction hash:     0x088d97bd66fcaf28e3e90cb909f1244964fd6d56692f79dc081ad22f04567bd3
-    > Blocks: 1            Seconds: 5
-    > contract address:    0xBD946BfCA42746CDC237De10e9D2be84C9A586f7
-    > block number:        5860802
-    > block timestamp:     1561471342
+    > transaction hash:     0x4c2e9d176bd3042218ed60c91982ff1f4f68610723b6762dcc64bc35218521ae
+    > Blocks: 5            Seconds: 16
+    > contract address:    0x5a10863FeB6f3BcaEe9C960D0c24F4887cF15053
+    > block number:        5872390
+    > block timestamp:     1561624204
     > account:             0x4c41f8CB6dB9541004c0B2152D07cD1F2904d33d
-    > balance:             3.912130043
-    > gas used:            4867444
+    > balance:             3.88279432
+    > gas used:            4867508
     > gas price:           1 gwei
     > value sent:          0 ETH
-    > total cost:          0.004867444 ETH
+    > total cost:          0.004867508 ETH
 
     Deploying 'Registry'
     --------------------
-    > transaction hash:     0x5a812ffa82a935e4dab39ef37469194e04ad7b6d2fa627768f9b24fd06b147f8
-    > Blocks: 3            Seconds: 45
-    > contract address:    0x6bb8345C9D996be4FAb652f4A15813303d630b66
-    > block number:        5860806
-    > block timestamp:     1561471396
+    > transaction hash:     0x5cf539ea4cf46c7b476fa456e6935e158f4d65be191c27214c80e57bdc7cb503
+    > Blocks: 1            Seconds: 24
+    > contract address:    0xE6b3a5c92e7c1f9543A0aEE9A93fE2F6B584c1f7
+    > block number:        5872394
+    > block timestamp:     1561624257
     > account:             0x4c41f8CB6dB9541004c0B2152D07cD1F2904d33d
-    > balance:             3.908931314
-    > gas used:            3198729
+    > balance:             3.879662274
+    > gas used:            3132046
     > gas price:           1 gwei
     > value sent:          0 ETH
-    > total cost:          0.003198729 ETH
-
+    > total cost:          0.003132046 ETH
 
 ## Ideas to discuss
 
