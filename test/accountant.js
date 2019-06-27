@@ -80,7 +80,7 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
 
     it("registered identity should be able to open incoming channel", async () => {
         const regSignature = signIdentityRegistration(registry.address, accountant.address, Zero, Zero, beneficiaryA, identityA)
-        await registry.registerIdentity(identityA.address, accountant.address, Zero, Zero, beneficiaryA, regSignature)
+        await registry.registerIdentity(accountant.address, Zero, Zero, beneficiaryA, regSignature)
         expect(await registry.isRegistered(identityA.address)).to.be.true
 
         const expectedChannelId = generateChannelId(identityA.address, accountant.address)
@@ -107,7 +107,7 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
 
         // Register identity first
         const regSignature = signIdentityRegistration(registry.address, accountant.address, Zero, Zero, beneficiaryB, identityB)
-        await registry.registerIdentity(identityB.address, accountant.address, Zero, Zero, beneficiaryB, regSignature)
+        await registry.registerIdentity(accountant.address, Zero, Zero, beneficiaryB, regSignature)
         expect(await registry.isRegistered(identityB.address)).to.be.true
         expect(await accountant.isOpened(expectedChannelId)).to.be.false
 
@@ -150,7 +150,7 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
 
         // Register identity and open channel with accountant
         const signature = signIdentityRegistration(registry.address, accountant.address, amountToLend, Zero, beneficiaryC, identityC)
-        await registry.registerIdentity(identityC.address, accountant.address, amountToLend, Zero, beneficiaryC, signature)
+        await registry.registerIdentity(accountant.address, amountToLend, Zero, beneficiaryC, signature)
         expect(await registry.isRegistered(identityC.address)).to.be.true
         expect(await accountant.isOpened(expectedChannelId)).to.be.true
 

@@ -63,7 +63,7 @@ contract('Full path (in channel using cheque) test for funds recovery', ([txMake
 
     it('should register identity', async () => {
         const signature = signIdentityRegistration(registry.address, accountantId, Zero, Zero, fundsDestination, identity)
-        await registry.registerIdentity(identityHash, accountantId, Zero, Zero, fundsDestination, signature).should.be.fulfilled
+        await registry.registerIdentity(accountantId, Zero, Zero, fundsDestination, signature).should.be.fulfilled
         expect(await registry.isRegistered(identityHash)).to.be.true
         expect((await registry.getChannelAddress(identityHash)).toLowerCase()).to.be.equal(expectedAddress.toLowerCase())
     })

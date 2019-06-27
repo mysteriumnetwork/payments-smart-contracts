@@ -353,7 +353,6 @@ function signFundsWithdrawal(beneficiary, amount, nonce, operator) {
 function signIdentityRegistration(registryAddress, accountantId, loan, fee, beneficiary, identity) {
     const message = Buffer.concat([
         Buffer.from(registryAddress.slice(2), 'hex'),
-        Buffer.from(identity.address.slice(2), 'hex'),
         Buffer.from(accountantId.slice(2), 'hex'),
         toBytes32Buffer(loan),
         toBytes32Buffer(fee),
