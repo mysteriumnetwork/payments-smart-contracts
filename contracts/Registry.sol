@@ -60,14 +60,13 @@ contract Registry is Ownable, FundsRecovery {
 
     // Register identity and open spending and incomming channels with given accountant
     // _loanAmount - it's amount of tokens lended to accountant to guarantee incomming channel's balance.
-    function registerIdentity(address _identityHash, address _accountantId, uint256 _loanAmount, uint256 _fee, address _beneficiary, bytes memory _signature) public {
-        require(_identityHash != address(0));
-        require(!isRegistered(_identityHash), "identityHash have to be not registered yet");
+    function registerIdentity(address _accountantId, uint256 _loanAmount, uint256 _fee, address _beneficiary, bytes memory _signature) public {
         require(isActiveAccountant(_accountantId), "provided accountant have to be active");
 
         // Check if given signature is valid
-        address _signer = keccak256(abi.encodePacked(address(this), _identityHash, _accountantId, _loanAmount, _fee, _beneficiary)).recover(_signature);
-        require(_signer == _identityHash, "have to be signed by proper identity");
+        address _identityHash = keccak256(abi.encodePacked(address(this), _accountantId, _loanAmount, _fee, _beneficiary)).recover(_signature);
+        require(_identityHash != address(0));
+        require(!isRegistered(_identityHash), "identityHash has to be not registered yet");
 
         // Tokens amount to get from channel to cover tx fee, registration fee and stake
         uint256 _totalFee = registrationFee.add(_loanAmount).add(_fee);

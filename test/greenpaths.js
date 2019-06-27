@@ -76,7 +76,7 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
         // First four identities are consumer identities
         for (let i = 0; i < 4; i++) {
             const signature = signIdentityRegistration(registry.address, accountant.address, Zero, Zero, beneficiaries[i], identities[i])
-            await registry.registerIdentity(identities[i].address, accountant.address, Zero, Zero, beneficiaries[i], signature)
+            await registry.registerIdentity(accountant.address, Zero, Zero, beneficiaries[i], signature)
             expect(await registry.isRegistered(identities[i].address)).to.be.true
         }
     })
@@ -94,7 +94,7 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
 
         // Register identity and open channel with accountant
         const signature = signIdentityRegistration(registry.address, accountant.address, channelStake, Zero, beneficiaries[4], identities[4])
-        await registry.registerIdentity(providerIdentity, accountant.address, channelStake, Zero, beneficiaries[4], signature)
+        await registry.registerIdentity(accountant.address, channelStake, Zero, beneficiaries[4], signature)
         expect(await registry.isRegistered(providerIdentity)).to.be.true
         expect(await accountant.isOpened(expectedChannelId)).to.be.true
 

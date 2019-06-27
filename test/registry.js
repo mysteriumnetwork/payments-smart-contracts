@@ -54,7 +54,7 @@ contract('Registry', ([txMaker, minter, accountantOperator, fundsDestination, ..
         const signature = signIdentityRegistration(registry.address, accountantId, Zero, Zero, fundsDestination, identity)
 
         expect(await registry.isRegistered(identityHash)).to.be.false
-        await registry.registerIdentity(identityHash, accountantId, Zero, Zero, fundsDestination, signature)
+        await registry.registerIdentity(accountantId, Zero, Zero, fundsDestination, signature)
         expect(await registry.isRegistered(identityHash)).to.be.true
     })
 
@@ -106,7 +106,7 @@ contract('Registry', ([txMaker, minter, accountantOperator, fundsDestination, ..
         expect(Number(await token.balanceOf(channelAddress))).to.be.equal(0)
 
         const signature = signIdentityRegistration(registry.address, accountantId, Zero, Zero, fundsDestination, secondIdentity)
-        await registry.registerIdentity(secondIdentityHash, accountantId, Zero, Zero, fundsDestination, signature).should.be.rejected
+        await registry.registerIdentity(accountantId, Zero, Zero, fundsDestination, signature).should.be.rejected
         expect(await registry.isRegistered(secondIdentityHash)).to.be.false
     })
 
@@ -124,7 +124,7 @@ contract('Registry', ([txMaker, minter, accountantOperator, fundsDestination, ..
 
         // Register identity
         const signature = signIdentityRegistration(registry.address, accountantId, Zero, Zero, fundsDestination, secondIdentity)
-        await registry.registerIdentity(secondIdentityHash, accountantId, Zero, Zero, fundsDestination, signature)
+        await registry.registerIdentity(accountantId, Zero, Zero, fundsDestination, signature)
         expect(await registry.isRegistered(secondIdentityHash)).to.be.true
 
         // Registry should own some tokens
@@ -145,7 +145,7 @@ contract('Registry', ([txMaker, minter, accountantOperator, fundsDestination, ..
 
         // Register identity
         const signature = signIdentityRegistration(registry.address, accountantId, Zero, transactionFee, fundsDestination, thirdIdentity)
-        await registry.registerIdentity(thirdIdentityHash, accountantId, Zero, transactionFee, fundsDestination, signature)
+        await registry.registerIdentity(accountantId, Zero, transactionFee, fundsDestination, signature)
         expect(await registry.isRegistered(thirdIdentityHash)).to.be.true
 
         // txMaker should own some tokens
