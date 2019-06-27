@@ -5,7 +5,9 @@ Set of smart contracts needed for mysterium identity registration and working wi
 ## Documentation
 
 * [Payments solution white paper](docs/paper/accountant-pattern.pdf)
-* [Smart contracts API description](docs/main.md)
+* [Smart contracts API description](docs/smart-contracts.md)
+* [Requirements/prerequisites of payment solution](docs/prerequisites.md)
+* [Registration flow (technical)](docs/registration-flow.md)
 
 ## Setup and test
 
