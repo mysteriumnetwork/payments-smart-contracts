@@ -14,29 +14,34 @@
 
 \addbibresource{bibliography.bib}
 
-\title{Accountant pattern: Lightweight solution for embeded micropayments}
-\author{Jaro Šatkevič, me@jaro.lt}
+\title{Accountant pattern: Lightweight solution for embedded micropayments}
+\author{Jaro Šatkevič, me@JaroCoin.com}
 
 \begin{document}
 
 \maketitle
 
-With rise of attempts to build decentralised platforms on internet with embeded
-payment mechanisms into them, the need of high throughput micropayments solutions
-using crypto currencies is big as never before. Blockchain payments must be 
-verified and stored by every node in the network, meaning that the node with the 
-least resources limits the overall throughput of the system as a whole. Popular 
-off-chain protocols, such as \textit{Lightning Network}, \textit{Raiden} or 
-various \textit{Plasma} implementations, may provide a solution for micropayments 
-using by cryptocurrencies, however they havet heir own problems if used for high 
-throughput of micropayments in decentralised systems. 
+The growing number of decentralised platforms which require embedded payment 
+mechanisms means that the need for a high throughput micro-payments solution 
+using cryptocurrencies is larger than ever before. 
 
-In this paper we've provided a construct of embeddable, lightweight micropayment 
-protocol called \textit{"Accountant pattern"} which is essentially a solution by 
-combining techniques of payment hubs and digital cheque based uni-directional 
-channels. Such construct may be used in decentralised VPN, CDN or Video
-streaming platforms and provides hundreds of thousands transactions per second
-of throughput while being relatively easy to implement.
+Presently, blockchain payments must be verified and stored by each node in the 
+network. This means that sets the limit for the overall throughput of the system.
+
+There are several off-chain protocols - \textit{Lightning Network}, \textit{Raiden}
+or various \textit{Plasma} implementations. While they each provide solutions for 
+specific use cases of micropayments with cryptocurrencies, they come with varying 
+sets of limitations when it comes to high throughput micropayments in decentralized 
+systems. 
+
+In this paper, we provide a construct of an embeddable, lightweight micropayment 
+solution - \textit{"Accountant pattern"}.
+
+Mysterium Accountant combines techniques used by payment hubs and digital cheque 
+based unidirectional channels. This means the ability to provide up to couple of
+millions transactions per second. This best serves the needs of decentralized VPN, 
+CDN or video streaming platforms. 
+
 
 \newpage
 \tableofcontents
@@ -44,69 +49,78 @@ of throughput while being relatively easy to implement.
 
 \section{Introduction}
 
-Idea of building decentralised systems is not new but the main addition to the 
-previous ideas about decentralised protocols is the possibility to embed payment 
-mechanisms into them.
+The idea of building decentralized systems is not new. The main addition that 
+cryptocurrencies have brought to decentralized protocols is the ability to enable 
+incentivisation. This is done via embedded payment mechanisms. 
 
-In decentralised systems, there are quite a few situations when two parties that
-don't have trust relationship between each other may want to perform mutual 
-transactions. This is especially true in decentralised VPN network case.
+In decentralized systems, it is often the case that two parties that do not trust 
+each other want to carry out mutual transactions. This is especially relevant in 
+the case of a decentralized VPN network. \\
 
-Because all network participants can be anonymous there could be situations when
-service \textit{consumer} will not be willing to pay a large amount up-front and 
-service \textit{provider} will not be willing to deliver service without 
-prepayment. In such situations service could be split into chunks provided in 
-exchange for micropayments, so each party could potentially risk only a tiny 
-amount of funds. In such situation there may be a need of transacting between 
-parties a couple times per minute while sending tiny amounts of currency (value 
-of less than 1 cent).
+\textbf{Trustless transactions - the heart of a decentralized VPN network} \\
 
-Thanks to cryptocurrencies it is now possible to embed decentralised payment
-solution in a trustless and permissionless way. Because of technical limitations 
-additional work is required.
+Considering the nature of a decentralized VPN network, one can assume that network
+participants would prefer to remain anonymous. Given the lack of trust, a service 
+consumer will not be willing to pay a bigger amount up front. On the other end, the 
+service provider isn’t willing to deliver service without prepayment. 
 
-The backbone of cryptocurrencies is a technology called \textit{blockchain}. 
-This technology requires each transaction to be stored on the ledger and 
-replicated over thousands of the network participants. This imposes a 
-fundamental limit on the amount of transactions can be processed. Let's take two 
-of the most popular blockchains Bitcoin and Ethereum. Their blockchains can 
-provide throughput of 3 to 25 transactions per second which causes high 
-transaction fees and makes on-chain transactions too expensive for micropayments.
+From this above mentioned scenario arises a need to split the service into chunks
+- provided in exchange for micropayments - meaning that each party risks a much 
+smaller value. Put into context within a decentralized VPN network, this would 
+mean that a user will pay a node a couple of times a minute, sending a tiny amount 
+of tokens in exchange for the bandwidth they are renting. 
 
-To overcome blockchain scalability problems several approaches have been 
-proposed: 
+With cryptocurrencies, it is now possible to embed decentralized payment solutions 
+in a trustless and permissionless way. Unfortunately, because of technical 
+limitations, to make scalable cryptocurrency payments, additional work is required. 
+
+The backbone of cryptocurrencies is a technology called the \textit{blockchain}. 
+This technology requires each transaction to be stored on the ledger and replicated 
+across thousands of network participants. This imposes a fundamental limit on the 
+number of transactions that can be processed. 
+
+Let’s take two of the most popular blockchains, Bitcoin and Ethereum. Their 
+blockchains can provide throughput of 3 to 25 transactions per second causing high
+transaction fees and making on-chain transactions too expensive for micropayments. 
+
+To overcome blockchain scalability problems, several approaches have been 
+proposed:
 
 \begin{itemize}
     \item \textit{\textbf{Speedup blockchain}} itself by changing some 
     fundamental components.
-    \item Use \textit{\textbf{blockchain per project}} (sidechains, Cosmos and 
-    Polkadot networks).
+    \item Use \textit{\textbf{blockchain attuned to use-cases}} (sidechains, 
+    Cosmos and Polkadot networks). 
     \item \textit{\textbf{Plasma}} and other kinds of child-chain solutions.
     \item Payment and \textit{\textbf{state channels}} based solutions.
 \end{itemize}
 
-Most of the proposed solutions are still in early stage of development and are 
-not widely adopted. Each of them has their own pros and cons and there is no 
-clear winner at the moment. This is one of reasons why most of modern 
-decentralised protocols are still in early betas. Some already have working core 
-solutions, however payments are usually the missing part. \\
+Most of the proposed solutions are in extremely early stages of development and 
+adoption. Each come with their own pros and cons and there is currently no clear 
+industry standard.
 
-\textbf{The goal} of this work is to research the simplest possible but still 
-cheap and powerful solution for high throughput micro payments using utility 
-tokens that's easy to embed into decentralised VPN, CDN or streaming services.\\
+This lack of payment standardization is one of the contributing reasons to 
+decentralized protocols still being early betas. While some may already have
+working core solutions, payments are often a missing and evolving piece. \\
 
-\textbf{The following tasks} have to be accomplished to fulfill the goal of this 
-work:
+\textbf{The goal of this whitepaper is to lay out research on the simplest, 
+cheapest and powerful solution for high throughput micropayments using 
+tokens}. This is in the context of creating a payments infrastructure for 
+decentralized VPN, CDN or streaming services. \\
+
+Here is the methodology we have undertaken to understand the problem and lay out
+the solution for high throughput micropayments: 
+
 \begin{enumerate}
-    \item Analyze the needs of decentralised VPN, CDN or streaming platform and 
-    collect requirements for payment solution which could be used there;
-    \item Do research of several most promissing 2nd layer solutions such as 
-    state channels, micropayment channel Networks, Plasma and Sidechains. Look
-    for the possibility to use them as base for high throughput micropayments in 
-    decentralised platforms, describe their advantages, limitations and side 
-    effects.
-    \item Provide a lightweight, easily embeddable solution for high throughput 
-    micropayments.
+    \item Analyse the needs of decentralized VPN, CDN or streaming platforms, 
+    collecting requirements for payment solutions which are applicable.
+    \item Research and compare advantages, limitations and side effects of current
+    layer two solutions. We will look at state channels, micropayment channel 
+    networks, plasma and sidechains. In this research, we will dive into the 
+    possibility of the use of each of these layer two solutions as a base for high
+    throughput micropayments in decentralized platforms.
+    \item Detail a lightweight and easily embeddable solution for high throughput
+    micropayments. 
 \end{enumerate}
 
 \section{Platfrom review and requirements for payment solution}
