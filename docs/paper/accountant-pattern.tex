@@ -125,57 +125,67 @@ the solution for high throughput micropayments:
 
 \section{Platfrom review and requirements for payment solution}
 
-Let's take Mysterium -- a decentralised VPN platform as an example where the 
-proposed micropayments solution can be used.
+Let us take the case of Mysterium Network \cite{mysterium} - the world’s first 
+decentralized VPN. This is a decentralized application which requires high throughput 
+micropayments. 
 
-Mysterium Network is a network of nodes providing security and privacy to 
-Mysterium end users via dVPN application. Combining powerful encryption, 
-reputation mechanisms and layered protection protocols the team ambition is to 
-build an infinitely scalable P2P architecture. The main difference of dVPN when
-comparing to other VPN service providers in the market is their architecture 
-with decentralisation at the core. There should be no single failing part in the 
-network. Any government, company or person should not be able to censure or stop
-this service. Mysterium team itself should be not able to censure or stop the 
-work of the network after a final solution will is released into production.
+Mysterium Network is a network of nodes providing security and privacy for end 
+users of MysteriumVPN, a decentralized VPN application.
 
-At the moment the product itself is in beta testing and is missing scalable 
-payments solution to go into public.
+The goal of Mysterium Network is to combine powerful encryption mechanisms, 
+reputation management systems and layered protection protocols to build an 
+infinitely scalable P2P architecture. A decentralized VPN is fundanmentally 
+different from current in-market VPN solutions in that it’s architecture is 
+fundamentally decentalized. The long term vision of Mysterium Network is to build 
+a system where there is no single point of faliure in the network. This is possible
+as the network, in the case of Mysterium Network, is a community of incentivised 
+nodes renting their bandwidth in exchange for payment.
 
-\subsection{Components of the network}
+This means that no government, company or person will be able to censor or stop 
+the service. Even the team of Mysterium Network will be not able to censor or stop 
+the network once the final solution has been released into production.
+
+\subsection{Components of the Network}
 
 \begin{itemize}
-    \item \textbf{Provider nodes:} service written in golang which can be run by
-    any user of network to provide their bandwidth for other users (called 
-    consumers) using OpenVPN in exchange to earning MYST tokens.
-    \item \textbf{Consumer app:} software written in golang and JavaScript which
-    can be run by any user in the network to connect to \textit{provider nodes} 
-    via OpenVPN and use their bandwidth.
-    \item \textbf{Discovery service:} decentralised service which helps
-    providers to advertise themselves in the network so consumers are able to find 
-    them and use their bandwidth.
-    \item \textbf{Myst token:} internal crypto currency used in the network and 
-    main and the only method of payments. Myst token is released as ERC20 token 
-    on Ethereum blockchain.
-    \item \textbf{Identity:} each user of the network (both, consumers and 
-    providers) has to register own identity, which is similar to ethereum 
-    address (20 bytes of keccak256 hash of public key derived from private key 
-    using eliptic curve cryptography). It is needed to uniquely identify network
-    actors and to be able securly establish encripted connection between them. 
-    Identity has to be registered on-chain using smart-contract deployed into 
+    \item \textbf{Provider nodes:} This is a service written in golang which can 
+    be run by any user of the network. This service allows you to earn crypto 
+    currency for renting your bandwidth to other users (consumers) using OpenVPN.
+    \item \textbf{Consumer app:} This is a dApp written in golang and JavaScript 
+    which can be run by any user of the network to connect to provider nodes via 
+    OpenVPN and rent their bandwidth.
+    \item \textbf{Discovery service:} Discovery service helps providers to advertise
+    themselves in the network. This allows consumers to find them and rent their 
+    bandwidth.
+    \item \textbf{Myst token:} This is the utility token used within Mysterium 
+    Network. MYST is the main and only method of P2P payment within the network. 
+    MYST token is released as an ERC20 token on Ethereum blockchain.
+    \item \textbf{Mysterium ID:} Each user of the network (consumers and providers)
+    has to register a Mysterium Identity, which is similar to an Ethereum address 
+    (20 bytes of keccak256 hash of the public key derived from private key using 
+    elliptic curve cryptography).
+
+    Mysterium ID is needed to:
+    \begin{itemize}
+        \item Uniquely identify network actors;
+        \item Be able to securely establish connections between them;
+    \end{itemize}
+
+    Mysterium ID has to be registered on-chain using smart contracts deployed into 
     Ethereum network.
 \end{itemize}
 
 \subsection{Initially proposed payment solution}
 
-Initially the Mysterium team was planning to use mechanism which remotely 
-resembles the way cheques works. A blockchain account holder can write a 
+Initially, the Mysterium team was planning to use a mechanism which remotely 
+resembled the way cheques work. A blockchain account holder can write a 
 cryptographic cheque to another account (the beneficiary) as a form of payment. 
-A cheque has the issuer's address, beneficiary's address, sum of tokens promised, 
-the sequence and signatures. The amount written on the cheque can be updated and 
-only the last version of cheque is valid. The beneficiary can settle the 
-promised amount on blockchain at a later date. 
+A cheque would include the issuer’s address, beneficiary’s address, the sum of 
+the total promised, the sequence and signatures. The amount is written on the 
+cheque can be updated and only the last version of the cheque is valid. The 
+beneficiary can settle the promised account on blockchain at a later date.
 
-Here is a snippet from smart contract code which should settle promised value 
+Here is a snippet from the smart contract code which settles the promised value 
 on-chain.
 
 \begin{lstlisting}[language=Solidity]
@@ -203,116 +213,122 @@ on-chain.
     }
 \end{lstlisting}
 
-This solution is much better than doing on-chain transactions. Cheques with 
-promised amounts can be send from consumer to provider as often as every second 
-and be sent in a peer-to-peer manner. Only the \textit{consumer} and 
-\textit{provider} will be aware of their existance and only once in a while 
-\textit{provider} will have to settle transactions into blockchain. This helps 
-to reduce on-chain transactions amount by a lot and still have quite a secure 
-way of providing service for an untrusted party which can disappear at any 
-moment. 
+This solution is much better than doing on-chain transactions for each layer of 
+this transaction. 
 
-\subsubsection{Problems of digital cheques}
+Cheques with promised amounts can be sent from consumer to provider peer to peer 
+each second. Only the \textit{consumer} and \textit{provider} will be aware of 
+these changes in states, until the \textit{provider} finally decides to settle 
+transactions on the blockchain. This will drastically reduce the amount of 
+on-chain transactions while providing a secure way for two parties that don’t 
+trust each other to transact. 
 
-There are couple of critical problems however, and they have to be fixed. First 
-of all there may be situation when there are not enough funds on the issuer's 
-balance to cover the promised value in the blockchain so when settling 
-transaction it will be rejected. This creates a possibility for \textit{double 
-spending}, when after issuing a cheque and until the cheque is settled into 
-blockchain, consumer can still try to issue a cheque for the same funds to 
-another party or even himself. In case of a VPN service this is not that big 
-problem because bandwidth is a \textit{"perishable product"} and service 
-providers can afford having part of it unpaid. Howewer the risk of double 
-spending forces more often on-chain settlements (each time when promised amount 
-is big enough so that the risk of losing money is not acceptable anymore).
+\subsubsection{The fundamental issues with digital cheques}
 
-Second problem is that most of consumers will use providers services only once 
-and only for limited a time (e.g. one hour of listening to music), so providers 
-will get a lot of small value cheques (e.g. 0.10 USD value in tokens). To settle 
-one such cheque on the Ethereum blockchain can cost from 0.01 up to 1 USD 
-depending on the network congestion. This means that either big fees will be paid 
-or cheques will be never settled.
+In this section we will define what a digital cheque is, and explore fundamental
+flaws that have yet to be fixed. 
 
-\subsection{Requirements for an "ideal" payments solution}
+A digital cheque is a cryptographic signature which can be sent into smart contact 
+to prove ownership of tokens and empowers smart contract to send tokens into given 
+in that signature address.
 
-Because of high level of privacy and anonymity in decentralised networks, actors
-of the network may not trust each other and there is no trusted intermediary 
-available which could resolve conflicts or act as custodian service. In such 
-situations \textit{Consumer} will be not willing to pay a large amount up-front
-and service \textit{Provider} will be not willing deliver the service without 
-prepayment. In such situation a service could be split into microservices and be 
-provided in exchange for nanopayments, so each party could potentially risk only 
-tiny amount of funds. 
-
-This leads to using \textit{pay-as-you-go} a payment model where consumers are 
-paying constantly, right after receiving an agreed part of the service. There may 
-be a need of transacting between parties a couple of times per minute while only
-sending tiny amounts of cryptocurrency.
+Here are some of the issues we face with digital cheques: 
 
 \begin{enumerate}
-    \item \textbf{requirement: consumer to provider payments}\\
-    Usually there are two actors in the network, \textit{Consumers} and 
-    \textit{Providers} of the service. All payments are done by 
-    \textit{Consumers} and received by \textit{Providers} and never vice versa.
+    \item \textbf{Double spending}\\
+    When there isn’t enough funds in the issue’s balance to cover the promised 
+    value, the transaction will be rejected when it is settled into the blockchain. 
+    This creates the possibility of double spending. A consumer may be able to 
+    issue a cheque for the same funds to another party. 
 
-    There may be more complicated services where there can be more than two 
-    parties. E.g. Video streamer (person who is creating content), nodes which 
-    are streaming video and video viewers. In this case we still can separate 
-    all of them into \textit{Consumers} and \textit{Providers}, just some 
-    actors (e.g. nodes in this case) will have both of these roles, depending 
-    on situation. In each pair (\textit{streamer-node} and \textit{node-viewer}) 
-    payments will be still done only in one direction.
+    In the case of a VPN service, this isn’t a huge problem as bandwidth is a 
+    \textit{“perishable product”}. However, this risk of double spending forces 
+    more regular on-chain settlements. Service providers would be settling each 
+    time the promised amount was big enough that the risk of losing that value 
+    outweighed the cost of the transaction. 
 
-    Thanks to this observation the protocol can be simplified and take use of 
-    \textit{payment promises} or \textit{uni-directional} micropayment channels.
+    \item \textbf{Small value cheques}\\
+    Within the decentralized VPN system, a consumer could use a provider’s service 
+    only once and for a limited time (e.g. one hour unblocking Netflix). This means 
+    that providers will accumulate a lot of small value digital cheques (e.g. 0.10 
+    USD value in tokens). Settling one cheque on the Ethereum blockchain can cost 
+    from 0.01 up to 1 USD depending on network congestion. This means that either 
+    large fees will be paid or these cheques will remain unsettled.
+\end{enumerate}
 
-    \item \textbf{requirement: high throughput and scalability}\\
-    It is extremely important that protocol would support frequent payments of
-    tiny amount (e.g. each 10 seconds by all participating parties of value less
-    than 1 cent). Which means that:
+\subsection{Requirements for an “ideal” payments solution}
+
+Due to the high level of privacy and anonymity in decentralized networks, actors 
+within the network do not trust each other. Additionally, there is no trusted 
+intermediary available which can act as a custodian or help with conflict 
+resolution. In these situations, the consumer isn’t going to pay a large amount 
+up-front and the service provider will be unlikely to offer services without 
+prepayment.
+
+In the case of a decentralized VPN, a service can be split into microservices and 
+provided in exchange for micropayments, reducing the risk for both parties.
+
+This \textit{pay-as-you-go} model means that both parties begin transacting 
+immediately, with transactions occurring a couple of times a minute while 
+sending small amounts of cryptocurrency.
+
+\begin{enumerate}
+    \item \textbf{Consumer to Provider payments}\\
+    Usually there are two actors in the network, consumers and providers of a 
+    service. All payments are sent by consumers and received by providers. Never 
+    vice versa.
+
+    Thanks to this observation, the protocol can be simplified and make use of 
+    \textit{payment promises} or \textit{uni-directional} micropayments channels.
+
+    \item \textbf{High throughput and scalability}\\
+    It is extremely important that the protocol is able to support frequent small 
+    payments (e.g. 10 seconds by all participating parties of values less than 1 
+    cent). This means that:
     \begin{itemize}
-        \item payment solution should be able to process as many transactions 
+        \item The payment solution should be able to process as many transactions 
         per second as there are active sessions established between service 
-        providers and consumers;
-        \item value of transaction can be set to parts of cent (in given crypto
-        currency);
-        \item transactions should be marked as final in very short period of 
-        time (ideally should have \textit{instant finality} property);
-        \item there have to be fast answer about transaction status with minimal
-        networking errors and retries amount;
-        \item transaction fee have to be very small (parts of penny) or 
-        expressed as percent of transaction value;
-        \item there should be minimal presence on-chain, it have to be possible
-        to aggregate payments of many sessions and from different consumers and 
-        settle them on-chain at once.
+        providers and consumers.
+        \item Value of a transaction should be set to parts of a cent (in given 
+        cryptocurrency).
+        \item Transactions should be marked as final in a very short period of 
+        time. They ideally should have an \textit{instant finality} property.
+        \item Fast answers about transaction status with minimal neworking errors 
+        and retry amounts.
+        \item Transaction fees have to be very small (parts of a penny) or 
+        expressed as a percentage of the transaction value.
+        \item There should be minimal presence on-chain. This system would need 
+        to aggregate payments of many sessions and from different consumers, to 
+        settle them in one transaction on chain.
     \end{itemize}
 
-    \item \textbf{requirement: utility tokens and stable coins support}\\
-    Bitcoin, Ethers or other popular crypto currencies are volatile and may be 
-    not acceptable or too risky in some cases. Also there are many decentralised
-    apps who have issued their own utility tokens (\textit{MYST} token in case
-    if Mysterium Network). This means that there is requirement for payment 
-    protocol to support transactions using \textit{ERC20} tokens issued on 
-    Ethereum blockchain.
+    \item \textbf{Utility token and stable coin support}\\
+    Bitcoin, Ether or other popular cryptocurrencies are volatile and may not be 
+    accepted as payment in certain cases. Further there are several decentralized 
+    apps which have issued their own utility token (\textit{MYST} in the case of 
+    Mysterium Network). This means there is a requirement for payment protocols 
+    to support transactions using \textit{ERC20} tokens issued on Ethereum 
+    blockchain.
 
-    \item \textbf{requirement: secure}\\
-    Digital services such as VPN could be named as \textit{"perishable"} because 
-    they actually are selling trafic which if not used, is "gone" forever. This 
-    means that some level of risk of unpaid use of service can be acceptable. 
-    However it's should be decision of each service provider what level of risk, 
-    in exchange to increased usability and performance or lower on-chain 
-    settling fees, he can take. So in general case, double spending attempt have 
-    to be imidiatelly identified and such transactions should be rejected.
+    \item \textbf{Security}\\
+    Digital services such as VPN can be seed as \textit{perishable} as they are 
+    renting traffic which if not used, is “gone” forever. This means that some 
+    level of risk of unpaid service can be acceptable. However, it should be up 
+    to the service provider to weight this level of risk against convenience 
+    (usability and performance) and cost (lower on-chain settling fees). In a 
+    general case, this double spending attempt has to be immediately identified 
+    and such transactions, rejected.
 
-    Anonymity and permissionless nature of decentralised systems creates some 
-    cases where additional level of protection against bad acting service 
-    providers and consumers is needed. For example in decentralised VPN case, 
-    pure performing service providers may try to "clean" their raiting by simply 
-    creating new identity in the system. Bad acting consumers may organize DDoS 
-    attack and for providers it will be hard to ban them, because they may 
-    continuously create new identities. To prevent such behaviour there could be 
-    used either some kind of identity registration with staking and punishment 
-    system.
+    Anonymity, and the permissionless nature of decentralized systems create 
+    cases where additional layers of protection against bad actors is required. 
+    For example, in the case of a decentralized VPN, poorly performing service 
+    providers may simply refresh their identities by simply creating a new 
+    identity in the network. Bad acting consumers could organise DDoS attacks, 
+    and it would be impossible for providers to ban them as they too could 
+    continuously create new identities.
+
+    To curtail this behaviour we need a reputation system which incorporates 
+    identity registration, staking and a punishment system.
 
     \begin{itemize}
         \item network identity have to be registered in given smart-contract, to
@@ -324,57 +340,58 @@ sending tiny amounts of cryptocurrency.
         DDos);
     \end{itemize}
 
-    \item \textbf{requirement: decentralised}\\
-    Such important component as payments should have high level of liveness. 
-    There should be no central party which would be easy to shutdown or censor. 
-    This means that needed payment protocol should maintain at least some level 
-    of decentralisation and should be not operated by single party.
+    \item \textbf{Decentralization}\\
+    Components as important as payments should have a high degree of liveness.
 
-    \item \textbf{requirement: low implementation complexity}\\
-    There are couple of potential ways of embeding payment solution into 
-    decentralised platform. It have to be either already very popular and 
-    scalable payment network which works on many platforms, has easy and stable
-    APIs and is already used by many people in many other platforms. Or it have 
-    to be solution with low level of complexity so it would be easy to implement, 
-    cheap to operate and resource efficient to use it.
+    There should be no central party which is easy to shut down and censor. This
+    means that the payment protocol that is needed should maintain at least some 
+    level of decentralization and should not be operated by any party.
+
+    \item \textbf{Low complexity implementation}\\
+    There are several potential ways we can embed payment solutions into 
+    decentralized platforms. We could either progress with a popular and scalable 
+    payment network which already works on several platforms, has stable APIs and 
+    is already in use in many communities.
+
+    Or we could work with a solution with a low level of complexity so it could be 
+    easy to implement, cheap to operate and resource efficient to use. 
 
     \begin{enumerate}
-        \item \textbf{Easy implementation.} Because such protocol can be used in 
-        various solutions and be slightly modificated for needs of particular 
-        system, it have to be possible reimplement all it's main parts in any 
-        popular programming language in a matters of weeks. As little of 
-        complicated schemes or components should be used.
-        \item \textbf{Cheap to operate.} To make solution easier to decentralise 
-        it should be relatively cheap run and operate its nodes. No big initial 
-        finantial investment, complicated installation and advanced hardware 
-        should be required.
-        \item \textbf{Efficient usage.} Because there is requirement to make 
-        stable and fast payment solution, less communication messages have to be
-        send via network between parties, less intermediaries involved, better 
-        for the protocol.
+        \item \textbf{Easy implementation.} Such protocol needs to be used and 
+        modified to suit the needs of various systems. This means it is necessary 
+        that each of it’s main parts can be reimplemented in main programming 
+        languages in a matter of weeks.
+        \item \textbf{Cheap to operate.} To make solutions easier to decentralize, 
+        it should be relatively easy and cheap to run and operate nodes. No big 
+        initial financial investment, complicated installation and advanced 
+        hardware should be used.
+        \item \textbf{Efficient usage.} Since there is a requirement to create a 
+        stable and fast payment solution, the less communication messages that 
+        need to be exchanged between parties, and the less intermediaries involved, 
+        the better for the protocol.
     \end{enumerate}
 
-    \item \textbf{requirement: good user experience}\\
-    Not only technical parameters are important for successful systems. If it 
-    is hard for user to make payment, only minority of them will stay to use 
-    services. There are various angles of usability which ideally should be 
-    solved.
+    \item \textbf{Good user experience}\\
+    Technical parameters alone do not make for successful systems. If there is 
+    friction involved in a user making a payment, we will not be geared towards 
+    adoption.
 
+    Here are various usability considerations that we need to solve for:
     \begin{enumerate}
-        \item Consumers should be able to deposite funds using any popular 
-        crypto wallet or directly from exchanges.
-        \item Users should have possibility to own just one asset (e.g. MYST
-        token) and not be required to own any additional utility token or coin 
-        used to pay for payment network. This is especially important while 
-        using tokens on Ethereum where for each transaction have to be paid 
-        some amount of ethers.
-        \item Any cryptographic proofs should be able to be transfered not only
-        by signing party, but also by any third party. In the same time they 
-        have maintain same level of security. This allows to use cloud trustless
-        services to send, validate or protect transactions.
-        \item Because service providers are earning income on the system, they 
-        can be asked for some kind of stake or platform fee. Consumers however 
-        have to be able to avoid such requirements.
+        \item Consumers should be able to deposit funds using any popular crypto 
+        wallet, or directly from exchanges.
+        \item Users should have the possibility to own just one asset (e.g. MYST 
+        token) and not be required to own any additional utility token or coin to 
+        make payments within the network. This is especially important when 
+        considering the ERC20 nature of MYST, and the need to settle on the 
+        Ethereum blockchain, which requires a fee in ETH for each transaction. 
+        \item Any cryptographic proof should be able to be transferred not only 
+        by a signing party, but by any third party. All while maintaining the same
+        level of security. \textbf{This allows the use of cloud trustless services 
+        to send, valid and protect transactions.}
+        \item Since service providers are earning income within the system, they 
+        can be required to stake tokens or pay a platform fee. Consumers however 
+        need the freedom to use the network without staking.
     \end{enumerate}
 \end{enumerate}
 
