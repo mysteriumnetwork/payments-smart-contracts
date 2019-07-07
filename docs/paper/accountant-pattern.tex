@@ -1313,66 +1313,64 @@ Main properties of the protocol are:
 
 \section{Potential future work}
 
-There are three main directions in which future development of payment solution
-could evolve: 
+There are three main directions in which our future development of payments 
+could go:
 \begin{itemize}
     \item migrate into Connext or Perun;
     \item migrate into Plasma + channels;
-    \item add support of counterfactual channels for accountant pattern.
+    \item add support of counterfactual channels for the Accountant pattern.
 \end{itemize}
 
 \subsection{Migration into Connext or Perun}
 
-Two most closed and most promissing solutions to described Accontant pattern are
-\textit{Perun virtual payment hubs} and \textit{Connext hub}. While Perun team 
-is still working on their first version of protocol implementation, Connext team 
-already working on thirs iteration of their hub solution (this time using 
-Counterfactual state channels). Unfortunatelly at the moment both solutions are
-not ready to use inside dVPN application written by Mysterium team. 
+The two closest and most promising solutions to described Accountant pattern are 
+\textit{Perun virtual payment hubs} and \textit{Connext hub}. The Perun team is 
+still working on their first version of the protocol implementation. The Connext 
+team is already working on the third iteration of their hub solution (this time 
+using Counterfactual state channels). Unfortunately at the moment both solutions 
+are not ready for use inside the dVPN application by the Mysterium team.
 
-In Connext case, they're changing their solution a lot, so it's worth to wait 
-until their implementation will stabilise. Also their client application is 
-written in TypeScript which means that Mysterium would need to reimplement it 
-in golang and take care of all protocol changes. Another problem is, that their
-off-chain messaging is much more complicated and requires storing a quite a lot
-of state by client nodes.
+In the case of Connext, they’re making massive updates, so it’s worth waiting until 
+their implementation is stabilised. Also their client application is written in 
+TypeScript. This means that Mysterium would need to reimplement it in golang and 
+take care of all the updates made to the protocol. The second problem with Connext 
+is that their off-chain messaging is far more complicated and requires client 
+nodes to store a large state.
 
-Perun team is creating their client node using golang, which makes it good
-choice, but because protocol itself is complicated and implementation is in 
-early stage, there is quite hard to say if it will work as expected and will
-provide all needed features for good user experience (described in 2.3 section, 
-7th requirement).
+The Perun team is creating their client node using golang, which makes it a better 
+fit for Mysterium Network. In saying that, the protocol itself is complicated, and 
+the implementation is in an early stage. It is hard to say at this stage whether it 
+will work as expected and will provide a good user experience (described in section 
+2.3, 7th requirement).
 
-In the future, when these solutions will be more mature and if Accountat pattern
-will not serve as expected, there may be made migration into one of these 
-solutions.
+In the future when these solutions mature, and if the Accountant does not serve as 
+expected, there is potential for migration onto one of these solutions.
 
 \subsection{Plasma plus channels}
 
-In Ethereum community there are a lot of development going aroud various Plasma 
-implementations. Unfortunatelly each analysed Plasma implementation had own 
-issues (either centralisation, either mass exit risk, either having support only
-for non-fungible tokens). Additionaly, as was described in 3.2 section, in 
-initial state running own Plasma could be expensive, and there are no popular
-and decentralised Plasma implementation runned by thirs party teams.
+In the Ethereum community there are a lot of developments on various Plasma 
+implementations. Unfortunately each of the Plasma implementations analyzed in the 
+course of writing this paper have come with their own limitations (either 
+centralization, mass exit risk, having support only for non-fungible tokens). 
+Additionally, as described in section 3.2, in the initial state running Plasma 
+could be expensive, and there are no popular and decentralized Plasma 
+implementation run by third party teams as yet.
 
-In the future however, if there would be proposed Plasma implementation which
-solves earlier mentioned problems, would have already developed tooling which
-would help to run own implementaiton easily or they would appear decentralised
-and popular solution implemented and runned by third party team, Mysterium team 
-could easyly enough adapt their dVPN node software to use uni-directional, 
-payment promise based channels on top of Plasma.
+In saying this, if a future Plasma implementation solves the aforementioned 
+problems, it could easily be adapted into the Mysterium dVPN node software for 
+unidirectional, payment promise based channels on top of Plasma. 
 
-\subsection{Take use of Counterfactual state channels}
+\subsection{Making use of Counterfactual state channels}
 
-Generalized state channels described in Counterfactual \cite{counterfactual} 
-white paper looks like very powerful sulution. Also we see that there is some
-traction around this solution. If this trend will grow, in the future we may
-take some effort to research possibility to refactor Accounant pattern proposed 
-uni-directional channels and implement them in counterfactual way. Ideally there
-could be possible to install them as an application on top of existing opened 
-channel with counterfactual hub. This would help to have minimal changes inside 
-dVPN node software but in same time be part of bigger network.
+Generalised state channels described in the Counterfactual \cite{counterfactual} 
+white paper presents as a powerful solution. Also we can see that there is growing 
+traction around this solution. If this trend continues the Mysterium team will look 
+at ways into we can refactor the unidirectional channels of the Accountant and 
+implement them in a counterfactual way.
+
+Ideally there will be a way to install them as an application on top of an existing 
+opened channel with counterfactual hub. This would be help with minimising changes 
+inside the dVPN node software, but at the same time be a part of a bigger network.
 
 \newpage
 \printbibliography[heading=bibintoc]
