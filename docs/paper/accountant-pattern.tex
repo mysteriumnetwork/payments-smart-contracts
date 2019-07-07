@@ -397,68 +397,76 @@ sending small amounts of cryptocurrency.
 
 \section{Overview of potential solutions}
 
-\textit{Blockchain} is a replicated state machine which orders transactions on 
-it's global state. Transactions are verified and replayed by each participant,
-called a \textit{node}, in the network. This limists the throughput of the 
-network as a whole to the lowest throughput of any of it's nodes. Increasing 
-the load beyond that throughput may result in nodes unable to handle the load 
-being pushed out of the network. This impose a fundamental limit of amount of 
-transactions which can be processed. 
+\textit{Blockchain} is a replicated state machine which orders transactions. 
+Transactions are verified and replayed by each participant (node) in the 
+network. This limits the throughput of the network as a whole, to the weakest 
+link. This means that the throughput of the network will hit a ceiling based on
+the limitations of the node with the least amount of throughput. Increasing the 
+load beyond this throughput may result in nodes being unable to handle the load 
+pushed out into the network. This imposes a fundamental limit on the amount of 
+transactions which can be processed.
 
-Let's take two most popular cryptocurrencies Bitcoin and Ethereum. Their 
-blockchains can provide throughput of 3 to 15 transactions per second which in 
-busy period causes high transaction fees and makes on-chain transactions too 
-expensive for micropayments.
+Let’s take the two most popular cryptocurrencies Bitcoin and Ethereum. Their 
+blockchains can provide throughput of 3 to 15 transactions per second, which in 
+busy periods causes high transaction fees and makes on-chain transactions too 
+expensive for micropayments. 
 
-One of solutions would be to increase block size which could allow increase 
-throughput. There are blockchains with block limits of 128Mb (100 times higher 
-that bitcoin's) so theoretically they can process up to couple of hundreds 
-transactions per second. Such level of scalability work for one-time type of 
-payments (like buying cup of coffee) but for high throughput nano payments we 
-need solution which could process millions of transactions per second. 
-Unfortunatelly there are phisical network, validation time (CPU) and disk space 
-limits so blocks can't be ultimately big.
+One of the solutions to this could be to increase the block size, which would 
+allow increased throughput. There are blockchains with block limits of 128Mb 
+(100 times higher than that of the Bitcoin blockchain), so theoretically you will
+be able to process up to a couple of hundred transactions per second. This level 
+of scalability works for one-time payments (like buying a cup of coffee) but for 
+high throughput micropayments we need a solution which is able to process millions
+of transactions per second. Unfortunately, physical network, validation time (CPU)
+and disk space limitation means that blocks can’t be that big.
 
-Finally there is one more problem. Participants in the network by default agree 
-that the chain with the highest \textit{difficulty} or more blocks put into it, 
-is “true ledger”. If some other branch mined in parallel will get longer chain, 
-a new ledger is accepted as the true ledger. Some transactions accepted into 
-older ledger can be not added into new one. This means that the longer waiting 
-period before accepting payment, the bigger guarantee the transaction written 
-in blockchain is irreversible.
+The final problem - participants in the network by default agree that the chain 
+with the highest difficulty or more blocks put into it, is the “true ledger”. If 
+some other branch mined in parallel gets a longer chain, this new ledger is 
+accepted as the “true ledger”. Some transactions accepted into the older ledger 
+will not be added into the new one. This means that the longer the waiting period 
+before accepting payment, the bigger the guarantee the transaction written in 
+blockchain is irreversible.
 
 For frequent transactions, the faster \textit{finality} there is, the better. 
-\textit{On-chain} transactions however don't have reasonably fast finality.\\
+\textit{On-chain} transactions however don’t have reasonably fast finality.\\
 
-To overcome \textit{on-chain} limitations, such as scalability, high fees and
-long finality time, several \textit{off-chain} protocols (or so-called 
-\textit{Layer 2} solutions) have been proposed. Among these techniques, one 
-important differentiator is whether the relocated operations introduce 
-additional consensus assumptions (like in sidechains and interoperable 
-blockchain networks such as Polkadot or Cosmos), or allow users to restore their
-state to the original blockchain (like in state channels or Plasma).
+To overcome \textit{on-chain} limitations, such as scalability, high fees and 
+long finality time, several \textit{off-chain} protocols or layer 2 solutions, 
+have been proposed. Amongst these techniques one important differentiator is 
+whether the relocated operations introduce additional consensus assumptions 
+(e.g. sidechains and interoperable blockchain networks such as Polkadot or 
+Cosmos), or allow users to restore their state to the original blockchain (like 
+in state channels or Plasma).
 
-\subsection{Blockchain per project}
+\subsection{Use case specific blockchains}
 
-The most radical solution would be to move platform specific utility token into 
-own blockchain. There are couple of frameworks to build own blockchains with 
-plugable consensus and application layer. Most promissing solutions are 
-\textit{Tendermint} developed by Cosmos Network, \textit{Substrate} developed
-by Parity Technologies as part of Polkadot Network, using software of Ethereum
-but with different consensus algorithm and \textit{Hyperledger Fabric} by Linux
-Foundation.
+The most radical solution would be to move platform specific utility tokens 
+onto their own specific blockchains.
 
-Nevertheless that these solutions are relatively hard to customise and launch, 
-using them would additionally require building community of full nodes and stake 
-pools which would guaranty network's security. Another unwanted side effect 
-would be need of moving token into new blockchain. This is socialy complicated 
-and hard to implements project. \\
+There are a couple of frameworks to build your own blockchains with pluggable 
+consensus and application layers. The current most promising solutions in the 
+market are:
 
-Alternatively there could be launched a \textit{sidechain} - a blockchain ledger 
-that runs in parallel to a primary blockchain. Assets from the main blockchain 
-can be linked to and from the sidechain. This allows the sidechain to operate 
-independently of the primary blockchain by introducing own consensus mechanism, 
-faster speed of transactions and features needed to some dedicated platform.
+\begin{itemize}
+    \item \textit{Tendermint} developed by Cosmos Network;
+    \item \textit{Substrate} developed by Parity Technologies as part of Polkadot
+    Network using software by Ethereum, but with different consensus algorithms;
+    \item \textit{Hyperledger Fabric} by Linux Foundation.
+\end{itemize}
+
+These solutions are relatively hard to customise and launch. Moreover, using them 
+would require additional community building for full nodes and stake pools to 
+guarantee the network’s security. Another unwanted side effect is the need to move 
+the token onto said unique blockchain. This is a socially complicated and hard to 
+implement project. \\
+
+Alternatively, a \textit{sidechain} could be launched. A sidechain is a ledger 
+that runs in parallel to a primary blockchain. Assets from the main blockchain can
+be linked to and from this sidechain. This allows the sidechain to operate 
+independently of the primary blockchain. This can mean introduction of its own 
+consensus mechanisms, faster speed transactions and features required by certain 
+dedicated platforms.
 
 \begin{figure}[H]
     \centering
@@ -467,14 +475,21 @@ faster speed of transactions and features needed to some dedicated platform.
     \label{img:sidechain}
 \end{figure}
 
-Thanks to possibility to use own, less decentralised but more scalable consensus
-algorithms, \textit{sidechains} can provide much higher throughput than in 
-primary blockchain. However while introducing consensus assumptions which in 
-situation of fail will permanently compromise long-term guarantees (such as 
-persistence of asset ownership). If state is "moved" to a sidechain and that 
-chain's consensus mechanism fails, owners or beneficiaries of that state may 
-lose everything delegated there, even when the primary blockchain remains
-secure.
+Thanks to the possibility of using its own less decentralized but more scalable 
+consensus algorithms, sidechains can provide a much higher throughput than a 
+primary blockchain. However the introduction of consensus assumptions, which in 
+situations of failure, will permanently compromise long-term guarantees such as 
+persistence of asset ownership). If the state is “moved” to a sidechain and that 
+chain’s consensus mechanism fails, owners or beneficiaries of that state may lose 
+everything delegated to the sidechain, even in the case where the primary 
+blockchain remains secure.
+
+A slightly different approach can be taken with interoperable multi-chain networks 
+such as \textit{Polkadot} (see figure \ref{img:polkadot}). Polkadot allows new 
+designs of blockchains (also known as parachains) to communicate and pool their 
+security while still allowing for entirely arbitrary state-transition functions. 
+This helps with bootstrapping new chains much faster while having the same security 
+guarantees as the whole of Polkadot network.
 
 Slightly different approach is taken by interoperable multi-chain networks such 
 as \textit{Polkadot} (see figure \ref{img:polkadot}) which allows new designs of
@@ -490,66 +505,70 @@ guaranties as whole Polkadot network.
     \label{img:polkadot}
 \end{figure}
 
-Despitethe the fact that \textit{sidechains} can provided significant increase 
-of transaction throughput and in case of \textit{multi-chains} also relatively
-easy achievable high level of security guarantees, general issues of blockchains
-still apply. Because of blockchain nature and physical networking and storage 
-limitations, they still can't provide throughput of hundreds of thousands 
-transactions per second and \textit{instant finality}, which may be needed for 
-\textit{micropayments} in succesfull decentralised VPN or streeming platform.
+\textit{Sidechains} can provide significant increase of transaction throughput, 
+and in the case of multi-chains - relatively easily achievable high level of 
+security guarantees. Despite this, general issues of blockchains still apply.
+
+Blockchains by nature have physical networking and storage limitations. They are
+still unable to provide throughput of hundreds of thousands of transactions per 
+second and \textit{instant finality} - both fundamental requirements for 
+micropayments in a successful decentralized VPN or streaming platform.
 
 \subsection{Plasma}
 
 \textit{Plasma} \cite{plasma} is a proposed framework for scaling Ethereum 
-capacity by using hierarchical sidechains. Plasma type of sidechains (also 
-called child chains) allow to do a majority of transactions outside of the "root
-chain" (e.g. Ethereum). Only deposits and withdrawals, the points of entry and 
-exit, are handled on the root chain smart contract.
+capacity by using hierarchical sidechains. Plasma type sidechains (also called
+child chains) allow a majority of transactions outside of the “root chain” (e.g. 
+Ethereum). Only deposits and withdrawals, and the points of entry and exit are 
+handled by the root chain smart contract. 
 
-Similary to blockchains Plasma chain stores all it's transactions packed into 
+Similarly to blockchains, Plasma chain stores all its transactions packed into 
 blocks while using \textit{UTXO} for balance accounting. To make sure that 
-transactions are final, Plasma operator is doing something called a "state 
-commitment". It is a cryptographic way to store a compressed version of the 
-state of child-chain inside of root chain. Typically all the state is stored in
-\textit{merkle trees} and only \textit{merkle root} of each block's state is 
-persisted into root chain.
+transactions are final, Plasma operators run a “state commitment”. This is a 
+cryptographic way to store a compressed version of the state of a child-chain 
+inside of the root chain. Typically all states are stored in \textit{merkle trees}
+and only the \textit{merkle root} of each block’s state is added to the root 
+chain.
 
-Usually Plasma chains are run by single operators, having distributed nodes 
-using some kind of Byzantine Fault Tolerant (BFT) consensus (e.g. Proof of 
-Stake) is possible though.
+Although Plasma chains are run by single operators, having distributed nodes 
+using some kind of Byzantine Fault Tolerant (BFT) consensus (e.g. Proof of Stake) 
+is possible.
 
-Differently to sidechains and multi-chains, Plasma makes possible for users to 
-leave at any time. Such action is usually refered as “exiting”. This allows users 
-safely withdrawal their funds out of Plasma even if it was shutdown by operator.
+One of Plasma’s key differentiators is that it creates the possibility for users 
+to leave the network at any time. This action is usually referred to as “exiting”. 
+This allows users to safely withdraw their funds from Plasma even if it has been 
+shut down by the operator.
 
-While it offers significant speed (up to 1000 tx/s) and latency improvements 
-over Ethereum itself, Plasma cannot offer the near-zero latency and near-free 
-transaction fees. It also requires significat storage to store it's ledger
-(esoecially with big amounts of transactions).\\
+While it offers significant speed (up to 1000 tx/s) and latency improvements over 
+Ethereum itself, Plasma cannot offer the near-zero latency and near-free transaction 
+fees required for a decentralized VPN micropayments solution. Plasma also requires 
+significant storage to manage it’s ledger (especially with the large amount of 
+transactions). \\
 
-Another downside of Plasma chais is that it is complex and difficult to 
-implement solution. Especially hard is to run it with distributed nodes which 
-have BFT type of consensus. When Plasma chain is operated with single operator, 
-there is risk that he will create 'fake' blocks, which may end up with mass 
-exits out of plasma into root chain and stuck of whole network.\\
+Plasma chain is that it is a complex and difficult to implement solution. What is 
+especially hard with its implementation is that you are required to run distributed 
+nodes which have BFT type of consensus. When Plasma chain is operated by a single 
+operator, there is a risk that this operator will create “fake” blocks, which may 
+result in mass exits out of Plasma into the root chain, affecting the entire 
+network.
 
-One more downside is that plasma is quite expensive to operate. Each couple of 
-blocks it have to commit it's state to root chain, which means, that plasma 
-operator would have to pay 1080 USD (as gas fee) per day. 
+Another downside of Plasma chains is that it is quite expensive to operate. Every 
+couple of blocks, it would have to commit its state to the root chain. This means 
+that a plasma operator would have to pay \$1080 USD (gas fee) per day.
 
 \[ 3 \thinspace tx / minute * 1 440 \thinspace minutes / day = 4320 \thinspace tx/day \]
 \[ 1 \thinspace tx = 25 \thinspace cents \]
 \[ 4320 \thinspace tx/day * 0.25 USD/tx = 1080 \thinspace USD/day \]
 
-This isn't big problem when there is already significant load in the network, 
-however in the beginning covering such costs can be problematic.\\
+This isn’t such a big problem when there is a significant load on the network, 
+however, in the beginning covering such costs can be problematic.
 
-And finaly, regardless of that Plasma transaction throughput is significantly 
-higher than Ethereum's, it is still not enought for distributed VPN network 
-needs. As alternative, there could be possible to build some kind of payments 
-channels on top of Plasma (see \ref{img:plasma-channels}). In this way parties 
-could do peer-to-peer transactions while having active service and close 
-channels right after closing connection. 
+And finally, even though Plasma’s transaction throughput is significantly higher 
+than Ethereum’s, it is still not enough for a decentralized VPN network’s needs. 
+We could build some type of payment channels on top of Plasma (see figure
+\ref{img:plasma-channels}). In this architecture, parties are able to do 
+peer-to-peer transactions while having active service, and close channels right 
+after ending the connection.
 
 \begin{figure}[H]
     \centering
@@ -558,22 +577,22 @@ channels right after closing connection.
     \label{img:plasma-channels}
 \end{figure}
 
-In situation when there are more that one transaction per second throughput, 
-Plasma transactions can be relativelly cheap (less that 1 cent per transaction)
-and can have fast including into block (from 1 to 10 seconds, depending on 
-implementation). This allow opening and closing channels when needed and avoding
-long waiting times.
+In a situation when there is more than one transaction per second throughput, 
+Plasma transactions can be relatively cheap (less than 1 cent per transaction) and 
+can be quickly included into a block (from 1 to 10 seconds depending on the 
+implementation). This allows consumers and providers in the network to open and 
+close channels as and when needed, avoiding waiting times. 
 
-Unfortunatelly this solution is even more complicated that using just plasma and
-has similar cost and decentralisation issues mentioned above.
+Unfortunately this solution is even more complicated than using just Plasma and as 
+such inherits similar cost and decentralization issues mentioned above.
 
 \subsection{Payment and state channels based solutions}
 
 A \textit{micropayment channel} is class of techniques designed to allow parties
 to exchange digital value without commiting all of the transactions to the 
-blockchain. In a typical payment channel, only two transactions are added to the 
-blockchain but an unlimited or nearly unlimted number of payments can be made 
-between participants.
+blockchain. With payment channels, an unlimited or nearly unlimited number of 
+payments can be made between participants - with only the opening and closing of 
+the channels being logged on blockchain. 
 
 \begin{figure}[H]
     \centering
@@ -582,17 +601,17 @@ between participants.
     \label{img:payment-channel}
 \end{figure}
 
-To open payment channel parties have to lock some funds into multisignature 
-smart contract (see figure \ref{img:payment-channel}). This allows parties to
-updated channels balances off-chains while beeing sure with hight probability 
-that funds will be not double spent or stolen.
+To open payment channels both parties have to lock some funds into a multisig 
+smart contract (see figure \ref{img:payment-channel}). This allows both parties
+to update channel balances without the fear that funds will be double spent or 
+stolen (to a high probability). 
 
-There are various payment channels techniques such as sequence based channels, 
-duplex channels, time-locked channels, etc. Any of them would improve security 
-and would help to avoid double spending problems comparing to initially proposed
-digital cheques solution (see section 2.2). Also that would allow providers to
-wait longer until settling on-chain what could reduce settling costs because 
-some consumers may return to use service via same provider again. \\
+There are various payment channel techniques - sequence based channels, duplex 
+channels, time-locked channels, and more. Any of these would improve security and 
+reduce the probability of double spending problems when compared to the initially 
+proposed digital cheques solution (see section 2.2). This will also increase trust 
+in the system, allowing providers to keep payment channels running for longer, 
+reducing their settling costs.
 
 \subsubsection{State channels}
 
@@ -603,75 +622,79 @@ additional trust can lead to significant improvements in cost and speed. State
 channels will be a critical part of scaling blockchain technologies to support 
 higher levels of use.
 
-The basic components of a state channel are very similar to that in payment 
-channels.
-
+The basic components of a state channel are very similar to payment channels.
 \begin{enumerate}
-    \item Part of the blockchain state is locked via multisignature type of smart 
-    contract, so that a specific set of participants must completely agree with 
-    each other to update it.
-    \item Participants update the state among themselves by constructing and 
-    signing transactions that could be submitted to the blockchain, but instead 
-    are merely held onto for now. Each new update "trumps" previous updates.
-    \item Finally, participants submit the state back to the blockchain, which 
-    closes the state channel and unlocks the state again (usually in a different 
-    configuration than it started with).
+    \item First, part of the blockchain state is locked via a multi-signature 
+    smart contract. A specific set of participants must agree with each other 
+    for updates within this smart contract.
+    \item As they transact, participants update the state amongst themselves 
+    by constructing and signing transactions. These states are held by both 
+    participants, with each new update “trumping” the previous update.
+    \item When all participants wish to settle, they can submit the state back
+    to the blockchain, which closes the state channel and unlocks the smart 
+    contract (usually in a different configuration than it started with).
 \end{enumerate}
 
-Because tokens on Ethereum blockchain are represented in form of state in smart 
-contracts, state channels are the way how to move token interacion into 
-\textit{layer 2}.\\
+Because tokens on Ethereum blockchain are represented in the form of state in 
+smart contracts, state channels are one of the through which token interactions 
+can be moved into \textit{layer 2}. 
 
 \subsubsection{Downsides and benefits of channels}
 
-The downside of using payment channels is that parties have to lock funds into 
-multisigature smart contracts which in comparison to \textit{digical cheques} 
-means additional on-chain transaction for opening channel and needs of having 
-locked bigger amounts of funds. There is not possible to reuse same funds in 
-another channel before closing previous one. Another downside is time to 
-service. Opening new channel will take some time (depending on type of 
-blockchain and network load this make take from one minute till up to couple 
-of hours) which makes bad user experience.\\
+The downside of using payment channels is that both parties are required to lock 
+funds into a multisignature smart contracts.\\
 
-There are also couple of additional benefits of payment channels:
-
+\textbf{\large {Disadvantages of State Channels}}
 \begin{itemize}
-    \item \textbf{Privacy} -- each transaction is known only to participating 
-    parties, which allows them to have privacy in their individual transactions 
-    such that the public only knows the result which has been shared on-chain.
-    \item \textbf{Instant finality} -- parties can sign and exchange messages
-    instantaneously without having to wait for confirmation from the blockchain.
-    This is leading to a much better user experience.
-    \item \textbf{Lower cost} -- digital value is exchanged with the only a few
-    on-chain transactions being made for creating the channel and for closing
-    the channel.
+    \item \textbf{Unnecessary transaction fees.} An additional on-chain transaction
+    for opening the channel.
+    \item \textbf{Locked in funds.} The need to have larger amounts of funds locked
+    in the smart contract the inability to use funds locked in one channel before 
+    closing the previous.
+    \item \textbf{Time to service.} Opening a channel takes time. Depending on the 
+    type of blockchain and network load, this may take from one minute to a couple 
+    of hours.
+    \item \textbf{Bad user experience.} Complexity in additional transactions and 
+    long service time add up to an unfriendly and frictioned user journey.
+\end{itemize}
+
+\textbf{\large {Advantages of State Channels}}
+\begin{itemize}
+    \item \textbf{Privacy.} Each transaction is known only to participating 
+    parties, allowing privacy in individual transactions. Only what is shared 
+    on-chain will be publicly available.
+    \item \textbf{Instant finality.} Parties can sign and exchange messages 
+    instantaneously without having to wait for confirmation from the blockchain. 
+    This will immensely improve user experience.
+    \item \textbf{Lower cost.} Digital value is exchanged with the only a few
+    on-chain transactions being made for creating and closing the channel.
 \end{itemize}
 
 \subsubsection{Micropayments networks}
 
-Payments channels is very promising technique for micropayments. However opening 
-new channel requires on-chain transaction which is both slow and expensive and 
-can't be done in setups when there are a lot of service providers. In this 
-situation payment channels based solution is reasonable only when participants 
-do not need to be connected to everyone else (see figure \ref{img:many-to-many}). 
+Payments channels are a very promising technique for micropayments. However opening 
+a new channel requires on-chain transaction. As mentioned, these are slow, expensive 
+and aren't useful in networks with multiple service providers. In these cases, 
+payment channel based solutions are reasonable only when participants do not need to 
+be connected to everyone else (see figure \ref{img:many-to-many}).
 
 \begin{figure}[H]
     \centering
     \includegraphics[scale=0.5]{../img/many-to-many}
-    \caption{Everyone makes channel with anyone else}
+    \caption{Everyone creates a channel with anyone else}
     \label{img:many-to-many}
 \end{figure}
 
-Many existing research on payment channels have focused on exploring the design
-space of how to structure payments through intermediaries \cite{counterfactual, 
-perun, lightning}. Let's suppose that Alice has a payment channel with Ingrid, and 
-Ingrid has one with Bob. If Alice pays Ingrid off-chain and then Ingrid pays Bob 
-the same amount, this is equivalent to Alice paying to Bob off-chain, without 
-requiring a new Alice-Bob payment channel to be set up.
+Existing research on payment channels have focused on exploring the design space of 
+how to best structure payments through intermediaries \cite{counterfactual, perun, 
+lightning}. Let’s suppose that Alice has a payment channel with Ingrid, and Ingrid 
+has one with Bob. If Alice pays Ingrid off-chain and then Ingrid pays Bob the same 
+amount, this equates to Alcie paying Bob off-chain, without requiring a new 
+Alice-Bob payment channel.
 
-In situation when parties don't have channels with single intermediary, a 
-micropayment channel network can be used together with a routing algorithm to 
-send funds between any two parties in the network (see figure \ref{img:lightning}).
+In situation when parties do not have channels with a single intermediary, a 
+micropayment channel network can be used together with a routing algorithm to send 
+funds between any two parties in the network (see figure \ref{img:lightning}).
 
 \begin{figure}[H]
     \centering
@@ -680,24 +703,24 @@ send funds between any two parties in the network (see figure \ref{img:lightning
     \label{img:lightning}
 \end{figure}
 
-As micropayment channel network can keep most transactions off-chain, blockchain 
-based currencies may scale to magnitudes larger user and transaction volumes than 
-any currently exsting centralised solution. Also, micropayment channel networks 
-allow for fast transactions thanks to \textit{instant finality} property of 
-payment channels. Transaction is final as soon as it is signed and sent to 
-another party, the blockchain latency does not matter. \\
+As micropayment channel networks can keep most transactions off-chain, blockchain 
+based currencies may scale to magnitudes with larger volumes of users and 
+transactions than currently existing centralized solutions. Also, micropayment 
+channel networks allow for fast transactions thanks to their instant finality 
+property. Transactions are final as soon as signed and sent to another party, and 
+aren’t dependant on blockchain latency.
 
 \subsubsection{Hashed Timelocked Contracts and Virtual Channels}
 
-There are various ways to create micropayments networks trustlessly (i.e. to 
-ensure that Alice pays Ingrid if Ingrid pays Bob). The most popular is Hashed 
-Timelock Contract (HTLC) based approach \cite{lightning}. In it's canonical way 
-an equal amount of funds from both payment channels are locked up in a way that 
-they can only be spent if a certain hash is revealed before a certain deadline 
-(thus, locked “by hash” and “by time”). 
+There are various ways to create micropayment networks trustlessly (i.e. to ensure 
+that Alice pays Ingrid, if Ingrid pays Bob). The most popular of these methods are 
+Hash Timelock Contract (HTLC) based approaches \cite{lightning}. Equal amount of 
+funds from both payment channels are locked up in a way that only be released if 
+a certain hash is revealed before a specific deadline. Thus canonically, locked 
+“by hash” and “by time”.
 
 This technique can allow payments to be securely routed across multiple payment 
-channels and is used in Bitcoin's Lightning Network and Ethereum's Raiden 
+channels. It is currently used in Bitcoin’s Lightning Network and Ethereum’s Raiden 
 Network.
 
 \begin{figure}[H]
@@ -708,37 +731,54 @@ Network.
 \end{figure}
 
 In figure \ref{img:htlc} we see atomic value exchange over three micropayment 
-channels (Alice to Bob, Bob to Carol, Carol to Dave). If Alice will pay to Dave
-via Bob and Carol, she needs to ensure that Bob and Carol cannot run away with 
-her money. To do so, Dave generates pre-image $R$, which is random number (shown 
-as key on scheme), and then shared with Alice hash $H$ (shown as lock on scheme) 
-of this pre-image. In step $2$ Alice generates an HTLC with Bob that says 
-\textit{"I will pay you $X$ coins if you show me the pre-image $R$. If you don't 
-show R during period $\Delta t$, I will take back my coins."}. In step $3$ Bob 
-generates similar HTLC with Carol, but sets period of $\Delta t - 1$. In $4$ step 
-Carol do same with Dave, but with even shorter period of $\Delta t - 2$. Then in 
-step $5$ Dave will show $R$ to Carol, in next step Carol shows $R$ to Bob and 
-finally Bob shows it to Alice. At this point payment of $X$ amount from Alice to 
-Dave is finalsed.
+channels (Alice to Bob, Bob to Carol, Carol to Dave).\\
 
-HTLCs can be established in any chain of any length consisting of different 
-payment channels. As an incentive for intermediate hops to forward transactionsa 
-small fee can be charged for using the service of the channel. Fee payments are 
-also justified as the balance on a channel gets shifted, which is only beneficial 
-for balancing a lopsided channel. After a successful transaction with HTLCs, 
-channel parties do not need to broadcast their contract and can just replace their
-HTLC with a new commitment transaction without an HTLC. HTLCs can be combined with 
-timelocks or revocable transactions changing the output of the HTLC accordingly.\\
+\textit{Step One:}
+If Alice pays Dave via Bob and Carol, she needs to ensure that Bob and Carol cannot
+run away with her money. To help ensure this, Dave generates pre-image $R$, which is 
+a random number (shown as a key in the scheme), and shares hash $H$ of the pre-image 
+(shown as lock on scheme) with Alice. 
 
-In Ethereum blockchain, which supports advanced smart contracts, routing payments 
-could be done in an alternative form via a technique known as \textit{Virtual 
-channels}, introduced by \textit{Perun} paper \cite{perun} and simultaneously 
-similar technique was proposed by \textit{Counterfactual} protocol (named as Meta 
-channels), which use an intermediary that serves as a \textit{"virtual payments 
-hub"}. Anyone with a payment channel connected to the hub could establish virtual
-channels between each other (see figure \ref{img:hub}). Unlike routing payments 
-via HTLCs, Hub does not need to be involved in every payment between Alice and 
-Bob. This property reduces latency and costs, while increases privacy.
+\textit{Step Two:}
+Alice generates an HTLC with Bob that says \textit{“I will pay you $X$ coins if you 
+show me the pre-image $R$. If you don’t show $R$ during period $\Delta t$, I will 
+take back my coins.”}
+
+\textit{Step Three:}
+Bob creates a similar HTLC with Carol, but sets the period of $\Delta t - 1$.
+
+\textit{Step Four:}
+Carol does same with Dave but with an even shorter period of $\Delta t - 2$.
+
+\textit{Step Five:}
+Dave shows $R$ to Carol.
+
+\textit{Step Six:}
+Carol shows $R$ to Bob.
+
+\textit{Step Seven:}
+Bob shows $R$ to Alice.
+
+At this point payment of $X$ amount from Alice to Dave is finalised. 
+
+HTLCs can be established in any chain of any length, consisting of different 
+payment channels. As an incentive for intermediate hops to forward transactions,
+small fees can be charged for using the service of the channel. Fee payments are 
+also justified as the balance of a channel gets shifted, which is beneficial for 
+balancing a lopsided channel. After successful transactions with HTLCs, channel 
+parties do not need to broadcast their contract, and can just replace their HTLC 
+with a new commitment transaction without an HTLC. HTLCs can be combined with 
+timelocks or revocable transactions changing the output of the HTLC accordingly.\\ 
+
+In the Ethereum blockchain, which supports advanced smart contracts, routing 
+payments could be done using \textit{Virtual channels}, introduced by \textit{Perun}
+paper \cite{perun}. A similar technique is proposed by Counterfactual protocol 
+(named Meta channels) \cite{counterfactual}. These routing payments use an 
+intermediary that serves as a \textit{“virtual payments hub”}. Anyone with a 
+payment channel connected to the hub could establish virtual channels between each
+other (see figure \ref{img:hub}). Unlike routing payments via HTLCs, Hub does not 
+need to be involved in every payment between Alice and Bob. This property reduces 
+latency and costs, while increasing privacy.
 
 \begin{figure}[H]
     \centering
@@ -747,15 +787,15 @@ Bob. This property reduces latency and costs, while increases privacy.
     \label{img:hub}
 \end{figure}
 
-To open virtual channel, Alice and Bob essentially need to lock-up a set number
+To open a virtual channel, Alice and Bob essentially need to lock-up a set number 
 of coins from their payment channel with Hub. The amount of locked coins will 
-become the value of the virtual channel between Alice and Bob. Notice, that the 
-Hub remains financially neutral by simply mirroring balances.
+become the value of the virtual channel between Alice and Bob. Notice that the hub 
+remains financially neutral, simply mirroring balances.
 
-This technique could be repplied to increase the length of the channel (see 
-figure \ref{img:virtual-channels}). Because a virtual channel is an instance of 
-an off-chain contract, increasing the length not require another transaction 
-on-chain.
+This technique could be reapplied to increase the length of the channel (see figure 
+\ref{img:virtual-channels}). Because a virtual channel is an instance of an 
+off-chain contract, increasing the length does not require an additional transaction
+on-chain. 
 
 \begin{figure}[H]
     \centering
@@ -764,69 +804,71 @@ on-chain.
     \label{img:virtual-channels}
 \end{figure}
 
-Virtual channels also represent a different business model from channel routing.
-HTLCs have a \textit{“pay-per-payment”} fee model where there is need to 
-incentivize each intermediary to route each payment. Virtual channels, on the 
-other hand, have a \textit{“rent-a-path”} fee model. In this model, an 
-intermediary acts as a virtual payment hub that has direct channels with multiple
-parties. If Ingrid is the intermediary, then Alice and Bob pay Ingrid to keep 
-the channel open for a certain period of time. Such a model might have better 
-economics for high-volume micropayments.
+Virtual channels also represent a different business model from channel routing. 
+HTLCs have a nels also represent a different business model from channel routing.
+HTLCs have a \textit{“pay-per-payment”} fee model where this is need to incentivize 
+intermediaries to route payments. Virtual channels on the other hand have a 
+\textit{“rent-a-path”} fee model. In this model an intermediary acts as a virtual 
+payment hub that has direct channels with multiple parties.
 
-While Perun and Counterfactual have introduced novel ways of routing payments 
+If Ingrid is the intermediary, then Alice and Bob pay Ingrid to keep the channel 
+open for a certain period of time. This model has potential to have better economics 
+for high-volume micropayments. 
+
+While Perun and Counterfactual have introduced novel means of routing payments 
 across multiple intermediaries, HTLC-based routing is currently the primary 
-implementation on blockchain mainnets, is better tested and much easier to 
-implement.
+implementation on blockchain mainnets making it the most tested. It is also easier 
+to implement.
 
-\subsubsection{Known problems of micropayment networks}
+\subsubsection{Summary of problems within micropayment networks}
 
-Micropayment channels networks looks really promising but unfortunatelly they 
-have couple of negative sides. 
+Micropayment channel networks look really promising, but unfortunately come with 
+specific downsides. 
 
-Downside of using HTLC based micropayment networks is complicated routing. 
-\textit{Lightning Network} is great for time to time low value payments, however 
-it is much harder to use for frequent transactions into same receiver because of 
-need of constantly checking if all parties in selected route are still alive and 
-good to be used (e.g. all channels has enough funds to send payment forward).
+One of the first disadvantages of using HTLC based micropayment networks is the 
+complicated routing that is required. \textit{Lightning Network} is great for time 
+to time low value payments. However, it is much harder to use for frequent 
+transactions to the same receiver due to the need to constantly check if all 
+parties in the selected route are still alive and in useable conditions (i.e. each 
+of the channels having enough funds to send payments forward). 
 
-Complicated routing issue could be solved by using payment hub model, when one 
-of a fewnintermediaries have a lot of channels with end users. Downside of this 
-solution is that this requires the Hub to lock a lot of funds in channels with 
-all actors in the network. Another downside is that this solution is centralised 
-and if hub's operator will be required to stop activities or will decide to 
-shutdown servers by any reason, the whole network's payments activities will be 
-stopped.
+Complicated routing issues could be solved using the payment hub model, where one 
+of a few intermediaries have a lot of channels with end users. The downside of this 
+solution is that it requires the Hub to lock in a lot of funds in channels with all 
+actors within the network. Another downside is that this solution is centralized. 
+This means that if the hub’s operator is required to suspend activity or decides 
+to shut down its servers, the whole network’s payment activities will come to a 
+stop.
 
-Another critique of payment channels network is that both parites (paying and 
-receiving) have to be on-line during payment. This issue however is not valid for 
-high frequency nano payments in decentralised networks, because we're sure, that
-payer (service consumer) and payee (service provider) are on-line, otherwhise 
-service wouldn't be provided and there would be no need for payment.
+One of the critiques of payment channel networks is that both parties (paying and 
+receiving) have to be on-line during payment. This issue is not valid for high 
+frequence micropayments in decentralized networks due to the fact that both the 
+provider and consumer have to be online for the service to be consumed.
 
-Finally, micropayment channel networks are really usefull when there are a lot
-of people already using them. And when there are huge support for all popular 
-programming languages and platforms. Unfortunatelly, them most popular solution
-(Lightning Network) don't support tokens. On Ethereum there are a few promissing
-projects (e.g. Raiden, Connext, Perun or Counterfactual), but they either are 
-not widely adopted, either in early stage of development. Because they don't 
-have rich tooling (e.g. protocol client implementations in popular languages 
-like golang, rust or python) and are changing rapidly, they are quite 
-complicated to implement and maintain. There are no clear winner at the moment
-and trying to stick into one of general purpose payment network's could mean
-choosing wrong direction which may mean either becoming main network developer,
-either having complicated migration into another (much more popular at that 
-time) solution in the future.
+Finally, micropayment channel networks are most useful with critical mass, and 
+support in all popular programming languages and platforms. Unfortunately the most 
+popular solution (Lightning Network) doesn’t support tokens. On Ethereum, there are 
+a few promising projects (e.g. Raiden, Connext, Perun or Counterfactual), but they 
+are in early stages of development and not widely adopted. This is partially due to 
+the fact that they don’t come with rich tooling (e.g. protocol client 
+implementations in popular languages like golang, rust or python). They are also 
+quickly evolving pieces, that are changing rapidly, complicated to implement and 
+hard to maintain. 
 
-\subsection{Comparison and conclusion}
+There are no clear winners at the moment. Trying to stick one of these into a 
+general purpose payment network will mean a complicated migration into a more 
+widely adopted solution in the future.
 
-The key insight of \textit{Layer 2} soliutions is that not every transaction has
-to be applied globally. All analysed solutions solves this problem in different 
-ways and has different trade-offs. 
+\subsection{Comparison and Conclusion}
 
-Many state channel developers see \textit{Layer 1} as the Security Layer and 
-\textit{Layer 2} as the Scalability Layer. Furthermore, Layer 2 provides lower 
-latency and cost per transaction that would otherwise not be possible beyond a 
-certain level of throughput with Layer 1 solutions.
+They key insight of all \textit{Layer 2} solutions is that not every transaction 
+has to be applied globally. All analyzed solutions solve this problem in different 
+ways, with different trade-offs.
+
+Many state channel developers see \textit{Layer 1} as the security layer and 
+\textit{Layer 2} as the scalability layer. Furthermore, Layer 2 provides lower 
+latency and cost per transaction, that is not possibly beyond a certain level 
+of throughput within Layer 1 solutions.
 
 \begin{table}[H]\footnotesize
     \centering
@@ -841,7 +883,7 @@ certain level of throughput with Layer 1 solutions.
       Decentralised & \checkmark & \checkmark & $\pm$ & $?$ & $\pm$ \\
       Requires specialised wallet & $?$ & \checkmark & \checkmark & \checkmark & \checkmark \\
       Topup from exchange & $?$ & $-$ & $-$ & $-$ & \checkmark \\
-      Easily embedable & \checkmark & $\pm$ & $-$ & $\pm$ & $\pm$ \\
+      Easily embeddable & \checkmark & $\pm$ & $-$ & $\pm$ & $\pm$ \\
       Overall user experience & $\bullet$ & $\bullet$ & $\bullet\bullet\bullet$ & $\bullet\bullet$ & $\bullet\bullet$ \\
       Implementation complexity & $\bullet$ & $\bullet\bullet\bullet$ & $\bullet\bullet$ & $\bullet\bullet\bullet$ & $\bullet\bullet\bullet$ \\
       Fast settlement & $?$ & $-$ & $\pm$ & \checkmark & $-$ \\
@@ -850,62 +892,65 @@ certain level of throughput with Layer 1 solutions.
       \hline
     \end{tabular}}
     \label{tab:comparison}
-  \end{table}
+\end{table}
 
-Explanation of meaning of used symbols: 
-$\bullet\bullet\bullet$ -- high, 
-$\bullet\bullet$ -- medium, 
-$\bullet$ -- low, 
-\checkmark -- yes, 
-$\pm$ -- more or less, 
-$?$ -- unknown, depends on implementation. \\
 
-Explanation of compared solutions:
+\textbf{\large Glossary of Symbols:} \\
+    $\bullet\bullet\bullet$ -- high, \\
+    $\bullet\bullet$ -- medium, \\
+    $\bullet$ -- low, \\
+    \checkmark -- yes, \\
+    $\pm$ -- more or less, \\
+    $?$ -- unknown, depends on implementation. \\
 
+\textbf{\large Glossary of terms:}
 \begin{itemize}
     \item \textbf{Channels} -- pure payment channels bease solution (without 
-    network), when each pair of consumer and provider have to open new channel.
-    \item \textbf{HTLC Network} -- Micropayment channels networks which is using
-    hashed timelocked contracts for payment routing, e.g. Raiden Networks.
-    \item \textbf{Payment Hub} -- Virtual channels hubs based payment solution,
+    a network), when each pair of consumer and provider open a new communication
+    path.
+    \item \textbf{HTLC Network} -- Micropayment channels networks which uses hash
+    timelocked contracts for payment routing (e.g. Raiden Network).
+    \item \textbf{Payment Hub} -- Virtual channel hubs based payment solution, 
     such as Perun, Counterfactual or Connext.
     \item \textbf{Plasma} -- One of Plasma chain implementations (e.g. Plasma 
     MVP), dedicated to serve for payment purposes for particular distributed
-    system.
-    \item \textbf{Sidechain} -- Running sidechain using Substrate or Tendermint
+    systems.
+    \item \textbf{Sidechain} -- Running sidechains using Substrate or Tendermint
     frameworks and connected to Polkadot or Cosmos.
 \end{itemize}
 
-In table \ref{tab:comparison} we can see comparison of properties given by 
-analysed solutions. It is clear, that because of \textit{instant finality} and 
-higher throughput posibilities, micropayment channels based solutions (such as
-state channels, htlc networks or virtual payment hubs) fits better for high 
-freakquency micropayments in decentralised platforms.
+In table \ref{tab:comparison} we can see comparison of through analysis of the 
+abovementioned solutions. It is clear that because of \textit{instant finality} 
+and higher throughput possibilities micropayment channel based solutions (such as 
+state channels, HTLC networks or virtual payment hubs) are better fits for high 
+frequency micropayments on decentralized platforms.
 
 \section{Accountant pattern - lightweight payment protocol}
 
-After analysing currently available options became obvious that at this stage
-it may be better solution to introduce own, lightweight, state channels based,
-easy to implement and maintain solution. 
+After analyzing solutions in today’s market it is clear that at this stage it may 
+be best to introduce our own lightweight, state channel based, easy to implement 
+and maintain solution.
 
-In this section idea of \textit{"Accountant pattern"} protocol will be 
-described. Essentially it is solution taking best parts of Payment promises,
-uni-directional channles and paying using single intermediary taking use of 
-hashed timelocked contracts for avoding need of introducing trusted custodian.
+In this section we will articulate how the \textit{"Accountant pattern"} will be 
+architected. Put simply, this solution will combine the best pieces of payment 
+promises, unidirectional channels and payments using single intermediaries making 
+use of hashed timelocked contracts so as to avoid the need for introducing trusted
+custodians.
 
 \subsection{Payments over "Accountant"}
 
 Digital cheques or \textit{Payment promises} is elegant, efficient and easy to 
-implement solution. Thanks to some modifications (comparing to initial solution,
-described in 2.2 section) they have to be signed by only one party, are easy to 
-verify, don't require complicated setup procedure, have practically unlimited 
-amount of updates and require to store only last version of issued promise.
+implement solution. They have to be signed by only one party, and are easily 
+verifiable, simple to set up and unlimited in the amount of updates required to 
+store only the last version of the issued promise.
 
-Main problems of using them is possibility to do double spending which pushes 
-for more often on-chain settlements. To solve this problem there is suggestion 
-to introduce one more party called \textit{Accountant} which should see and 
-verify promises issued by consumer and be aware of actual balance of consumer's
-funds (see figure \ref{img:unidirectional-payments}).
+The main disadvantage that these digital cheques or promise mechanism is that it 
+introduces the possibility of double spending, which roll on to more regular 
+on-chain settlements. To solve this problem, we propose introducing a new party 
+into the network called the \textit{Accountant} which will have an overview of 
+and verify promises issued by consumers. It would do this by being aware of the 
+actual balance of each consumer’s funds (see figure 
+\ref{img:unidirectional-payments}).
 
 \begin{figure}[H]
     \centering
@@ -914,47 +959,49 @@ funds (see figure \ref{img:unidirectional-payments}).
     \label{img:unidirectional-payments}
 \end{figure}
 
-Accountant is the most complicated to implement part of this protocol. He have 
-to store state of balance of each consumer and be able to accept many requests 
-to validate if transaction is valid.
+Accountant is the most complicated to implement part of this protocol. It has
+to store the state of balance of each consumer and be able to accept many 
+transaction valudation requests.
 
 \begin{figure}[H]
     \centering
     \includegraphics[scale=0.5]{../img/multi-accountants}
-    \caption{Multiple accountants may be used in network}
+    \caption{Multiple accountants may be used in the network}
     \label{img:multi-accountants}
 \end{figure}
 
-To maintain requirement of decentralisation there may be deployed multiple 
-accountants in the network (see figure \ref{img:multi-accountants}). Each 
-consumer usually works with only one accountant while providers may need to be 
-aware of different accountants. Accountants are chosen by consumers but because 
-of cryptographic schemes described in next sections they are non-custodian and 
-can't steal any funds or cooperate with consumers to cheat against providers.
+To maintain the requirement of decentralization, there can be multiple accountants 
+deployed in the network (see figure \ref{img:multi-accountants}). In the case of a 
+decentralized VPN network, consumers will work with only one accountant, while 
+providers will need to be aware of different accountants. 
+
+Accountants are chosen by consumers, but because of cryptographic schemes described 
+in the following sections, Accountant is non-custodial, can’t steal any funds or 
+cooperate with consumer to cheat providers.
 
 \subsection{Payment Promises based uni-directional channels}
 
-To organise secure, non-custodian and trustless work via accountant, we have to 
-maintain two types of channels: paying channels (consumer $\rightarrow$ 
-accountant) and receiving channels (accountant $\rightarrow$ provider). So 
-accountant plays similar role as intermediary or hub described in section 3.3.3.
+To organise secure, non-custodian and trustless payments via Accountant, we have to 
+maintain two types of channels: paying channels (consumer $\rightarrow$ accountant) 
+and receiving channels (accountant $\rightarrow$ provider). As such, Accountant 
+plays a similar role as an intermediary or hub described in section 3.3.3.
 
 \begin{figure}[H]
     \centering
     \includegraphics[scale=0.4]{../img/accountant-channels}
-    \caption{Two type of channels}
+    \caption{Two types of channels}
     \label{img:accountant-channels}
 \end{figure}
 
-Because in our case we have situation when payments are done in one direction 
-(from consumer to provider) we may organise uni-directional state channels 
-which are very similar to payment promises and have most of their properties. 
-The only differences are that there should be done accounting and funds freezing 
-for each channel separately. Also hashlock check (HTLC described in section 
-3.3.4) was added to guaranty that Accountant will not keep funds to itself.
+In the case of a decentralized VPN network, payments need to flow in one direction, 
+from consumer to provider. We saw the potential in organising uni-directional state 
+channels which are very similar to payment promises and have most of their 
+properties. The key difference is the requirement of accounting and frozen funds 
+for each channel. Also hashlock check (HTLC described in section 3.3.4) was added 
+to guarantee that Accountant is unable to steal these funds.
 
-Implementation of promise settlement function can be found above and full 
-state channel smart contract can be found in github repository 
+Implementation of the promise settlement function can be found below, and the full 
+state channel smart contract can be found in Mysterium Network’s GitHub repository 
 \cite{smartcontracts}.
 
 \begin{lstlisting}[language=Solidity]
@@ -996,99 +1043,101 @@ state channel smart contract can be found in github repository
     }
 \end{lstlisting}
 
-Because our channels are uni-directional instead of sequence number there is 
-simply used total promised amount. Smart contract is calculating difference 
-between amount on given promise and already settled amount.
+Since our channels are uni-directional instead of sequence number there is simply
+used total promised amount. Smart contract are calculating difference between 
+amount on given promise and already settled amount.
 
 \[ amountToTransfer = totalPromised - alreadySettled \]
 
-This gives high level of flexibility. Promises can be settled in any order with
-any gaps (e.g. only one of thousand promised can be send to settle) and amounts 
-still will be calculated properly.
+This provides a high level of flexibility. Promises can be settled in any order,
+with any gaps. For example, only one of thousand payment promises can be send to 
+settle and the amounts will still be calculated correctly.
 
 \subsection{Identity registry}
 
-Another important component of protocol is \textit{registry} where all 
-identities (both, consumers and providers) and accountants should be registered. 
-During registration there will be also created payment channel between consumer 
-and accountnat (see figure \ref{img:registration}).
+Another important component of this protocol is a \textit{registry} where all 
+identities - consumers, providers and accountants will be registered. Payment 
+channels will be created between consumers and accountants during registration 
+(see figure \ref{img:registration}). 
 
 \begin{figure}[H]
     \centering
     \includegraphics[scale=0.4]{../img/registration}
-    \caption{Registration of accountant and identities}
+    \caption{Registration of Accountant and Identities}
     \label{img:registration}
 \end{figure}
 
-Because there will be need to deploy channel per each registered identity there 
-have to be done optimisation in terms to save of channel deployment transaction 
-fee. This protocol suggests to use \textit{EIP1167} (Minimal Proxy Contract 
-\cite{eip1167}) which will proxy all requests into single 
-\textit{ChannelImplementation} contract while still allow to maintain separate 
-state and address per each channel (see figure \ref{img:proxy}).
+Since there will be no need to deploy a channel for each registered identity, 
+there is an optimisation in terms of saving on channel deployment transaction 
+fees. This protocol suggests the use of \textit{EIP1167} (Minimal Proxy Contract
+\cite{eip1167}) which will proxy all requests into a single 
+\textit{ChannelImplementation} contract while still allowing for the maintenance
+of separate states and addresses per channel (see figure \ref{img:proxy}).
 
 \begin{figure}[H]
     \centering
     \includegraphics[scale=0.5]{../img/proxy}
-    \caption{Minical proxies pointing into single implementation}
+    \caption{Minimal proxies pointing into a single implementation}
     \label{img:proxy}
 \end{figure}
 
-Consumer (paying) channels are deployed using \textit{CREATE2} opcode \cite{create2} 
-which allows deterministically calculate future channel's address.
+Consumer (paying) channels are deployed using \textit{CREATE2} opcode \cite{create2}
+which allows deterministic calculation of the future channel address.
 
 \[ keccak256(0xff + registry + identity + keccak256(byteCode))[12:]\]
 
-This means, that users can topup their channels even before identity was 
-registered and actual smart contract code was deployed there. Also because each
-channel has separate address and it's topup don't require adding any aditional 
-parameters (payload) to the transaction, they can be topuped using any wallet 
-with token support or directly from exchange.
+This means that users can top up their channels even before registering an identity 
+and an actual smart contract is deployed. Also due to the fact that each channel 
+has a separate address, and it’s top up doesn’t require adding additional 
+parameters (payload) to the transaction, these channels can be topped up using any 
+wallet with token support, or directly from an exchange.
 
 \subsection{Off-chain messaging and promise exchange}
 
-Differently than in \textit{Lightning Network} or \textit{Hub} based payment 
-networks, in \textit{Accountant pattern} payments are not going thgrough 
-intermediary, but are "verified" by Accountant. There is used payment promise 
-exchange technique (see figure \ref{img:off-chain-interactions}).
+The Accountant pattern differs from those in \textit{Lightning Network} or 
+\textit{Hub} based payment networks in that these payments are not going through 
+an intermediary, but are instead “verified” by Accountant. You can see the payment 
+promise exchange technique in figure \ref{img:off-chain-interactions} below.
 
 \begin{figure}[H]
     \centering
     \includegraphics[scale=0.5]{../img/off-chain-interactions}
-    \caption{HTLC based payment - Bob pays Alice}
+    \caption{HTLC based payment > Bob pays Alice}
     \label{img:off-chain-interactions}
 \end{figure}
 
-Payment is finalised in five steps. At fist Provider have to \textit{generate 
-invoice} and send it to Consumer.
+The payment is finalized in five steps. At first, the Provider will have to 
+\textit{generate invoice} and send this to the Consumer.
 
 \[ invoice = [hashlock, agreementId, agreementAmout] \]
 \[ hashlock = keccak256(R) \]
 \[ R = HugeRandomNumber \]
 
-Then Consumer issues payment promise, which allows Accountant to settle given 
-amount of funds, pack it into so called \textit{Exchange message} and send back 
-to Provider. 
+Then the Consumer issues payment promise, which allows the Accountant to settle 
+given amount of funds, pack it into an \textit{Exchange message} and send it back 
+to the Provider.
 
 \[ Message = keccak256(channelId, totalPromisedAmount, hashlock) \]
 \[ Signature = sign(Message) \]
 \[ Promise = [Message, Signature]\]
 \[ ExchangeMessage = [Promise, agreementId, agreementAmout] \]
 
-In next steps Provider is exchanging promises with Accountant so in the end 
-Accountant have promise to settle funds in Consumer's channel and Provider 
-have payment promise to settle same amount of funds in Accountant's channel.
+In the next step, the Provider is exchanging promises with the Accountant. In the 
+end the Accountant will have promises to settle funds in the Consumer’s channel and 
+the Provider will have payment promises to settle the same amount of funds in the 
+Accountant’s channel. 
 
 \[ \Delta amount = newAgreementAmout - seenAgreementAmout \]
 \[ totalPromisedAmount = previousPromisedAmount + \Delta amount \]
 
-Provider can do same promise exchange operations with many consumers at once. 
-After any number of succesfull off-chain interactions, provider at any point, 
-in single transaction, can settle last payment promise with accomulated amount 
-of payments done by couple of consumers (see figure \ref{img:payment}. 
-Aditionally, if Provider is willing to take some risk (up to some amount) he 
-can verify (exchange promises with accountant) not each payment and reduce 
-amount of off-chain communication and fee paid to Accountant.
+The provider can do the same promise exchange operations with many consumers at 
+once. After any number of successful off-chain interactions, the Provider at any 
+point in a single transaction can settle the accumulated value of payments by a 
+couple of consumers (see figure  \ref{img:payment}). 
+
+Additionally if the Provider is willing to take more risk, he can verify (exchange 
+promises with the Accountant) in a lump sum, and reduce the amount of off-chain 
+communication and fees paid to the Accountant.
 
 \begin{figure}[H]
     \centering
@@ -1097,10 +1146,10 @@ amount of off-chain communication and fee paid to Accountant.
     \label{img:payment}
 \end{figure}
 
-Accountant is also accomulating payment promises given by same Consumer to 
-different Providers. When he will have payment promise with enought big value 
-he can settle it on-chain (see figure \ref{img:accountant-rebalance}) and 
-rebalance paying and receiving channels.
+Accountant is also accumulating payment promises given by the same Consumer to 
+different Providers. When the Accountant has a payment promise with enough value, 
+he can settle it on-chain (see figure \ref{img:accountant-rebalance}) and rebalance
+paying and receiving channels.
 
 \begin{figure}[H]
     \centering
@@ -1109,13 +1158,13 @@ rebalance paying and receiving channels.
     \label{img:accountant-rebalance}
 \end{figure}
 
-\subsection{Incoming channel funds guaranties and trustless rebalance}
+\subsection{Incoming channel funds guarantees, and trustless rebalance}
 
-All analysed micropayment channel based solutions have common problem of need 
-to lock funds in channels with each party. In hub based solutions this problem 
-is even bigger and requires so called \textit{"rich hub"}. Thanks to possibiltiy 
-to take stake and users separation to consumers and providers it is possible to 
-decrease this problem.
+All analyzed micropayment channel based solutions have the common disadvantage of 
+needing to lock funds in channels with each party. In hub based solutions, this 
+problem is even bigger and requires a \textit{"rich hub"}. In a decentralized VPN 
+network, it is possible to separate consumers are providers, and thereby decrease 
+this problem.
 
 \begin{lstlisting}[language=Vyper]
     lockedFunds: uint256 # amount of accountant funds already locked in channels
@@ -1138,40 +1187,40 @@ decrease this problem.
       channel.balance = newBalance
 \end{lstlisting}
 
-Provider's stake can be taken and lended into Accounant and imidiatelly locked 
-in his receiving payment channel. In this way, accountant will lock his own 
-funds, which means that Provider can settle payment promises in value of up to 
-his stake size.
+Provider’s stakes can be taken and lent into the Accountant and immediately locked
+in his receiving payment channel. This way the Accountant will lock his own funds, 
+meaning that the Provider can settle payment promises in value of up to his stake 
+size.
 
-Additional benefit is that Accountant can't actually withdraw and use these 
-funds, so channel rebalance can be done by anyone, without accountant's 
-signature.
+One of the additional benefits of this is that the Accountant can’t actually 
+withdraw or use these funds, so channel rebalance can be  done by anyone, without 
+the Accountant’s signature.
 
-"Always online" is big problem for payment channels. If Provider is offline or 
-is under DDoS attack, he will be unable to post the finalized state (during 
-dispute period) and Accountant can have possibility to take funds locked in 
-channel.
+“Always online” is a big problem for payment channels. If the Provider is offline 
+or is under DDoS attack, he will be unable to post the finalized state (during the 
+dispute period) and the Accountant will have the possibility to take funds locked 
+in the channel.
 
-Proposed method don't have such problem, because funds are double locked. 
-Accountant can't leave channel with more funds than his own locked part of 
-balance. So if Provider have unsettled promise for smaller amount than he 
-lended to Accountant, he is safe even if he will "dissapear" for really long 
-period of time. He still be able to get back all funds promised to him.
+Our proposed method doesn’t run into this problem, because funds are double locked. 
+The Accountant can’t leave the channel with more funds than his own locked part of 
+balance. So if the Provider has an unsettled promise for a smaller amount than he 
+lent to the Accountant, the Provider is safe and will be able to recover his funds, 
+even if the Accountant “disappears” for a really long period of time.
 
 \subsection{Transaction maker}
 
-One of most not user friendly parts of transfering ERC20 tokens is that this
-operation requires to own ethers to pay for gas. Another problem in working 
-with smart contracts on Ethereum is that in terms to call some function user 
-have to add so called Payload (first 4 bytes of keccak of function's signature) 
-which looks to him as gibberish and is not supported by many wallets and 
-especially by exchanges. 
+One of the most un-user friendly parts of transferring ERC20 tokens is the gas 
+fees. This transfer operation takes a small fee in ethers to pay for gas. A second
+problem that arises when working with smart contracts on Ethereum is that in order 
+to call some function, a user would have to add a Payload (first 4 bytes of keccak 
+of function’s signature). This introduces friction to the user journey and further, 
+isn’t supported by many wallets or exchanges.
 
-In case of topups, this problem is solved thanks to construct described in 4.3
-section. Unfortunatelly for identity registration and promise settlement, user's 
-application (e.g. dVPN mobile app or provider's node) would need to always have 
-ethers topuped there. This is very inconvenient and may cause many problems for
-both advanced users and beginners.
+In the case of topups, this problem is solved thanks to the construct described in 
+section 4.3. Unfortunately for identity registration and promise settlement, a 
+user’s application (e.g. dVPN mobile app or provider’s node) would need to have ETH
+topped up in there. This is inconvenient and creates problems both with onboarding 
+advanced users, and educating beginners.
 
 \begin{figure}[H]
     \centering
@@ -1180,17 +1229,17 @@ both advanced users and beginners.
     \label{img:transactor}
 \end{figure}
 
-For identity registration and primise settlement we may take use of additional
-service which we call \textit{"Transaction maker"}. The role of this service is 
-to get user's requests and send transactions into blockchain (see figure 
-\ref{img:transactor}).
+For identity registration and promise settlements we may make use of an additional
+service named \textit{"Transaction maker"}. The role of this service is to get 
+user’s requests and send transactions into blockchain (see figure 
+\ref{img:transactor}). 
 
-All smart contracts created for Accounant pattern are constructed in a way, so
-any their call can be made from any account simply by adding channel's operator
-signature as parameter for function call. Additionaly we construct payment 
-promises in a way so only one signature is needed and it is possibile to settle 
-them in any order with any gaps. This means that promises can we published 
-openly without any risk of attack or losing funds.
+All smart contracts created for the Accountant are constructed in a manner such 
+that all their calls can be made from any account, simply by adding a channel 
+operator signature as a parameter into payload. Additionally we construct payment 
+promises in a way such that only one signature is needed and it is possible to 
+settle them in any order with any gaps. This means that promises can be published 
+publically without any risk of attack. 
 
 There could be deployed as many such services as needed.vEach network participant 
 could decide to use own \textit{"Transaction maker"}, or even there could be 
@@ -1227,7 +1276,7 @@ parameter in them.
 \end{lstlisting}
 
 In this way \textit{"Transaction maker"} will get his reward only if he actually 
-will send transtation and users have no chance not to pay.
+will send transtation and users have no chance to avoid fee.
 
 \begin{figure}[H]
     \centering
@@ -1238,28 +1287,28 @@ will send transtation and users have no chance not to pay.
 
 \subsection{Properties of the protocol}
 
-This protocol was design to be integral part of some decentralised system and 
-is not aimed to work as general purpose payment network used in many 
-application and daily life, when each party in the same time can receive and 
-send funds. 
+This protocol was designed to be an integral part of certain decentralized systems. 
+It has not been designed for general purpose payment network used in many 
+applications and daily life where each parties can both receive and transfer funds.
 
-Main properties of protocol are:
+Main properties of the protocol are:
 
 \begin{itemize}
-  \item Easy paying channel topup (even from exchange).
-  \item Payments aggregation $\Longrightarrow$ minimal on-chain tx amount.
-  \item Fast settlement into blockchain without need for other party to be 
-  on-line and cooperate.
-  \item Guaranty of incomming channel balance/collateral size.
-  \item Simple off-chain communication (one roundtrip payments).
-  \item Possibility to avoid accountant for at least part of transactions.
-  \item Pull based interations with accountant $\Longrightarrow$ providers don't 
-  have to be externally exposed or maintain live connection with accountant.
-  \item Secure $\Longrightarrow$ double spend protection using non-custodian 
-  accountant model.
-  \item Fast channel opening $\Longrightarrow$ possibility not to wait until 
-  opening tx will be mined.
-  \item Instant finality of payments.
+    \item Easy channel topup (even from an exchange).
+    \item Payments aggregation $\Longrightarrow$ minimal on-chain transactions.
+    \item Fast settlement into blockchain without the need for another party to 
+    be online and cooperate.
+    \item Guarantee of incoming channel balance/collateral size.
+    \item Simple off-chain communication (one roundtrip payment).
+    \item Possibility of avoiding the Accountant for at least part of the 
+    transactions.
+    \item Pull based interactions with Accountant $\Longrightarrow$ providers don’t
+    have to be externally exposed or maintain live connection with the Accountant.
+    \item Secure $\Longrightarrow$ double spend protection using non-custodian 
+    accountant model.
+    \item Fast channel opening $\Longrightarrow$ possibility not to wait until 
+    opening tx will be mined.
+    \item Instant finality of payments.
 \end{itemize}
 
 \section{Potential future work}
