@@ -12,7 +12,7 @@ interface Channel {
 
 interface AccountantContract {
     function initialize(address _token, address _operator) external;
-    function openChannel(address _party, address _beneficiary, uint256 _amountToLend, bytes calldata _signature) external;
+    function openChannel(address _party, address _beneficiary, uint256 _amountToLend) external;
 }
 
 contract Registry is Ownable, FundsRecovery {
@@ -76,12 +76,12 @@ contract Registry is Ownable, FundsRecovery {
         Channel _channel = Channel(deployMiniProxy(uint256(_identityHash), channelImplementation));
         _channel.initialize(address(token), dex, _identityHash, _accountantId, _totalFee);
 
-        // If stake stake amount > 0, then opening incomming (provider's) channel
+        // Opening incomming (provider's) channel
         if (_loanAmount > 0) {
-            require(_beneficiary != address(0), "beneficiary can't be zero address");
             require(token.approve(_accountantId, _loanAmount), "accountant should get approval to transfer tokens");
-            AccountantContract(_accountantId).openChannel(_identityHash, _beneficiary, _loanAmount, "");
         }
+        require(_beneficiary != address(0), "beneficiary can't be zero address");
+        AccountantContract(_accountantId).openChannel(_identityHash, _beneficiary, _loanAmount);
 
         // Pay fee for transaction maker
         if (_fee > 0) {

@@ -165,32 +165,4 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
         beneficiaryBalance.should.be.bignumber.equal('1161')
     })
 
-    it("should be possible for consumer to become provider", async () => {
-        const consumer = identities[3]
-        const beneficiary = beneficiaries[3]
-        const expectedChannelId = generateChannelId(consumer.address, accountant.address)
-
-        // Consumer should not have invoming channel with accountant
-        expect(await accountant.isOpened(expectedChannelId)).to.be.false
-
-        // Open incoming channel
-        const stakeSize = new BN(1000)
-        await token.approve(accountant.address, stakeSize)
-        const signature = signChannelOpening(accountant.address, consumer, beneficiary, stakeSize)
-        await accountant.openChannel(consumer.address, beneficiary, stakeSize, signature)
-        expect(await accountant.isOpened(expectedChannelId)).to.be.true
-    })
-
-    it("second provider should be able to accept payments", async () => {
-        // Accept payments
-        const consumer = await createConsumer(identities[2], registry)
-        const provider = await createProvider(identities[3], accountant)
-        const accountantService = await createAccountantService(accountant, operator, token)
-        const beneficiary = beneficiaries[3]
-
-        await pay(consumer, provider, accountantService, new BN(900), 1)
-        await provider.settlePromise()
-        const beneficiaryBalance = await token.balanceOf(beneficiary)
-        beneficiaryBalance.should.be.bignumber.equal('900')
-    })
 })

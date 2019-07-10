@@ -14,7 +14,6 @@ const {
     signChannelBalanceUpdate,
     signChannelBeneficiaryChange,
     signChannelLoanReturnRequest,
-    signChannelOpening,
     signFundsWithdrawal,
     signIdentityRegistration,
     generatePromise 
@@ -78,16 +77,12 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
         expect(channelId).to.be.equal(expectedChannelId)
     })
 
-    it("registered identity should be able to open incoming channel", async () => {
+    it("registered identity should already have incoming channel", async () => {
         const regSignature = signIdentityRegistration(registry.address, accountant.address, Zero, Zero, beneficiaryA, identityA)
         await registry.registerIdentity(accountant.address, Zero, Zero, beneficiaryA, regSignature)
         expect(await registry.isRegistered(identityA.address)).to.be.true
 
         const expectedChannelId = generateChannelId(identityA.address, accountant.address)
-        expect(await accountant.isOpened(expectedChannelId)).to.be.false
-
-        const signature = signChannelOpening(accountant.address, identityA, beneficiaryA)
-        await accountant.openChannel(identityA.address, beneficiaryA, 0, signature)
         expect(await accountant.isOpened(expectedChannelId)).to.be.true
 
         const channel = await accountant.channels(expectedChannelId)
@@ -99,59 +94,20 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
         expect(channel.lastUsedNonce.toNumber()).to.be.equal(0)
     })
 
-    it("registered identity should be able to open deposited channel with auto balance topUp", async () => {
-        const initialTokenBalance = await token.balanceOf(txMaker)
-        const expectedChannelId = generateChannelId(identityB.address, accountant.address)
-        const amountToLend = new BN(777)
-        const accountantInitialBalance = await accountant.availableBalance() 
-
-        // Register identity first
-        const regSignature = signIdentityRegistration(registry.address, accountant.address, Zero, Zero, beneficiaryB, identityB)
-        await registry.registerIdentity(accountant.address, Zero, Zero, beneficiaryB, regSignature)
-        expect(await registry.isRegistered(identityB.address)).to.be.true
-        expect(await accountant.isOpened(expectedChannelId)).to.be.false
-
-        // Open incomming channel with auto balance topUp by lending some tokens to accountant
-        await token.approve(accountant.address, amountToLend)
-        const signature = signChannelOpening(accountant.address, identityB, beneficiaryB, amountToLend)
-        await accountant.openChannel(identityB.address, beneficiaryB, amountToLend, signature)
-        expect(await accountant.isOpened(expectedChannelId)).to.be.true
-
-        // Tokens to lend should be transfered from txMaker to accountant contract
-        const txMakerTokenBalance = await token.balanceOf(txMaker)
-        txMakerTokenBalance.should.be.bignumber.equal(initialTokenBalance.sub(amountToLend))
-
-        const accountantTokenBalance = await token.balanceOf(accountant.address)
-        accountantTokenBalance.should.be.bignumber.equal(accountantInitialBalance.add(amountToLend))
-
-        // Channel have to be opened with proper state
-        const channel = await accountant.channels(expectedChannelId)
-        expect(channel.beneficiary).to.be.equal(beneficiaryB)
-        expect(channel.balance.toNumber()).to.be.equal(amountToLend.toNumber())
-        expect(channel.settled.toNumber()).to.be.equal(0)
-        expect(channel.loan.toNumber()).to.be.equal(amountToLend.toNumber())
-        expect(channel.loanTimelock.toNumber()).to.be.equal(0)
-        expect(channel.lastUsedNonce.toNumber()).to.be.equal(0)
-
-        // Accountant available (not locked in any channel) funds should be not incresed
-        const availableBalance = await accountant.availableBalance()
-        expect(availableBalance.toNumber()).to.be.equal(accountantInitialBalance.toNumber())
-    })
-
     it("should be possible to open channel during registering identity into registry", async () => {
         const initialAccountantBalance = await token.balanceOf(accountant.address)
-        const expectedChannelId = generateChannelId(identityC.address, accountant.address)
-        const amountToLend = new BN(888)
+        const expectedChannelId = generateChannelId(identityB.address, accountant.address)
+        const amountToLend = new BN(777)
 
         // TopUp channel -> send or mint tokens into channel address
-        const channelAddress = await registry.getChannelAddress(identityC.address)
+        const channelAddress = await registry.getChannelAddress(identityB.address)
         await token.mint(channelAddress, amountToLend)
         expect(Number(await token.balanceOf(channelAddress))).to.be.equal(amountToLend.toNumber())
 
         // Register identity and open channel with accountant
-        const signature = signIdentityRegistration(registry.address, accountant.address, amountToLend, Zero, beneficiaryC, identityC)
-        await registry.registerIdentity(accountant.address, amountToLend, Zero, beneficiaryC, signature)
-        expect(await registry.isRegistered(identityC.address)).to.be.true
+        const signature = signIdentityRegistration(registry.address, accountant.address, amountToLend, Zero, beneficiaryB, identityB)
+        await registry.registerIdentity(accountant.address, amountToLend, Zero, beneficiaryB, signature)
+        expect(await registry.isRegistered(identityB.address)).to.be.true
         expect(await accountant.isOpened(expectedChannelId)).to.be.true
 
         // Tokens to lend should be transfered from channel address to accountant contract
@@ -163,7 +119,7 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
 
         // Channel have to be opened with proper state
         const channel = await accountant.channels(expectedChannelId)
-        expect(channel.beneficiary).to.be.equal(beneficiaryC)
+        expect(channel.beneficiary).to.be.equal(beneficiaryB)
         expect(channel.balance.toNumber()).to.be.equal(amountToLend.toNumber())
         expect(channel.settled.toNumber()).to.be.equal(0)
         expect(channel.loan.toNumber()).to.be.equal(amountToLend.toNumber())
@@ -215,7 +171,20 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
     })
 
     it("should send fee for transaction maker", async () => {
+        // TopUp channel -> send or mint tokens into channel address
         const channelId = generateChannelId(identityC.address, accountant.address)
+        const topupChannelAddress = await registry.getChannelAddress(identityC.address)
+        const amountToLend = new BN(888)
+        await token.mint(topupChannelAddress, amountToLend)
+        expect(Number(await token.balanceOf(topupChannelAddress))).to.be.equal(amountToLend.toNumber())
+
+        // Register identity and open channel with accountant
+        const signature = signIdentityRegistration(registry.address, accountant.address, amountToLend, Zero, beneficiaryC, identityC)
+        await registry.registerIdentity(accountant.address, amountToLend, Zero, beneficiaryC, signature)
+        expect(await registry.isRegistered(identityC.address)).to.be.true
+        expect(await accountant.isOpened(channelId)).to.be.true
+
+        // Send transaction
         const channelState = Object.assign({}, {channelId}, await accountant.channels(channelId))
         const amountToPay = new BN('100')
         const fee = new BN('7')
