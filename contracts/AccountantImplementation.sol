@@ -84,13 +84,8 @@ contract AccountantImplementation is FundsRecovery {
     */
 
     // Open incomming payments (also known as provider) channel.
-    function openChannel(address _party, address _beneficiary, uint256 _amountToLend, bytes memory _signature) public {
-        // Registry don't need signature to open channel in name of identity
-        if (msg.sender != address(registry)) {
-            address _signer = keccak256(abi.encodePacked(OPENCHANNEL_PREFIX, address(this), _party, _beneficiary, _amountToLend)).recover(_signature);
-            require(_signer == _party, "request have to be signed by party");
-            require(registry.isRegistered(_signer), "identity have to be already registered");
-        }
+    function openChannel(address _party, address _beneficiary, uint256 _amountToLend) public {
+        require(msg.sender == address(registry), "only registry can open channels");
 
         // channel ID is keccak(identityHash, accountantID)
         bytes32 _channelId = keccak256(abi.encodePacked(_party, address(this)));
@@ -98,13 +93,15 @@ contract AccountantImplementation is FundsRecovery {
 
         channels[_channelId].beneficiary = _beneficiary;
         channels[_channelId].balance = _amountToLend;
-        lockedFunds = lockedFunds.add(_amountToLend);
 
         // During opening new channel user can lend some funds to be guaranteed on channels size
         if (_amountToLend > 0) {
             require(token.transferFrom(msg.sender, address(this), _amountToLend), "token transfer should succeed");
+
+            lockedFunds = lockedFunds.add(_amountToLend);            
             channels[_channelId].loan = _amountToLend;
             totalLoan = totalLoan.add(_amountToLend);
+
             emit NewLoan(_channelId, _amountToLend);
         }
 
