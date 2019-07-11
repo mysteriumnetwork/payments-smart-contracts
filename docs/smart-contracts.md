@@ -52,7 +52,7 @@ Users can topup this channel using MYST tokens via any wallet or even directly f
 Accountant and receiving/provider channels
 ------------------------------------------
 
-As described in our [Payments solution white paper (paper/accountant-pattern.pdf) we're using payments via intermediary pattern which helps to aggregate payment promisses and drastically decreases on-chain payments amount.
+As described in our [Payments solution white paper](paper/accountant-pattern.pdf) we're using payments via intermediary pattern which helps to aggregate payment promisses and drastically decreases on-chain payments amount.
 
 ![Accountant pattern](img/payment-via-accountant.png)
 
