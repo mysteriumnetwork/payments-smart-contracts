@@ -51,8 +51,9 @@ contract AccountantImplementation is FundsRecovery {
     }
 
     event ChannelOpened(bytes32 channelId, uint256 initialBalance);
+    event ChannelBalanceUpdated(bytes32 indexed channelId, uint256 amount, uint256 newBalance);
     event NewLoan(bytes32 channelId, uint256 loadAmount);
-    event PromiseSettled(bytes32 channelId, address beneficiary, uint256 amount, uint256 totalSettled);
+    event PromiseSettled(bytes32 indexed channelId, address beneficiary, uint256 amount, uint256 totalSettled);
     event LoanReturnRequested(bytes32 channelId, uint256 timelock);
     event LoanReturnRequestInvalidated(bytes32 channelId);
     event LoanReturned(bytes32 channelId, address beneficiary, uint256 amount);
@@ -185,6 +186,8 @@ contract AccountantImplementation is FundsRecovery {
         }
 
         _channel.balance = _newBalance;
+
+        emit ChannelBalanceUpdated(_channelId, diff, _newBalance);
     }
 
     function withdraw(address _beneficiary, uint256 _amount, uint256 _nonce, bytes memory _signature) public {
