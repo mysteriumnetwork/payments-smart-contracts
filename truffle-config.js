@@ -27,7 +27,15 @@ module.exports = {
         provider: () => new HDWalletProvider(mnemonic, INFURA_URL),
         network_id: 3,
         gas: 5000000,
-        gasPrice: 1000000000,
+        gasPrice: 3000000000,
+        confirmations: 1,
+        skipDryRun: true
+      },
+      kovan: {
+        provider: () => new HDWalletProvider(mnemonic, INFURA_URL),
+        network_id: 42,
+        gas: 5000000,
+        gasPrice: 1110000000,
         confirmations: 1,
         skipDryRun: true
       },

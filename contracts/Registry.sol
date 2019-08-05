@@ -33,7 +33,7 @@ contract Registry is Ownable, FundsRecovery {
     }
     mapping(address => Accountant) public accountants;
 
-    event RegisteredIdentity(address indexed identityHash);
+    event RegisteredIdentity(address identityHash, address indexed accountantId);
     event RegisteredAccountant(address accountantId, address accountantOperator);
 
     constructor (address _tokenAddress, address _dexAddress, address _channelImplementation, address _accountantImplementation, uint256 _regFee, uint256 _minimalAccountantStake) public {
@@ -65,12 +65,12 @@ contract Registry is Ownable, FundsRecovery {
 
         // Check if given signature is valid
         address _identityHash = keccak256(abi.encodePacked(address(this), _accountantId, _loanAmount, _fee, _beneficiary)).recover(_signature);
-        require(_identityHash != address(0));
+        require(_identityHash != address(0), "wrong signature");
         require(!isRegistered(_identityHash), "identityHash has to be not registered yet");
 
         // Tokens amount to get from channel to cover tx fee, registration fee and stake
         uint256 _totalFee = registrationFee.add(_loanAmount).add(_fee);
-        require(_totalFee <= token.balanceOf(getChannelAddress(_identityHash)));
+        require(_totalFee <= token.balanceOf(getChannelAddress(_identityHash)), "not enought funds in channel to cover fees");
 
         // Deploy channel contract for given identity (mini proxy which is pointing to implementation)
         Channel _channel = Channel(deployMiniProxy(uint256(_identityHash), channelImplementation));
@@ -88,7 +88,7 @@ contract Registry is Ownable, FundsRecovery {
             token.transfer(msg.sender, _fee);
         }
 
-        emit RegisteredIdentity(_identityHash);
+        emit RegisteredIdentity(_identityHash, _accountantId);
     }
 
     function registerAccountant(address _accountantOperator, uint256 _stakeAmount) public {
