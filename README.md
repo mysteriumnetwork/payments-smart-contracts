@@ -121,7 +121,7 @@ Registry smart contract:
 ERC20 Token (Mintable a la myst token): [0x045A6fcb75a53db17E5013B7d2DC6ad69381a151](https://kovan.etherscan.io/address/0x045A6fcb75a53db17E5013B7d2DC6ad69381a151)
 
 Registry smart contract:
-[0x06d88A209e03221Be1e57D7DfffE158d6e399084](https://ropsten.etherscan.io/address/0x06d88A209e03221Be1e57D7DfffE158d6e399084)
+[0x06d88A209e03221Be1e57D7DfffE158d6e399084](https://kovan.etherscan.io/address/0x06d88A209e03221Be1e57D7DfffE158d6e399084)
 
 ### Deloyment log:
 
