@@ -33,7 +33,7 @@ contract Registry is Ownable, FundsRecovery {
     }
     mapping(address => Accountant) public accountants;
 
-    event RegisteredIdentity(address identityHash, address indexed accountantId);
+    event RegisteredIdentity(address indexed identityHash, address indexed accountantId);
     event RegisteredAccountant(address accountantId, address accountantOperator);
 
     constructor (address _tokenAddress, address _dexAddress, address _channelImplementation, address _accountantImplementation, uint256 _regFee, uint256 _minimalAccountantStake) public {
