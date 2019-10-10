@@ -5,7 +5,7 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
 
-interface Accountant {
+interface AccountantContract {
     function getOperator() external view returns (address);
 }
 
@@ -21,19 +21,19 @@ contract ChannelImplementation is FundsRecovery {
         address beneficiary;       // address where funds will be send after finalizing exit request
     }
 
-    struct Party {
+    struct Accountant {
         address id;                   // signing address
         address beneficiary;          // address where funds will be send
         uint256 settled;              // total amount already settled by accountant 
     }
 
     ExitRequest public exitRequest;
-    Party public party;               // accountant
-    address public operator;          // sha3(IdentityPublicKey)[:20]
+    Accountant public accountant;
+    address public operator;          // channel operator = sha3(IdentityPublicKey)[:20]
     address public dex;
 
     event PromiseSettled(address beneficiary, uint256 amount, uint256 totalSettled);
-    event ChannelInitialised(address operator, address party);
+    event ChannelInitialised(address operator, address accountant);
     event ExitRequested(uint256 timelock);
     event FinalizeExit(uint256 amount);
 
@@ -64,7 +64,7 @@ contract ChannelImplementation is FundsRecovery {
         }
 
         operator = _identityHash;
-        party = Party(Accountant(_accountantId).getOperator(), _accountantId, 0);
+        accountant = Accountant(AccountantContract(_accountantId).getOperator(), _accountantId, 0);
 
         emit ChannelInitialised(_identityHash, _accountantId);
     }
@@ -87,7 +87,7 @@ contract ChannelImplementation is FundsRecovery {
         require(_signer == operator, "have to be signed by channel operator");
 
         // Calculate amount of tokens to be claimed.
-        uint256 _unpaidAmount = _amount.sub(party.settled);
+        uint256 _unpaidAmount = _amount.sub(accountant.settled);
         require(_unpaidAmount > 0, "amount to settle should be greater that already settled");
 
         // If signer has less tokens than asked to transfer, we can transfer as much as he has already
@@ -99,17 +99,17 @@ contract ChannelImplementation is FundsRecovery {
         }
 
         // Increase already paid amount
-        party.settled = party.settled.add(_unpaidAmount);
+        accountant.settled = accountant.settled.add(_unpaidAmount);
 
         // Send tokens
-        token.transfer(party.beneficiary, _unpaidAmount.sub(_fee));
+        token.transfer(accountant.beneficiary, _unpaidAmount.sub(_fee));
 
         // Pay fee to transaction maker
         if (_fee > 0) {
             token.transfer(msg.sender, _fee);
         }
 
-        emit PromiseSettled(party.beneficiary, _unpaidAmount, party.settled);
+        emit PromiseSettled(accountant.beneficiary, _unpaidAmount, accountant.settled);
     }
 
     // Returns blocknumber until which exit request should be locked

@@ -52,7 +52,7 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
     })
 
     it("should settle promise and send funds into beneficiary address", async () => {
-        const channelState = Object.assign({}, await channel.party(), {channelId: channel.address})
+        const channelState = Object.assign({}, await channel.accountant(), {channelId: channel.address})
         const amount = OneToken.mul(new BN(2)) // 2 full tokens
         const channelBalanceBefore = await token.balanceOf(channel.address)
     
@@ -67,7 +67,7 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
     })
 
     it("should send given fee for transaction maker", async () => {
-        const channelState = Object.assign({}, await channel.party(), {channelId: channel.address})
+        const channelState = Object.assign({}, await channel.accountant(), {channelId: channel.address})
         const amount = OneToken.mul(new BN(2)) // 2 full tokens
         const fee = OneToken.div(new BN(10)) // 0.1 tokens
         const channelBalanceBefore = await token.balanceOf(channel.address)
@@ -88,7 +88,7 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
 
     it("should not settle promise signed by wrong identity", async () => {
         const fakeIdentity = wallet.generateAccount()
-        const channelState = Object.assign({}, await channel.party(), {channelId: channel.address})
+        const channelState = Object.assign({}, await channel.accountant(), {channelId: channel.address})
         const amount = OneToken.mul(new BN(2)) // 2 full tokens
         const channelBalanceBefore = await token.balanceOf(channel.address)
 
@@ -108,7 +108,7 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
     })
 
     it("self signed promise should be rejected", async () => {
-        const channelState = Object.assign({}, await channel.party(), {channelId: channel.address})
+        const channelState = Object.assign({}, await channel.accountant(), {channelId: channel.address})
 
         const promise = generatePromise(OneToken, new BN(0), channelState, accountant)
 
@@ -150,7 +150,7 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
     })
 
     it("during exit waiting period, receiving party should be able to settle latest promise", async () => {
-        const channelState = Object.assign({}, await channel.party(), {channelId: channel.address})
+        const channelState = Object.assign({}, await channel.accountant(), {channelId: channel.address})
         const channelBalanceBefore = await token.balanceOf(channel.address)
         const accountantBalanceBefore = await token.balanceOf(channelState.beneficiary)
 

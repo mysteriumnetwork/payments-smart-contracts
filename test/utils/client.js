@@ -73,7 +73,7 @@ async function createAccountantService(accountant, operator, token) {
     this.getChannelState = async (channelId, agreementId) => {
         if (!state.channels[channelId]) {
             const channel = await ChannelImplementation.at(channelId)    
-            state.channels[channelId] = Object.assign({}, await channel.party(), { 
+            state.channels[channelId] = Object.assign({}, await channel.accountant(), { 
                 balance: await token.balanceOf(channelId),
                 promised: new BN(0),
                 agreements: {[agreementId]: new BN(0)} 
