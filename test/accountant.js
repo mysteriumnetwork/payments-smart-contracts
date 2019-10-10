@@ -100,7 +100,7 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
         const amountToLend = new BN(777)
 
         // TopUp channel -> send or mint tokens into channel address
-        const channelAddress = await registry.getChannelAddress(identityB.address)
+        const channelAddress = await registry.getChannelAddress(identityB.address, accountant.address)
         await token.mint(channelAddress, amountToLend)
         expect(Number(await token.balanceOf(channelAddress))).to.be.equal(amountToLend.toNumber())
 
@@ -173,7 +173,7 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
     it("should send fee for transaction maker", async () => {
         // TopUp channel -> send or mint tokens into channel address
         const channelId = generateChannelId(identityC.address, accountant.address)
-        const topupChannelAddress = await registry.getChannelAddress(identityC.address)
+        const topupChannelAddress = await registry.getChannelAddress(identityC.address, accountant.address)
         const amountToLend = new BN(888)
         await token.mint(topupChannelAddress, amountToLend)
         expect(Number(await token.balanceOf(topupChannelAddress))).to.be.equal(amountToLend.toNumber())

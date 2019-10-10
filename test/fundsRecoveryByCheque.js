@@ -44,8 +44,10 @@ contract('Full path (in channel using cheque) test for funds recovery', ([txMake
         const accountantImplementation = await AccountantImplementation.new()
         registry = await Registry.new(nativeToken.address, dex.address, channelImplementation.address, accountantImplementation.address, 0, 0)
 
+        accountantId = await registry.getAccountantAddress(accountantOperator)
+        expectedAddress = await genCreate2Address(identityHash, accountantId, registry, channelImplementation.address)
+
         // Topup some tokens and ethers into expected address
-        expectedAddress = await genCreate2Address(identityHash, registry, channelImplementation.address)
         topupAmount = tokensToMint = 0.7 * OneEther
         await topUpEthers(otherAccounts[3], expectedAddress, topupAmount)
         await topUpTokens(token, expectedAddress, tokensToMint)
@@ -57,15 +59,15 @@ contract('Full path (in channel using cheque) test for funds recovery', ([txMake
 
     it('should register accountant', async () => {
         await registry.registerAccountant(accountantOperator, 10)
-        accountantId = await registry.getAccountantAddress(accountantOperator)
         expect(await registry.isAccountant(accountantId)).to.be.true
     })
 
     it('should register identity', async () => {
         const signature = signIdentityRegistration(registry.address, accountantId, Zero, Zero, fundsDestination, identity)
         await registry.registerIdentity(accountantId, Zero, Zero, fundsDestination, signature).should.be.fulfilled
+        accountantId = await registry.getAccountantAddress(accountantOperator)
         expect(await registry.isRegistered(identityHash)).to.be.true
-        expect((await registry.getChannelAddress(identityHash)).toLowerCase()).to.be.equal(expectedAddress.toLowerCase())
+        expect((await registry.getChannelAddress(identityHash, accountantId)).toLowerCase()).to.be.equal(expectedAddress.toLowerCase())
     })
 
     it('should fail recovering funds when destination is not set', async () => {

@@ -28,8 +28,8 @@ const DEFAULT_CHANNEL_STATE = {
     }
 }
 
-async function createConsumer(identity, registry) {
-    const channelId = await registry.getChannelAddress(identity.address)
+async function createConsumer(registry, identity, accountantId) {
+    const channelId = await registry.getChannelAddress(identity.address, accountantId)
     const state = {channels: {}}
 
     return {
