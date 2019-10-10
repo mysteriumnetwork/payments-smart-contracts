@@ -1,4 +1,4 @@
-const HDWalletProvider = require("truffle-hdwallet-provider");
+const HDWalletProvider = require("@truffle/hdwallet-provider");
 const INFURA_URL = "https://ropsten.infura.io/v3/...";
 const mnemonic = "...";
 
