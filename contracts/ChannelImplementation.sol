@@ -22,9 +22,9 @@ contract ChannelImplementation is FundsRecovery {
     }
 
     struct Accountant {
-        address id;                   // signing address
-        address beneficiary;          // address where funds will be send
-        uint256 settled;              // total amount already settled by accountant 
+        address operator;          // signing address
+        address contractAddress;   // accountant smart contract address, funds will be send there
+        uint256 settled;           // total amount already settled by accountant 
     }
 
     ExitRequest public exitRequest;
@@ -102,14 +102,14 @@ contract ChannelImplementation is FundsRecovery {
         accountant.settled = accountant.settled.add(_unpaidAmount);
 
         // Send tokens
-        token.transfer(accountant.beneficiary, _unpaidAmount.sub(_fee));
+        token.transfer(accountant.contractAddress, _unpaidAmount.sub(_fee));
 
         // Pay fee to transaction maker
         if (_fee > 0) {
             token.transfer(msg.sender, _fee);
         }
 
-        emit PromiseSettled(accountant.beneficiary, _unpaidAmount, accountant.settled);
+        emit PromiseSettled(accountant.contractAddress, _unpaidAmount, accountant.settled);
     }
 
     // Returns blocknumber until which exit request should be locked

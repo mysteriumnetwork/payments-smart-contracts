@@ -62,7 +62,7 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
         const channelBalanceAfter = await token.balanceOf(channel.address)
         channelBalanceAfter.should.be.bignumber.equal(channelBalanceBefore.sub(amount))
 
-        const accountantTotalBalance = await token.balanceOf(channelState.beneficiary)
+        const accountantTotalBalance = await token.balanceOf(channelState.contractAddress)
         accountantTotalBalance.should.be.bignumber.equal(promise.amount)
     })
 
@@ -71,7 +71,7 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
         const amount = OneToken.mul(new BN(2)) // 2 full tokens
         const fee = OneToken.div(new BN(10)) // 0.1 tokens
         const channelBalanceBefore = await token.balanceOf(channel.address)
-        const accountantBalanceBefore = await token.balanceOf(channelState.beneficiary)
+        const accountantBalanceBefore = await token.balanceOf(channelState.contractAddress)
 
         const promise = generatePromise(amount, fee, channelState, identity)
         await channel.settlePromise(promise.amount, promise.fee, promise.lock, promise.signature)
@@ -79,7 +79,7 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
         const channelBalanceAfter = await token.balanceOf(channel.address)
         channelBalanceAfter.should.be.bignumber.equal(channelBalanceBefore.sub(amount).sub(fee))
 
-        const accountantBalanceAfter = await token.balanceOf(channelState.beneficiary)
+        const accountantBalanceAfter = await token.balanceOf(channelState.contractAddress)
         accountantBalanceAfter.should.be.bignumber.equal(accountantBalanceBefore.add(amount))
 
         const txMakerBalance = await token.balanceOf(txMaker)
@@ -152,7 +152,7 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
     it("during exit waiting period, receiving party should be able to settle latest promise", async () => {
         const channelState = Object.assign({}, await channel.accountant(), {channelId: channel.address})
         const channelBalanceBefore = await token.balanceOf(channel.address)
-        const accountantBalanceBefore = await token.balanceOf(channelState.beneficiary)
+        const accountantBalanceBefore = await token.balanceOf(channelState.contractAddress)
 
         const promise = generatePromise(OneToken, new BN(0), channelState, identity)
         await channel.settlePromise(promise.amount, promise.fee, promise.lock, promise.signature)
@@ -160,7 +160,7 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
         const channelBalanceAfter = await token.balanceOf(channel.address)
         channelBalanceAfter.should.be.bignumber.equal(channelBalanceBefore.sub(OneToken))
 
-        const accountantBalanceAfter = await token.balanceOf(channelState.beneficiary)
+        const accountantBalanceAfter = await token.balanceOf(channelState.contractAddress)
         accountantBalanceAfter.should.be.bignumber.equal(accountantBalanceBefore.add(OneToken))
     })
 
