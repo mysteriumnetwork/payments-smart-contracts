@@ -38,6 +38,7 @@ contract Registry is Ownable, FundsRecovery {
 
     event RegisteredIdentity(address indexed identityHash, address indexed accountantId);
     event RegisteredAccountant(address indexed accountantId, address accountantOperator);
+    event ConsumerChannelCreated(address indexed identityHash, address indexed accountantId, address channelAddress);
 
     constructor (address _tokenAddress, address _dexAddress, address _channelImplementation, address _accountantImplementation, uint256 _regFee, uint256 _minimalAccountantStake) public {
         registrationFee = _regFee;
@@ -69,7 +70,6 @@ contract Registry is Ownable, FundsRecovery {
         // Check if given signature is valid
         address _identityHash = keccak256(abi.encodePacked(address(this), _accountantId, _loanAmount, _fee, _beneficiary)).recover(_signature);
         require(_identityHash != address(0), "wrong signature");
-        require(!isRegistered(_identityHash), "identityHash has to be not registered yet");
 
         // Tokens amount to get from channel to cover tx fee, registration fee and stake
         uint256 _totalFee = registrationFee.add(_loanAmount).add(_fee);
@@ -92,9 +92,13 @@ contract Registry is Ownable, FundsRecovery {
             token.transfer(msg.sender, _fee);
         }
 
-        identities[_identityHash] = true;
+        emit ConsumerChannelCreated(_identityHash, _accountantId, address(_channel));
 
-        emit RegisteredIdentity(_identityHash, _accountantId);
+        // Mark identity as registered if this is first registration attempt / first channel opened
+        if (!isRegistered(_identityHash)) {
+            identities[_identityHash] = true;
+            emit RegisteredIdentity(_identityHash, _accountantId);
+        }
     }
 
     function registerAccountant(address _accountantOperator, uint256 _stakeAmount) public {
