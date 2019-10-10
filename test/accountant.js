@@ -43,10 +43,10 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
         registry = await Registry.new(token.address, dex.address, channelImplementation.address, accountantImplementation.address, 0, 1)
 
         // Give some ethers for gas for operator
-        topUpEthers(txMaker, operator.address, OneEther)
+        await topUpEthers(txMaker, operator.address, OneEther)
 
         // Give tokens for txMaker so it could use them registration and lending stuff
-        topUpTokens(token, txMaker, OneToken)
+        await topUpTokens(token, txMaker, OneToken)
         await token.approve(registry.address, OneToken)
     })
 

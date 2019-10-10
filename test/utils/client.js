@@ -103,8 +103,7 @@ async function createAccountantService(accountant, operator, token) {
     }
 }
 
-function generateInvoice(state, amount, agreementId, fee = new BN(0)) {
-    const R = randomBytes(32)
+function generateInvoice(state, amount, agreementId, fee = new BN(0), R = randomBytes(32)) {
     const hashlock = keccak(R)
 
     // amount have to be bignumber
@@ -117,7 +116,11 @@ function generateInvoice(state, amount, agreementId, fee = new BN(0)) {
         state.agreements[agreementId] = new BN(0)
     }
 
-    state.agreements[agreementId] = state.agreements[agreementId].add(amount)
+    if (!state.agreements[agreementId]) {
+        state.agreements[agreementId] = amount
+    } else {
+        state.agreements[agreementId] = state.agreements[agreementId].add(amount)
+    }
 
     // save invoice
     state.invoices[hashlock] = {R, agreementId, agreementTotal: state.agreements[agreementId], fee}

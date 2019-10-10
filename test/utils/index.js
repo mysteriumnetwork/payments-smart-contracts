@@ -84,10 +84,11 @@ async function topUpEthers(from, to, value) {
 
 // Mint some tokens
 async function topUpTokens(token, to, amount) {
-     await token.mint(to, amount.toString())
+    const initialBalance = new BN(await token.balanceOf(to))
+    await token.mint(to, amount.toString())
 
-     const expectedBalance = await token.balanceOf(to)
-     expectedBalance.should.be.bignumber.equal(amount.toString())
+    const expectedBalance = initialBalance.add(new BN(amount.toString()))
+    expectedBalance.should.be.bignumber.equal(await token.balanceOf(to))
 }
 
 function toBytes32Buffer(item) {
