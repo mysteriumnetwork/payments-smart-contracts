@@ -61,15 +61,15 @@ contract('Registry', ([txMaker, minter, accountantOperator, fundsDestination, ..
     it('registry should have proper channel address calculations', async () => {
         const identityHash = identities[0].address
         expect(
-            await genCreate2Address(identityHash, registry, channelImplementation.address)
+            await genCreate2Address(identityHash, accountantId, registry, channelImplementation.address)
         ).to.be.equal(
-            (await registry.getChannelAddress(identityHash)).toLowerCase()
+            (await registry.getChannelAddress(identityHash, accountantId)).toLowerCase()
         )
     })
 
     it('identity contract should be deployed into predefined address and be EIP1167 proxy', async () => {
         const identityHash = identities[0].address
-        const channelAddress = await genCreate2Address(identityHash, registry, channelImplementation.address)
+        const channelAddress = await genCreate2Address(identityHash, accountantId, registry, channelImplementation.address)
         const byteCode = await web3.eth.getCode(channelAddress)
 
         // We're expecting EIP1167 minimal proxy pointing into identity implementation address
@@ -102,7 +102,7 @@ contract('Registry', ([txMaker, minter, accountantOperator, fundsDestination, ..
     it('should fail registering identity having 0 balance', async () => {
         const secondIdentity = identities[1]
         const secondIdentityHash = secondIdentity.address
-        const channelAddress = await genCreate2Address(secondIdentityHash, registry, channelImplementation.address)
+        const channelAddress = await genCreate2Address(secondIdentityHash, accountantId, registry, channelImplementation.address)
         expect(Number(await token.balanceOf(channelAddress))).to.be.equal(0)
 
         const signature = signIdentityRegistration(registry.address, accountantId, Zero, Zero, fundsDestination, secondIdentity)
@@ -113,7 +113,7 @@ contract('Registry', ([txMaker, minter, accountantOperator, fundsDestination, ..
     it('should register identity which has coins', async () => {
         const secondIdentity = identities[1]
         const secondIdentityHash = secondIdentity.address
-        const channelAddress = await genCreate2Address(secondIdentityHash, registry, channelImplementation.address)
+        const channelAddress = await genCreate2Address(secondIdentityHash, accountantId, registry, channelImplementation.address)
         const registratinoFee = 100
         const balanceBefore = Number(await token.balanceOf(registry.address))
 
@@ -134,7 +134,7 @@ contract('Registry', ([txMaker, minter, accountantOperator, fundsDestination, ..
     it("should send transaction fee for txMaker", async () => {
         const thirdIdentity = identities[2]
         const thirdIdentityHash = thirdIdentity.address 
-        const channelAddress = await genCreate2Address(thirdIdentityHash, registry, channelImplementation.address)
+        const channelAddress = await genCreate2Address(thirdIdentityHash, accountantId, registry, channelImplementation.address)
         const transactionFee = new BN(5)
         const balanceBefore = await token.balanceOf(txMaker)
 

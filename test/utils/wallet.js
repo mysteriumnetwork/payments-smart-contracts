@@ -10,8 +10,10 @@ const state = {
     nonce: 0
 }
 
-function generateAccount() {
-    const privKey = generatePrivateKey()
+function generateAccount(privKey) {
+    if (privKey === undefined)
+        privKey = generatePrivateKey()
+
     const pubKey = privateToPublic(privKey)
     const address = toAddress(pubKey)
     return { privKey, pubKey, address }

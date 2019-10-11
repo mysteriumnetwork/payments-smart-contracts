@@ -22,7 +22,7 @@ Main functions of Registry:
  * `_stakeAmount`: amount of tokens (in wei) to be staked by accountant as security deposit.
 
 #### Get channel address
-`getChannelAddress` function gets `identityHash` (hash of identity's public key) as parameter and returns its topup channel address.
+`getChannelAddress` function gets `identityHash` (hash of identity's public key) and `accountantId` as parametera and returns its topup channel address.
 
 #### Get accountant address (a.k.a. accountantId)
 `getAccountantAddress` function gets accountant operator address as parameter and returns address of its smart contract

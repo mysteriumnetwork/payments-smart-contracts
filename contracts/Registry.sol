@@ -20,6 +20,7 @@ contract Registry is Ownable, FundsRecovery {
     using SafeMath for uint256;
 
     string constant REGISTER_PREFIX="Register prefix:";
+
     address public dex;
     uint256 public registrationFee;
     uint256 public minimalAccountantStake;
@@ -33,8 +34,11 @@ contract Registry is Ownable, FundsRecovery {
     }
     mapping(address => Accountant) public accountants;
 
+    mapping(address => bool) private identities;
+
     event RegisteredIdentity(address indexed identityHash, address indexed accountantId);
-    event RegisteredAccountant(address accountantId, address accountantOperator);
+    event RegisteredAccountant(address indexed accountantId, address accountantOperator);
+    event ConsumerChannelCreated(address indexed identityHash, address indexed accountantId, address channelAddress);
 
     constructor (address _tokenAddress, address _dexAddress, address _channelImplementation, address _accountantImplementation, uint256 _regFee, uint256 _minimalAccountantStake) public {
         registrationFee = _regFee;
@@ -66,14 +70,14 @@ contract Registry is Ownable, FundsRecovery {
         // Check if given signature is valid
         address _identityHash = keccak256(abi.encodePacked(address(this), _accountantId, _loanAmount, _fee, _beneficiary)).recover(_signature);
         require(_identityHash != address(0), "wrong signature");
-        require(!isRegistered(_identityHash), "identityHash has to be not registered yet");
 
         // Tokens amount to get from channel to cover tx fee, registration fee and stake
         uint256 _totalFee = registrationFee.add(_loanAmount).add(_fee);
-        require(_totalFee <= token.balanceOf(getChannelAddress(_identityHash)), "not enought funds in channel to cover fees");
+        require(_totalFee <= token.balanceOf(getChannelAddress(_identityHash, _accountantId)), "not enought funds in channel to cover fees");
 
         // Deploy channel contract for given identity (mini proxy which is pointing to implementation)
-        Channel _channel = Channel(deployMiniProxy(uint256(_identityHash), channelImplementation));
+        bytes32 _salt = keccak256(abi.encodePacked(_identityHash, _accountantId));
+        Channel _channel = Channel(deployMiniProxy(uint256(_salt), channelImplementation));
         _channel.initialize(address(token), dex, _identityHash, _accountantId, _totalFee);
 
         // Opening incomming (provider's) channel
@@ -88,7 +92,13 @@ contract Registry is Ownable, FundsRecovery {
             token.transfer(msg.sender, _fee);
         }
 
-        emit RegisteredIdentity(_identityHash, _accountantId);
+        emit ConsumerChannelCreated(_identityHash, _accountantId, address(_channel));
+
+        // Mark identity as registered if this is first registration attempt / first channel opened
+        if (!isRegistered(_identityHash)) {
+            identities[_identityHash] = true;
+            emit RegisteredIdentity(_identityHash, _accountantId);
+        }
     }
 
     function registerAccountant(address _accountantOperator, uint256 _stakeAmount) public {
@@ -110,22 +120,27 @@ contract Registry is Ownable, FundsRecovery {
         emit RegisteredAccountant(address(_accountant), _accountantOperator);
     }
 
-    function getChannelAddress(address _identityHash) public view returns (address) {
+    function getChannelAddress(address _identityHash, address _accountantId) public view returns (address) {
         bytes32 _code = keccak256(getProxyCode(channelImplementation));
-        return getCreate2Address(uint256(_identityHash), _code);
+        bytes32 _salt = keccak256(abi.encodePacked(_identityHash, _accountantId));
+        return getCreate2Address(_salt, _code);
+    }
+
+    function getSalt(address _identityHash, address _accountantId) public view returns (bytes32) {
+        return keccak256(abi.encodePacked(_identityHash, _accountantId));
     }
 
     function getAccountantAddress(address _accountantOperator) public view returns (address) {
         bytes32 _code = keccak256(getProxyCode(accountantImplementation));
-        return getCreate2Address(uint256(_accountantOperator), _code);
+        return getCreate2Address(bytes32(uint256(_accountantOperator)), _code);
     }
 
     // ------------ UTILS ------------
-    function getCreate2Address(uint256 _salt, bytes32 _code) internal view returns (address) {
+    function getCreate2Address(bytes32 _salt, bytes32 _code) internal view returns (address) {
         return address(uint256(keccak256(abi.encodePacked(
             bytes1(0xff),
             address(this),
-            bytes32(uint256(_salt)),
+            bytes32(_salt),
             bytes32(_code)
         ))));
     }
@@ -161,14 +176,7 @@ contract Registry is Ownable, FundsRecovery {
     // ------------------------------------------------------------------------
 
     function isRegistered(address _identityHash) public view returns (bool) {
-        address _addr = getChannelAddress(_identityHash);
-        uint _codeLength;
-
-        assembly {
-            _codeLength := extcodesize(_addr)
-        }
-
-        return _codeLength != 0;
+        return identities[_identityHash];
     }
 
     function isAccountant(address _accountantId) public view returns (bool) {

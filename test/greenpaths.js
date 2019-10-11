@@ -54,10 +54,10 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
         registry = await Registry.new(token.address, dex.address, channelImplementation.address, accountantImplementation.address, 0, 1)
 
         // Give some ethers for gas for operator
-        topUpEthers(txMaker, operator.address, OneEther)
+        await topUpEthers(txMaker, operator.address, OneEther)
 
         // Give tokens for txMaker so it could use them registration and lending stuff
-        topUpTokens(token, txMaker, OneToken)
+        await topUpTokens(token, txMaker, OneToken)
         await token.approve(registry.address, OneToken)
     })
 
@@ -89,7 +89,7 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
         const channelStake = new BN(2000)
 
         // Topup some tokens into paying channel
-        const channelAddress = await registry.getChannelAddress(providerIdentity)
+        const channelAddress = await registry.getChannelAddress(providerIdentity, accountant.address)
         await topUpTokens(token, channelAddress, OneToken)
 
         // Register identity and open channel with accountant
@@ -108,7 +108,7 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
 
     it("topup consumer channels", async () => {
         for (let i = 0; i < 4; i++) {
-            const channelId = await registry.getChannelAddress(identities[i].address)
+            const channelId = await registry.getChannelAddress(identities[i].address, accountant.address)
             const amount = new BN(10000)
             await token.transfer(channelId, amount)
 
@@ -118,7 +118,7 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
     })
 
     it("shoud successfylly pay through accountant", async () => {
-        const consumer = await createConsumer(identities[0], registry)
+        const consumer = await createConsumer(registry, identities[0], accountant.address)
         const provider = await createProvider(identities[4], accountant)
         const accountantService = await createAccountantService(accountant, operator, token)
         const amount = new BN(10)
@@ -143,9 +143,9 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
     })
 
     it("should properly aggregate payments for provider", async () => {
-        const consumer1 = await createConsumer(identities[0], registry)
-        const consumer2 = await createConsumer(identities[1], registry)
-        const consumer3 = await createConsumer(identities[2], registry)
+        const consumer1 = await createConsumer(registry, identities[0], accountant.address)
+        const consumer2 = await createConsumer(registry, identities[1], accountant.address)
+        const consumer3 = await createConsumer(registry, identities[2], accountant.address)
         const provider = await createProvider(identities[4], accountant)
         const accountantService = await createAccountantService(accountant, operator, token)
 

@@ -28,8 +28,8 @@ const DEFAULT_CHANNEL_STATE = {
     }
 }
 
-async function createConsumer(identity, registry) {
-    const channelId = await registry.getChannelAddress(identity.address)
+async function createConsumer(registry, identity, accountantId) {
+    const channelId = await registry.getChannelAddress(identity.address, accountantId)
     const state = {channels: {}}
 
     return {
@@ -73,7 +73,7 @@ async function createAccountantService(accountant, operator, token) {
     this.getChannelState = async (channelId, agreementId) => {
         if (!state.channels[channelId]) {
             const channel = await ChannelImplementation.at(channelId)    
-            state.channels[channelId] = Object.assign({}, await channel.party(), { 
+            state.channels[channelId] = Object.assign({}, await channel.accountant(), { 
                 balance: await token.balanceOf(channelId),
                 promised: new BN(0),
                 agreements: {[agreementId]: new BN(0)} 
@@ -103,8 +103,7 @@ async function createAccountantService(accountant, operator, token) {
     }
 }
 
-function generateInvoice(state, amount, agreementId, fee = new BN(0)) {
-    const R = randomBytes(32)
+function generateInvoice(state, amount, agreementId, fee = new BN(0), R = randomBytes(32)) {
     const hashlock = keccak(R)
 
     // amount have to be bignumber
@@ -117,7 +116,11 @@ function generateInvoice(state, amount, agreementId, fee = new BN(0)) {
         state.agreements[agreementId] = new BN(0)
     }
 
-    state.agreements[agreementId] = state.agreements[agreementId].add(amount)
+    if (!state.agreements[agreementId]) {
+        state.agreements[agreementId] = amount
+    } else {
+        state.agreements[agreementId] = state.agreements[agreementId].add(amount)
+    }
 
     // save invoice
     state.invoices[hashlock] = {R, agreementId, agreementTotal: state.agreements[agreementId], fee}
