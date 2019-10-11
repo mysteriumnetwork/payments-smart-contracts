@@ -19,4 +19,9 @@ contract TestAccountantImplementation is AccountantImplementation {
     function getNow() public view returns (uint256) {
         return now;
     }
+
+    uint256 internal jumps;
+    function moveBlock() public {
+        jumps = jumps + 1;
+    }
 }

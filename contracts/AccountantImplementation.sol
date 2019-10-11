@@ -33,8 +33,8 @@ contract AccountantImplementation is FundsRecovery {
         uint16 value;                      // subprocent amount. e.g. 2.5% = 250
         uint64 validFrom;                  // block from which fee is valid
     }
-    AccountantFee internal lastFee;        // default fee to look for
-    AccountantFee internal previousFee;    // previous fee is used if last fee is still not active
+    AccountantFee public lastFee;          // default fee to look for
+    AccountantFee public previousFee;      // previous fee is used if last fee is still not active
 
     struct Channel {
         address beneficiary;        // address where funds will be send
@@ -304,6 +304,7 @@ contract AccountantImplementation is FundsRecovery {
 
     function setAccountantFee(uint16 _newFee, bytes memory _signature) public {
         require(_newFee <= 5000, "fee can't be bigger that 50%");
+        require(block.number >= lastFee.validFrom, "can't update not active fee");
 
         if (msg.sender != operator) {
             address _signer = keccak256(abi.encodePacked(UPDATE_FEE_PREFIX, address(this), _newFee)).recover(_signature);
@@ -311,7 +312,7 @@ contract AccountantImplementation is FundsRecovery {
         }
 
         // new fee will start be valid after delay block will pass
-        uint64 _validFrom = uint64(block.number + DELAY_BLOCKS);
+        uint64 _validFrom = uint64(getTimelock());
 
         previousFee = lastFee;
         lastFee = AccountantFee(_newFee, _validFrom);
@@ -320,8 +321,8 @@ contract AccountantImplementation is FundsRecovery {
     }
 
     function getAccountantFee(uint256 _amount) public view returns (uint256) {
-        AccountantFee memory _activeFee = (block.number > lastFee.validFrom) ? lastFee : previousFee;
-        return (_amount * uint256(_activeFee.value)) / 100;
+        AccountantFee memory _activeFee = (block.number >= lastFee.validFrom) ? lastFee : previousFee;
+        return round((_amount * uint256(_activeFee.value) / 100), 100) / 100;
     }
 
     function isOpened(bytes32 _channelId) public view returns (bool) {
@@ -340,6 +341,10 @@ contract AccountantImplementation is FundsRecovery {
 
     function max(uint a, uint b) private pure returns (uint) {
         return a > b ? a : b;
+    }
+
+    function round(uint a, uint m) private pure returns (uint ) {
+        return ((a + m - 1) / m) * m;
     }
 
     // Setting new destination of funds recovery.
