@@ -19,6 +19,7 @@ contract AccountantImplementation is FundsRecovery {
     string constant LOAN_RETURN_PREFIX = "Load return request";
     string constant RESET_LOAN_RETURN_PREFIX = "Reset loan return request";
     string constant WITHDRAW_PREFIX = "Withdraw request";
+    string constant UPDATE_FEE_PREFIX = "Update accountant fee";
     uint256 constant DELAY_BLOCKS = 18000;  // +/- 3 days
 
     IdentityRegistry internal registry;
@@ -27,6 +28,13 @@ contract AccountantImplementation is FundsRecovery {
     uint256 internal lockedFunds;
     uint256 internal totalLoan;
     uint256 internal lastUsedNonce;        // nonce used to protect signature based calls from repply attack
+
+    struct AccountantFee {
+        uint16 value;                      // subprocent amount. e.g. 2.5% = 250
+        uint64 validFrom;                  // block from which fee is valid
+    }
+    AccountantFee internal lastFee;        // default fee to look for
+    AccountantFee internal previousFee;    // previous fee is used if last fee is still not active
 
     struct Channel {
         address beneficiary;        // address where funds will be send
@@ -57,8 +65,9 @@ contract AccountantImplementation is FundsRecovery {
     event LoanReturnRequested(bytes32 channelId, uint256 timelock);
     event LoanReturnRequestInvalidated(bytes32 channelId);
     event LoanReturned(bytes32 channelId, address beneficiary, uint256 amount);
-    event ChannelBeneficiaryChanged(bytes32 _channelId, address _newBeneficiary);
+    event ChannelBeneficiaryChanged(bytes32 channelId, address newBeneficiary);
     event FundsWithdrawned(uint256 amount, address beneficiary);
+    event AccountantFeeUpdated(uint16 newFee, uint64 validFromBlock);
 
     /*
       ------------------------------------------- SETUP -------------------------------------------
@@ -66,14 +75,16 @@ contract AccountantImplementation is FundsRecovery {
 
     // Because of proxy pattern this function is used insted of constructor.
     // Have to be called right after proxy deployment.
-    function initialize(address _token, address _operator) public {
+    function initialize(address _token, address _operator, uint16 _fee) public {
         require(!isInitialized(), "have to be not initialized");
         require(_operator != address(0), "operator have to be set");
         require(_token != address(0), "token can't be deployd into zero address");
+        require(_fee <= 5000, "fee can't be bigger that 50%");
 
         token = IERC20(_token);
         registry = IdentityRegistry(msg.sender);
         operator = _operator;
+        lastFee = AccountantFee(_fee, uint64(block.number));
     }
 
     function isInitialized() public view returns (bool) {
@@ -134,8 +145,11 @@ contract AccountantImplementation is FundsRecovery {
         // Increase already paid amount
         _channel.settled = _channel.settled.add(_unpaidAmount);
 
+        // Canculate accountant fee
+        uint256 _accountantFee = getAccountantFee(_unpaidAmount);
+
         // Transfer tokens and decrease balance
-        token.transfer(_channel.beneficiary, _unpaidAmount.sub(_transactorFee));
+        token.transfer(_channel.beneficiary, _unpaidAmount.sub(_transactorFee).sub(_accountantFee));
         _channel.balance = _currentBalance.sub(_unpaidAmount);
         lockedFunds = lockedFunds.sub(_unpaidAmount);
 
@@ -286,6 +300,28 @@ contract AccountantImplementation is FundsRecovery {
         _channel.beneficiary = _newBeneficiary;
 
         emit ChannelBeneficiaryChanged(_channelId, _newBeneficiary);
+    }
+
+    function setAccountantFee(uint16 _newFee, bytes memory _signature) public {
+        require(_newFee <= 5000, "fee can't be bigger that 50%");
+
+        if (msg.sender != operator) {
+            address _signer = keccak256(abi.encodePacked(UPDATE_FEE_PREFIX, address(this), _newFee)).recover(_signature);
+            require(_signer == operator, "have to be signed by accountant operator");
+        }
+
+        // new fee will start be valid after delay block will pass
+        uint64 _validFrom = uint64(block.number + DELAY_BLOCKS);
+
+        previousFee = lastFee;
+        lastFee = AccountantFee(_newFee, _validFrom);
+
+        emit AccountantFeeUpdated(_newFee, _validFrom);
+    }
+
+    function getAccountantFee(uint256 _amount) public view returns (uint256) {
+        AccountantFee memory _activeFee = (block.number > lastFee.validFrom) ? lastFee : previousFee;
+        return (_amount * uint256(_activeFee.value)) / 100;
     }
 
     function isOpened(bytes32 _channelId) public view returns (bool) {

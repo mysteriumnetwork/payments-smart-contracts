@@ -38,7 +38,7 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
     before(async () => {
         token = await MystToken.new()
         const dex = await MystDex.new()
-        const accountantImplementation = await AccountantImplementation.new(token.address, operator.address)
+        const accountantImplementation = await AccountantImplementation.new(token.address, operator.address, 0)
         const channelImplementation = await ChannelImplementation.new()
         registry = await Registry.new(token.address, dex.address, channelImplementation.address, accountantImplementation.address, 0, 1)
 
@@ -51,7 +51,7 @@ contract('Accountant Contract Implementation tests', ([txMaker, beneficiaryA, be
     })
 
     it("should register and initialize accountant", async () => {
-        await registry.registerAccountant(operator.address, 10)
+        await registry.registerAccountant(operator.address, 10, 0)
         const accountantId = await registry.getAccountantAddress(operator.address)
         expect(await registry.isActiveAccountant(accountantId)).to.be.true
 
