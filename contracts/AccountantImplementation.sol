@@ -79,7 +79,7 @@ contract AccountantImplementation is FundsRecovery {
         require(!isInitialized(), "have to be not initialized");
         require(_operator != address(0), "operator have to be set");
         require(_token != address(0), "token can't be deployd into zero address");
-        require(_fee <= 5000, "fee can't be bigger that 50%");
+        require(_fee <= 5000, "fee can't be bigger than 50%");
 
         token = IERC20(_token);
         registry = IdentityRegistry(msg.sender);
@@ -145,7 +145,7 @@ contract AccountantImplementation is FundsRecovery {
         // Increase already paid amount
         _channel.settled = _channel.settled.add(_unpaidAmount);
 
-        // Canculate accountant fee
+        // Calculate accountant fee
         uint256 _accountantFee = getAccountantFee(_unpaidAmount);
 
         // Transfer tokens and decrease balance
@@ -304,7 +304,7 @@ contract AccountantImplementation is FundsRecovery {
 
     function setAccountantFee(uint16 _newFee, bytes memory _signature) public {
         require(_newFee <= 5000, "fee can't be bigger that 50%");
-        require(block.number >= lastFee.validFrom, "can't update not active fee");
+        require(block.number >= lastFee.validFrom, "can't update inactive fee");
 
         if (msg.sender != operator) {
             address _signer = keccak256(abi.encodePacked(UPDATE_FEE_PREFIX, address(this), _newFee)).recover(_signature);
