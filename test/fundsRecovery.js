@@ -15,7 +15,7 @@ const DEXProxy = artifacts.require("DEXProxy")
 const FundsRecovery = artifacts.require("TestFundsRecovery")
 
 const OneEther = web3.utils.toWei(new BN(1), 'ether')
-const OneToken = web3.utils.toWei(new BN(1), 'ether')
+const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const Zero = new BN(0)
 const ZeroAddress = '0x0000000000000000000000000000000000000000'
 

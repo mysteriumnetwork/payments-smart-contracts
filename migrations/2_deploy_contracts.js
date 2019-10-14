@@ -4,6 +4,7 @@ const AccountantImplementation = artifacts.require("AccountantImplementation")
 const DEXImplementation = artifacts.require("MystDEX")
 const DEXProxy = artifacts.require("DEXProxy")
 const MystToken = artifacts.require("MystToken")
+const SafeMathLib = artifacts.require("SafeMathLib")
 
 module.exports = async function(deployer, network, accounts) {
     // We do have MYST deployed on ropsten already
@@ -15,6 +16,9 @@ module.exports = async function(deployer, network, accounts) {
         .then(_ => deployer.deploy(AccountantImplementation))
         .then(_ => deployer.deploy(Registry, tokenAddress, DEXProxy.address, ChannelImplementation.address, AccountantImplementation.address, 0, 0))
     } else {
+        deployer.deploy(SafeMathLib)
+        deployer.link(SafeMathLib, [MystToken])
+
         deployer.deploy(MystToken)
         .then(_ => deployer.deploy(DEXImplementation))
         .then(_ => deployer.deploy(ChannelImplementation))

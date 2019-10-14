@@ -24,7 +24,8 @@ const Registry = artifacts.require("Registry")
 const AccountantImplementation = artifacts.require("AccountantImplementation")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
 
-const OneToken = OneEther = web3.utils.toWei(new BN(1), 'ether')
+const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
+const OneEther = web3.utils.toWei(new BN(1), 'ether')
 const Zero = new BN(0)
 
 let token, accountant, registry;

@@ -15,7 +15,8 @@ const MystToken = artifacts.require("MystToken")
 const TestChannelImplementation = artifacts.require("TestChannelImplementation")
 const TestAccountantImplementation = artifacts.require("TestAccountantImplementation")
 
-const OneToken = OneEther = web3.utils.toWei(new BN(1), 'ether')
+const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
+const OneEther = web3.utils.toWei(new BN(1), 'ether')
 const Zero = new BN(0)
 
 contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) => {

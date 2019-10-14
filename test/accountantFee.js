@@ -17,7 +17,7 @@ const Registry = artifacts.require("Registry")
 const AccountantImplementation = artifacts.require("TestAccountantImplementation")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
 
-const OneToken = OneEther = web3.utils.toWei(new BN(1), 'ether')
+const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const Zero = new BN(0)
 
 const provider = wallet.generateAccount()
@@ -47,8 +47,8 @@ contract('Accountant fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
 
         // Fee of settling one token should be 0.025 token
         const oneTokenSettleFee = await accountant.getAccountantFee(OneToken)
-        let fee = web3.utils.fromWei(oneTokenSettleFee)
-        expect(fee).to.be.equal('0.025')
+        let fee = oneTokenSettleFee / OneToken
+        expect(fee).to.be.equal(0.025)
 
         // When settling sumer small values, we'll round fee to avoid calculation errors or value overflow
         const smallValueToSettle = new BN(100)  // 0.000000000000000100 token
@@ -126,8 +126,8 @@ contract('Accountant fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
 
     it('should still calculate previous fee value untill validFrom block not arrived', async () => {
         const oneTokenSettleFee = await accountant.getAccountantFee(OneToken)
-        let fee = web3.utils.fromWei(oneTokenSettleFee)
-        expect(fee).to.be.equal('0.025')
+        let fee = oneTokenSettleFee / OneToken
+        expect(fee).to.be.equal(0.025)
     })
 
     it('should not allow to update not active last fee', async () => {
@@ -143,8 +143,8 @@ contract('Accountant fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
         }
 
         const oneTokenSettleFee = await accountant.getAccountantFee(OneToken)
-        fee = web3.utils.fromWei(oneTokenSettleFee)
-        expect(fee).to.be.equal('0.0175')
+        fee = oneTokenSettleFee / OneToken
+        expect(fee).to.be.equal(0.0175)
     })
 
     it('should fail updating accountant fee with wrong signature', async () => {
