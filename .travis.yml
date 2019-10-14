@@ -5,7 +5,7 @@ install:
   npm install
 
 script:
-  - npx ganache-cli --port 7545 &
+  - npx ganache-cli --port 7545 --mnemonic 'amused glory pen avocado toilet dragon entry kitchen cliff retreat canyon danger' &
   - npm test
 
 before_deploy:
