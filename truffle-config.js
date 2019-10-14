@@ -1,6 +1,6 @@
 const HDWalletProvider = require("@truffle/hdwallet-provider");
 const INFURA_URL = "https://ropsten.infura.io/v3/...";
-const mnemonic = "...";
+const mnemonic = "amused glory pen avocado toilet dragon entry kitchen cliff retreat canyon danger";
 
 module.exports = {
     // Uncommenting the defaults below 

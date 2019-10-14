@@ -9,6 +9,7 @@ const { randomBytes } = require('crypto')
 const {
     signMessage,
     verifySignature,
+    to16BitsBuffer,
     toBytes32Buffer,
     toBuffer,
     keccak
@@ -250,6 +251,21 @@ async function settlePromise(state, accountant, promise) {
     await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, invoice.R, promise.signature)
 }
 
+function signAccountantFeeUpdate(newFee, accountantId, operator) {
+    const UPDATE_FEE_PREFIX = "Update accountant fee"
+    const message = Buffer.concat([
+        Buffer.from(UPDATE_FEE_PREFIX),
+        Buffer.from(accountantId.slice(2), 'hex'),
+        to16BitsBuffer(newFee)
+    ])
+
+    // sign and verify the signature
+    const signature = signMessage(message, operator.privKey)
+    expect(verifySignature(message, signature, operator.pubKey)).to.be.true
+
+    return signature
+}
+
 async function signExitRequest(channel, beneficiary, operator) {
     const EXIT_PREFIX = "Exit request:"
     // const DELAY_BLOCKS = (await channel.DELAY_BLOCKS()).toNumber()
@@ -381,11 +397,13 @@ module.exports = {
     createAccountantService,
     createConsumer,
     createProvider,
+    createPromise,
     generatePromise,
-    signExitRequest,
+    signAccountantFeeUpdate,
     signChannelBalanceUpdate,
     signChannelBeneficiaryChange,
     signChannelLoanReturnRequest,
+    signExitRequest,
     signFundsWithdrawal,
     signIdentityRegistration,
     validatePromise

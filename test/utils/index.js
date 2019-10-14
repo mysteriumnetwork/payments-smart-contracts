@@ -99,6 +99,14 @@ function toBytes32Buffer(item) {
     return ethUtils.setLengthLeft(item.toBuffer(), 32)
 }
 
+function to16BitsBuffer(item) {
+    if(typeof item === 'number' || typeof item === 'string') {
+        item = new BN(item)
+    }
+
+    return ethUtils.setLengthLeft(item.toBuffer(), 2)
+}
+
 function toBuffer(item) {
     if (item instanceof Buffer)
        return item
@@ -130,6 +138,7 @@ module.exports = {
     topUpTokens,
     keccak: ethUtils.keccak,
     setLengthLeft: ethUtils.setLengthLeft,
+    to16BitsBuffer,
     toBytes32Buffer,
     toBuffer
 }

@@ -11,7 +11,7 @@ interface Channel {
 }
 
 interface AccountantContract {
-    function initialize(address _token, address _operator) external;
+    function initialize(address _token, address _operator, uint16 _accountantFee) external;
     function openChannel(address _party, address _beneficiary, uint256 _amountToLend) external;
 }
 
@@ -101,7 +101,7 @@ contract Registry is Ownable, FundsRecovery {
         }
     }
 
-    function registerAccountant(address _accountantOperator, uint256 _stakeAmount) public {
+    function registerAccountant(address _accountantOperator, uint256 _stakeAmount, uint16 _accountantFee) public {
         require(_accountantOperator != address(0));
         require(_stakeAmount >= minimalAccountantStake, "accountant have to stake at least minimal stake amount");
 
@@ -113,7 +113,7 @@ contract Registry is Ownable, FundsRecovery {
 
         // Deploy accountant contract (mini proxy which is pointing to implementation)
         AccountantContract _accountant = AccountantContract(deployMiniProxy(uint256(_accountantOperator), accountantImplementation));
-        _accountant.initialize(address(token), _accountantOperator);
+        _accountant.initialize(address(token), _accountantOperator, _accountantFee);
 
         accountants[address(_accountant)] = Accountant(_accountantOperator, _stakeAmount);
 

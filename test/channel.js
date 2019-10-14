@@ -25,7 +25,7 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
     let token, channel
     before(async () => {
         token = await MystToken.new()
-        accountantImplementation = await TestAccountantImplementation.new(token.address, accountant.address)
+        accountantImplementation = await TestAccountantImplementation.new(token.address, accountant.address, 0)
         channel = await TestChannelImplementation.new(token.address, identityHash, accountantImplementation.address, Zero)
 
         // Give some ethers for gas for accountant

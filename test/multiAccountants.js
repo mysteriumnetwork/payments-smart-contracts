@@ -2,18 +2,8 @@ require('chai')
 .use(require('chai-as-promised'))
 .should()
 const { BN } = require('openzeppelin-test-helpers')
-const { 
-    topUpTokens,
-    topUpEthers,
-    generateChannelId
-} = require('./utils/index.js')
-const {
-    createAccountantService,
-    createConsumer,
-    createProvider,
-    signChannelOpening,
-    signIdentityRegistration
-} = require('./utils/client.js')
+const { topUpTokens } = require('./utils/index.js')
+const { signIdentityRegistration } = require('./utils/client.js')
 const wallet = require('./utils/wallet.js')
 
 const MystToken = artifacts.require("MystToken")
@@ -22,7 +12,6 @@ const Registry = artifacts.require("Registry")
 const AccountantImplementation = artifacts.require("AccountantImplementation")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
 
-const OneToken = OneEther = web3.utils.toWei(new BN(1), 'ether')
 const Zero = new BN(0)
 
 // Generate private keys for accountant operators
@@ -51,7 +40,7 @@ contract('Multi accountants', ([txMaker, ...beneficiaries]) => {
     it('should register accountants', async () => {
         accountants = []
         for (const operator of operators) {
-            await registry.registerAccountant(operator.address, 10)
+            await registry.registerAccountant(operator.address, 10, 0)
             const id = await registry.getAccountantAddress(operator.address)
             accountants.push({id, operator})
             expect(await registry.isActiveAccountant(id)).to.be.true

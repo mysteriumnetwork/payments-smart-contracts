@@ -20,6 +20,7 @@ Main functions of Registry:
 `registerAccountant` function (in payload 0xf4c1a1f6) is registering new accountant and requires such attributes:
  * `_accountantOperator`: address of account which will operate accountant smart contract and sign all off-chain messages on his behalf.
  * `_stakeAmount`: amount of tokens (in wei) to be staked by accountant as security deposit.
+ * `_accountantFee`: fee in fractional percentage (2.5% = 250) which will be charged during promise settlement (in provider channel).
 
 #### Get channel address
 `getChannelAddress` function gets `identityHash` (hash of identity's public key) and `accountantId` as parametera and returns its topup channel address.
