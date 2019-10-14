@@ -91,7 +91,11 @@ async function topUpTokens(token, to, amount) {
     expectedBalance.should.be.bignumber.equal(await token.balanceOf(to))
 }
 
-function toBytes32Buffer(item) {
+function toBytes32Buffer(item, type) {
+    if (type === 'address') {
+        item = new BN(item.replace(/0x/, ''), 16)
+    }
+
     if(typeof item === 'number' || typeof item === 'string') {
         item = new BN(item)
     }
