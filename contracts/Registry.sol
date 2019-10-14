@@ -126,10 +126,6 @@ contract Registry is Ownable, FundsRecovery {
         return getCreate2Address(_salt, _code);
     }
 
-    function getSalt(address _identityHash, address _accountantId) public view returns (bytes32) {
-        return keccak256(abi.encodePacked(_identityHash, _accountantId));
-    }
-
     function getAccountantAddress(address _accountantOperator) public view returns (address) {
         bytes32 _code = keccak256(getProxyCode(accountantImplementation));
         return getCreate2Address(bytes32(uint256(_accountantOperator)), _code);
