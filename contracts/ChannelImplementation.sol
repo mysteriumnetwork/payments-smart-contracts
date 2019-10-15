@@ -1,4 +1,4 @@
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.12;
 
 import { ECDSA } from "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
@@ -83,7 +83,7 @@ contract ChannelImplementation is FundsRecovery {
     function settlePromise(uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _signature) public {
         bytes32 _hashlock = keccak256(abi.encode(_lock));
         address _channelId = address(this);
-        address _signer = keccak256(abi.encodePacked(_channelId, _amount, _transactorFee, _hashlock)).recover(_signature);
+        address _signer = keccak256(abi.encodePacked(uint256(_channelId), _amount, _transactorFee, _hashlock)).recover(_signature);
         require(_signer == operator, "have to be signed by channel operator");
 
         // Calculate amount of tokens to be claimed.
