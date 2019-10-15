@@ -217,7 +217,7 @@ function generatePromise(amountToPay, fee, channelState, operator) {
 
 function createPromise(channelId, amount, fee, hashlock, operator) {
     const message = Buffer.concat([
-        Buffer.from(channelId.slice(2), 'hex'),  // channelId = channel address
+        toBytes32Buffer(channelId, 'address'),  // channelId = channel address
         toBytes32Buffer(amount),   // total promised amount in this channel
         toBytes32Buffer(fee),      // fee to transfer for msg.sender
         hashlock     // hashlock needed for HTLC scheme
@@ -232,7 +232,7 @@ function createPromise(channelId, amount, fee, hashlock, operator) {
 
 function validatePromise(promise, pubKey) {
     const message = Buffer.concat([
-        Buffer.from(promise.channelId.slice(2), 'hex'),  // channelId = channel address
+        toBytes32Buffer(promise.channelId, 'address'), // channelId = channel address
         toBytes32Buffer(promise.amount),   // total promised amount in this channel
         toBytes32Buffer(promise.fee),      // fee to transfer for msg.sender
         promise.hashlock     // hashlock needed for HTLC scheme
