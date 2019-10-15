@@ -1,4 +1,4 @@
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.12;
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { ECDSA } from "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
@@ -124,10 +124,6 @@ contract Registry is Ownable, FundsRecovery {
         bytes32 _code = keccak256(getProxyCode(channelImplementation));
         bytes32 _salt = keccak256(abi.encodePacked(_identityHash, _accountantId));
         return getCreate2Address(_salt, _code);
-    }
-
-    function getSalt(address _identityHash, address _accountantId) public view returns (bytes32) {
-        return keccak256(abi.encodePacked(_identityHash, _accountantId));
     }
 
     function getAccountantAddress(address _accountantOperator) public view returns (address) {
