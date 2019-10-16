@@ -7,6 +7,7 @@ import { FundsRecovery } from "./FundsRecovery.sol";
 
 interface IdentityRegistry {
     function isRegistered(address _identityHash) external view returns (bool);
+    function minimalAccountantStake() external view returns (uint256);
 }
 
 // Uni-directional settle based accountant
@@ -28,6 +29,7 @@ contract AccountantImplementation is FundsRecovery {
     uint256 internal lockedFunds;
     uint256 internal totalLoan;
     uint256 internal lastUsedNonce;        // nonce used to protect signature based calls from repply attack
+    uint256 internal stake;                // accountant stake is used to prove accountant's sustainability
 
     struct AccountantFee {
         uint16 value;                      // subprocent amount. e.g. 2.5% = 250
@@ -58,6 +60,10 @@ contract AccountantImplementation is FundsRecovery {
         return address(registry);
     }
 
+    function getStake() public view returns (uint256) {
+        return stake;
+    }
+
     event ChannelOpened(bytes32 channelId, uint256 initialBalance);
     event ChannelBalanceUpdated(bytes32 indexed channelId, uint256 amount, uint256 newBalance);
     event NewLoan(bytes32 channelId, uint256 loadAmount);
@@ -85,6 +91,7 @@ contract AccountantImplementation is FundsRecovery {
         registry = IdentityRegistry(msg.sender);
         operator = _operator;
         lastFee = AccountantFee(_fee, uint64(block.number));
+        stake = token.balanceOf(address(this));
     }
 
     function isInitialized() public view returns (bool) {
@@ -108,6 +115,7 @@ contract AccountantImplementation is FundsRecovery {
 
         // During opening new channel user can lend some funds to be guaranteed on channels size
         if (_amountToLend > 0) {
+            require(stake >= registry.minimalAccountantStake(), "can't open provider channel with loan, accountant stake is not enough");
             require(token.transferFrom(msg.sender, address(this), _amountToLend), "token transfer should succeed");
 
             lockedFunds = lockedFunds.add(_amountToLend);            
@@ -164,6 +172,7 @@ contract AccountantImplementation is FundsRecovery {
     // Updating collatered to channel amount - executed by operator
     // TODO accountant should be able to decrease only with timelock
     function updateChannelBalance(bytes32 _channelId, uint256 _nonce, uint256 _newBalance, bytes memory _signature) public {
+        require(stake >= registry.minimalAccountantStake(), "accountant stake is less than minimal");
         require(isOpened(_channelId), "channel have to be opened");
         require(_nonce > lastUsedNonce, "nonce have to be bigger than already used");
         require(_newBalance >= channels[_channelId].loan, "balance can't be less than loan amount");
@@ -183,6 +192,13 @@ contract AccountantImplementation is FundsRecovery {
         uint256 _newBalance = channels[_channelId].loan;
         require(_newBalance > channels[_channelId].balance, "new balance should be bigger that current");
 
+        // Get missing funds from stake
+        uint256 _increaseAmount = _newBalance.sub(channels[_channelId].balance);
+        if (_increaseAmount > availableBalance()) {
+            uint256 _missing = _increaseAmount.sub(availableBalance());
+            stake = stake.sub(_missing);
+        }
+
         __channelRebalance(_channelId, _newBalance);
     }
 
@@ -193,7 +209,7 @@ contract AccountantImplementation is FundsRecovery {
         if (_newBalance > _channel.balance) {
             diff = _newBalance.sub(_channel.balance);
             lockedFunds = lockedFunds.add(diff);
-            require(token.balanceOf(address(this)) >= lockedFunds, "accountant should have enought funds");
+            require(availableBalance() >= 0, "accountant should have enought funds");
         } else {
             diff = _channel.balance.sub(_newBalance);
             lockedFunds = lockedFunds.sub(diff);
@@ -213,8 +229,8 @@ contract AccountantImplementation is FundsRecovery {
             require(_signer == operator, "have to be signed by operator");
         }
 
-        // Accountants can't withdraw locked in channel funds and funds lended to him
-        uint256 _possibleAmountToTransfer = token.balanceOf(address(this)).sub(max(lockedFunds, totalLoan));
+        // Accountants can't withdraw stake, locked in channel funds and funds lended to him.
+        uint256 _possibleAmountToTransfer = token.balanceOf(address(this)).sub(max(lockedFunds, totalLoan)).sub(stake);
         require(_possibleAmountToTransfer >= _amount, "should be enough funds available to withdraw");
 
         token.transfer(_beneficiary, _amount);
@@ -229,6 +245,8 @@ contract AccountantImplementation is FundsRecovery {
     // Anyone can increase channel's capacity by lending more for accountant
     function increaseLoan(bytes32 _channelId, uint256 _amount) public {
         require(isOpened(_channelId), "channel have to be opened");
+        require(stake >= registry.minimalAccountantStake(), "accountant stake is less than minimal");
+
         Channel storage _channel = channels[_channelId];
 
         require(token.transferFrom(msg.sender, address(this), _amount), "transfer have to be successfull");
@@ -238,7 +256,7 @@ contract AccountantImplementation is FundsRecovery {
         totalLoan = totalLoan.add(_amount);
 
         emit NewLoan(_channelId, _amount);
-    } 
+    }
 
     // TODO add possibility to decrease loan instead of withdrawing all 
     function requestLoanReturn(address _party, uint256 _nonce, bytes memory _signature) public {
@@ -325,13 +343,22 @@ contract AccountantImplementation is FundsRecovery {
         return round((_amount * uint256(_activeFee.value) / 100), 100) / 100;
     }
 
+    function increaseStake(uint256 _additionalStake) public {
+        if (availableBalance() < _additionalStake) {
+            uint256 _diff = _additionalStake.sub(availableBalance());
+            token.transferFrom(msg.sender, address(this), _diff);
+        }
+
+        stake = stake.add(_additionalStake);
+    }
+
     function isOpened(bytes32 _channelId) public view returns (bool) {
         return channels[_channelId].beneficiary != address(0);
     }
 
     // Funds not locked in any channel and free to be topuped or withdrawned
     function availableBalance() public view returns (uint256) {
-        return token.balanceOf(address(this)).sub(lockedFunds);
+        return token.balanceOf(address(this)).sub(lockedFunds).sub(stake);
     }
 
     // Returns blocknumber until which exit request should be locked

@@ -58,7 +58,8 @@ contract('Accountant fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
 
     it('should open provider channel', async () => {
         const expectedChannelId = generateChannelId(provider.address, accountant.address)
-        
+        const initialAccountantBalance = await token.balanceOf(accountant.address)
+
         // Guaranteed incomming channel size
         const channelStake = new BN(1000)
 
@@ -74,7 +75,7 @@ contract('Accountant fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
 
         // Channel stake have to be transfered to accountant
         const accountantTokenBalance = await token.balanceOf(accountant.address)
-        accountantTokenBalance.should.be.bignumber.equal(channelStake)
+        accountantTokenBalance.should.be.bignumber.equal(initialAccountantBalance.add(channelStake))
 
         const channel = await accountant.channels(expectedChannelId)
         expect(channel.balance.toNumber()).to.be.equal(channelStake.toNumber())
@@ -98,7 +99,7 @@ contract('Accountant fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
         const initialChannelBalance = (await accountant.channels(channelId)).balance
         const expectedChannelBalance = initialChannelBalance.sub(amount)
 
-        const tx = await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, R, promise.signature)
+        await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, R, promise.signature)
 
         const accountantAvailableBalance = await accountant.availableBalance()
         const channelBalance = (await accountant.channels(channelId)).balance

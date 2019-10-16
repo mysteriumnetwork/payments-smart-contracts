@@ -1,4 +1,5 @@
 pragma solidity ^0.5.12;
+pragma experimental ABIEncoderV2;
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { ECDSA } from "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
@@ -13,6 +14,7 @@ interface Channel {
 interface AccountantContract {
     function initialize(address _token, address _operator, uint16 _accountantFee) external;
     function openChannel(address _party, address _beneficiary, uint256 _amountToLend) external;
+    function getStake() external view returns (uint256);
 }
 
 contract Registry is Ownable, FundsRecovery {
@@ -24,13 +26,13 @@ contract Registry is Ownable, FundsRecovery {
     address public dex;
     uint256 public registrationFee;
     uint256 public minimalAccountantStake;
-    uint256 public totalStaked;
     address internal channelImplementation;
     address public accountantImplementation;
 
     struct Accountant {
         address operator;
-        uint256 stake;
+        function() external view returns(uint256) stake;
+        // TODO add accountant status: healthy, warning, inactive
     }
     mapping(address => Accountant) public accountants;
 
@@ -64,15 +66,15 @@ contract Registry is Ownable, FundsRecovery {
 
     // Register identity and open spending and incomming channels with given accountant
     // _loanAmount - it's amount of tokens lended to accountant to guarantee incomming channel's balance.
-    function registerIdentity(address _accountantId, uint256 _loanAmount, uint256 _fee, address _beneficiary, bytes memory _signature) public {
+    function registerIdentity(address _accountantId, uint256 _loanAmount, uint256 _transactorFee, address _beneficiary, bytes memory _signature) public {
         require(isActiveAccountant(_accountantId), "provided accountant have to be active");
 
         // Check if given signature is valid
-        address _identityHash = keccak256(abi.encodePacked(address(this), _accountantId, _loanAmount, _fee, _beneficiary)).recover(_signature);
+        address _identityHash = keccak256(abi.encodePacked(address(this), _accountantId, _loanAmount, _transactorFee, _beneficiary)).recover(_signature);
         require(_identityHash != address(0), "wrong signature");
 
-        // Tokens amount to get from channel to cover tx fee, registration fee and stake
-        uint256 _totalFee = registrationFee.add(_loanAmount).add(_fee);
+        // Tokens amount to get from channel to cover tx fee, registration fee and provider's loan/stake
+        uint256 _totalFee = registrationFee.add(_loanAmount).add(_transactorFee);
         require(_totalFee <= token.balanceOf(getChannelAddress(_identityHash, _accountantId)), "not enought funds in channel to cover fees");
 
         // Deploy channel contract for given identity (mini proxy which is pointing to implementation)
@@ -88,8 +90,8 @@ contract Registry is Ownable, FundsRecovery {
         AccountantContract(_accountantId).openChannel(_identityHash, _beneficiary, _loanAmount);
 
         // Pay fee for transaction maker
-        if (_fee > 0) {
-            token.transfer(msg.sender, _fee);
+        if (_transactorFee > 0) {
+            token.transfer(msg.sender, _transactorFee);
         }
 
         emit ConsumerChannelCreated(_identityHash, _accountantId, address(_channel));
@@ -108,14 +110,17 @@ contract Registry is Ownable, FundsRecovery {
         address _accountantId = getAccountantAddress(_accountantOperator);
         require(!isAccountant(_accountantId));
 
-        token.transferFrom(msg.sender, address(this), _stakeAmount);
-        totalStaked = totalStaked.add(_stakeAmount);
-
         // Deploy accountant contract (mini proxy which is pointing to implementation)
         AccountantContract _accountant = AccountantContract(deployMiniProxy(uint256(_accountantOperator), accountantImplementation));
+
+        // Transfer stake into accountant smart contract
+        token.transferFrom(msg.sender, address(_accountant), _stakeAmount);
+
+        // Initialise accountant 
         _accountant.initialize(address(token), _accountantOperator, _accountantFee);
 
-        accountants[address(_accountant)] = Accountant(_accountantOperator, _stakeAmount);
+        // Save info about newly created accountant
+        accountants[address(_accountant)] = Accountant(_accountantOperator, _accountant.getStake);
 
         emit RegisteredAccountant(address(_accountant), _accountantOperator);
     }
@@ -169,6 +174,7 @@ contract Registry is Ownable, FundsRecovery {
 
         return _addr;
     }
+
     // ------------------------------------------------------------------------
 
     function isRegistered(address _identityHash) public view returns (bool) {
@@ -189,7 +195,7 @@ contract Registry is Ownable, FundsRecovery {
 
     function isActiveAccountant(address _accountantId) public view returns (bool) {
         // If stake is 0, then it's either incactive or unregistered accountant
-        return accountants[_accountantId].stake != uint256(0);
+        return accountants[_accountantId].stake() != uint256(0);
     }
 
     function changeRegistrationFee(uint256 _newFee) public onlyOwner {
