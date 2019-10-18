@@ -102,11 +102,11 @@ contract Registry is Ownable, FundsRecovery {
     }
 
     function registerAccountant(address _accountantOperator, uint256 _stakeAmount, uint16 _accountantFee) public {
-        require(_accountantOperator != address(0));
+        require(_accountantOperator != address(0), "accountant cannot be registered on zero address");
         require(_stakeAmount >= minimalAccountantStake, "accountant have to stake at least minimal stake amount");
 
         address _accountantId = getAccountantAddress(_accountantOperator);
-        require(!isAccountant(_accountantId));
+        require(!isAccountant(_accountantId), "accountant already registered");
 
         token.transferFrom(msg.sender, address(this), _stakeAmount);
         totalStaked = totalStaked.add(_stakeAmount);
@@ -198,7 +198,7 @@ contract Registry is Ownable, FundsRecovery {
 
     function transferCollectedFeeTo(address _beneficiary) public onlyOwner{
         uint256 _collectedFee = token.balanceOf(address(this));
-        require(_collectedFee > 0);
+        require(_collectedFee > 0, "collected fee cannot be less than zero");
         token.transfer(_beneficiary, _collectedFee);
     }
 }
