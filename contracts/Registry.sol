@@ -1,5 +1,4 @@
 pragma solidity ^0.5.12;
-pragma experimental ABIEncoderV2;
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { ECDSA } from "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
@@ -12,9 +11,11 @@ interface Channel {
 }
 
 interface AccountantContract {
-    function initialize(address _token, address _operator, uint16 _accountantFee) external;
+    enum Status { Active, Paused, Punishment, Closed }
+    function initialize(address _token, address _operator, uint16 _accountantFee, uint256 _maxLoan) external;
     function openChannel(address _party, address _beneficiary, uint256 _amountToLend) external;
     function getStake() external view returns (uint256);
+    function getStatus() external view returns (Status);
 }
 
 contract Registry is Ownable, FundsRecovery {
@@ -103,8 +104,8 @@ contract Registry is Ownable, FundsRecovery {
         }
     }
 
-    function registerAccountant(address _accountantOperator, uint256 _stakeAmount, uint16 _accountantFee) public {
-        require(_accountantOperator != address(0));
+    function registerAccountant(address _accountantOperator, uint256 _stakeAmount, uint16 _accountantFee, uint256 _maxLoan) public {
+        require(_accountantOperator != address(0), "operator can't be zero address");
         require(_stakeAmount >= minimalAccountantStake, "accountant have to stake at least minimal stake amount");
 
         address _accountantId = getAccountantAddress(_accountantOperator);
@@ -117,7 +118,7 @@ contract Registry is Ownable, FundsRecovery {
         token.transferFrom(msg.sender, address(_accountant), _stakeAmount);
 
         // Initialise accountant 
-        _accountant.initialize(address(token), _accountantOperator, _accountantFee);
+        _accountant.initialize(address(token), _accountantOperator, _accountantFee, _maxLoan);
 
         // Save info about newly created accountant
         accountants[address(_accountant)] = Accountant(_accountantOperator, _accountant.getStake);
@@ -193,9 +194,12 @@ contract Registry is Ownable, FundsRecovery {
         return _codeLength != 0;
     }
 
+    // TODO write test to recheck what will be returned when such accountant is not registered at all
     function isActiveAccountant(address _accountantId) public view returns (bool) {
         // If stake is 0, then it's either incactive or unregistered accountant
-        return accountants[_accountantId].stake() != uint256(0);
+        AccountantContract.Status status = AccountantContract(_accountantId).getStatus();
+        return status == AccountantContract.Status.Active;
+        // return accountants[_accountantId].stake() != uint256(0);
     }
 
     function changeRegistrationFee(uint256 _newFee) public onlyOwner {

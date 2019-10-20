@@ -13,6 +13,7 @@ const AccountantImplementation = artifacts.require("AccountantImplementation")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
 
 const Zero = new BN(0)
+const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 
 // Generate private keys for accountant operators
 const operators = [
@@ -40,7 +41,7 @@ contract('Multi accountants', ([txMaker, ...beneficiaries]) => {
     it('should register accountants', async () => {
         accountants = []
         for (const operator of operators) {
-            await registry.registerAccountant(operator.address, 10, 0)
+            await registry.registerAccountant(operator.address, 10, 0, OneToken)
             const id = await registry.getAccountantAddress(operator.address)
             accountants.push({id, operator})
             expect(await registry.isActiveAccountant(id)).to.be.true

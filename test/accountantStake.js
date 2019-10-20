@@ -33,7 +33,7 @@ contract('Accountant stake', ([txMaker, operatorAddress, ...beneficiaries]) => {
 
         token = await MystToken.new()
         const dex = await MystDex.new()
-        const accountantImplementation = await AccountantImplementation.new(token.address, accountantOperator.address, 0)
+        const accountantImplementation = await AccountantImplementation.new(token.address, accountantOperator.address, 0, OneToken)
         const channelImplementation = await ChannelImplementation.new()
         registry = await Registry.new(token.address, dex.address, channelImplementation.address, accountantImplementation.address, Zero, stake)
 
@@ -44,11 +44,11 @@ contract('Accountant stake', ([txMaker, operatorAddress, ...beneficiaries]) => {
 
     it('should reject accountant registration if he do not pay enought stake', async () => {
         const stateAmount = stake - 1
-        await registry.registerAccountant(accountantOperator.address, stateAmount, Zero).should.be.rejected
+        await registry.registerAccountant(accountantOperator.address, stateAmount, Zero, OneToken).should.be.rejected
     })
 
     it('should register accountant when stake is ok', async () => {
-        await registry.registerAccountant(accountantOperator.address, stake, Zero)
+        await registry.registerAccountant(accountantOperator.address, stake, Zero, OneToken)
         const accountantId = await registry.getAccountantAddress(accountantOperator.address)
         accountant = await AccountantImplementation.at(accountantId)
         expect(await registry.isActiveAccountant(accountant.address)).to.be.true
@@ -103,7 +103,7 @@ contract('Accountant stake', ([txMaker, operatorAddress, ...beneficiaries]) => {
         channelBalance.should.be.bignumber.equal(expectedChannelBalance)
     })
 
-    it('should rebalance channel and get missing tokens from stake', async () => {
+    it('should rebalance channel only with available abalance and enable punishment mode', async () => {
         const channelId = generateChannelId(provider.address, accountant.address)
         const channel = await accountant.channels(channelId)
         const rebalanceAmount = channel.loan.sub(channel.balance)
@@ -111,147 +111,26 @@ contract('Accountant stake', ([txMaker, operatorAddress, ...beneficiaries]) => {
 
         // Make accountant available balance to be half of needed
         await topUpTokens(token, accountant.address, rebalanceAmount / 2)
-        expect((await accountant.availableBalance()).toNumber()).to.be.equal(rebalanceAmount / 2)
 
-        // Rebalance channel and make sure that stake was decreased
+        // Rebalance channel
         await accountant.rebalanceChannel(channelId)
-        const rebalancedChannel = await accountant.channels(channelId)
-        rebalancedChannel.balance.should.be.bignumber.equal(rebalancedChannel.loan)
 
-        const accountantStake = await accountant.getStake()
-        expect(accountantStake.toNumber()).to.be.equal(initialStake - rebalanceAmount / 2)
+
+        // There should be zoro available balance
         expect((await accountant.availableBalance()).toNumber()).to.be.equal(0)
+
+        // Because of not getting all expected balance, there should be enabled punishment mode
+        const accountantStatus = await accountant.getStatus() // 0 - Active, 1 - Paused, 2 - Punishment, 3 - Closed
+        expect(accountantStatus.toNumber()).to.be.equal(2)
+        expect(await accountant.isAccountantActive()).to.be.false
     })
 
-    it('should not allow to open new provider channel because there is not enough accountant stake', async () => {
-        const newProvider = wallet.generateAccount()
-        const providerChannelId = generateChannelId(newProvider.address, accountant.address)
-        const channelStake = new BN(1000)
-        
-        // Topup some tokens into paying channel
-        const channelAddress = await registry.getChannelAddress(newProvider.address, accountant.address)
-        await topUpTokens(token, channelAddress, channelStake)
-
-        // Register identity and open channel with accountant
-        let signature = signIdentityRegistration(registry.address, accountant.address, channelStake, Zero, beneficiaries[1], newProvider)
-        await registry.registerIdentity(accountant.address, channelStake, Zero, beneficiaries[1], signature).should.be.rejected
-
-        // Opening zero loan channel should be still possible
-        signature = signIdentityRegistration(registry.address, accountant.address, Zero, Zero, beneficiaries[1], newProvider)
-        await registry.registerIdentity(accountant.address, Zero, Zero, beneficiaries[1], signature)
-        expect(await registry.isRegistered(newProvider.address)).to.be.true
-        expect(await accountant.isOpened(providerChannelId)).to.be.true
-
-        const channel = await accountant.channels(providerChannelId)
-        channel.loan.should.be.bignumber.equal(Zero)
-        channel.balance.should.be.bignumber.equal(Zero)
-    })
-
-    it('should fail increasing channel loan', async () => {
-        const amountToLend = new BN('1500')
-        const channelId = generateChannelId(provider.address, accountant.address)
-
-        // txMaker should have enought tokens
-        await topUpTokens(token, txMaker, amountToLend)
-        await token.approve(accountant.address, amountToLend)
-
-        // Should fail increasing channel loan
-        await accountant.increaseLoan(channelId, amountToLend).should.be.rejected
-
-        // zero loan channel should also fail inreasing his loan
-        const newProvider = wallet.generateAccount()
-        const signature = signIdentityRegistration(registry.address, accountant.address, Zero, Zero, beneficiaries[1], newProvider)
-        await registry.registerIdentity(accountant.address, Zero, Zero, beneficiaries[1], signature)
-        expect(await registry.isRegistered(newProvider.address)).to.be.true
-        await accountant.increaseLoan(channelId, amountToLend).should.be.rejected
-    })
-
-    it('provider should be able to get his loan back', async () => {
-        const channelId = generateChannelId(provider.address, accountant.address)
-        const channelLoanAmount = (await accountant.channels(channelId)).loan
-        const initialBeneficiaryBalance = await token.balanceOf(beneficiaries[0])
-
-        const nonce = new BN(1)
-        const signature = signChannelLoanReturnRequest(channelId, nonce, provider)
-        await accountant.requestLoanReturn(provider.address, nonce, signature)
-
-        // Jump over a few blocks
-        for (let i=0; i<4; i++) {
-            await accountant.moveBlock()
-        }
-
-        await accountant.finalizeLoanReturn(channelId)
-        const channel = await accountant.channels(channelId)
-        
-        const beneficiaryBalance = await token.balanceOf(beneficiaries[0])
-        beneficiaryBalance.should.be.bignumber.equal(initialBeneficiaryBalance.add(channelLoanAmount))
-        channel.loan.should.be.bignumber.equal(Zero)
-    })
-
-    it('accountant operator should not be able to update channel balance', async () => {
-        const newBalance = new BN('10')
-        await topUpTokens(token, txMaker, newBalance)
-        
-        const channelId = generateChannelId(provider.address, accountant.address)
-        const nonce = new BN(1)
-        const signature = signChannelBalanceUpdate(channelId, nonce, newBalance, accountantOperator)
-        await accountant.updateChannelBalance(channelId, nonce, newBalance, signature).should.be.rejected
-    })
-
-    it('should be possible to increase accountant stake', async () => {
-        const missingStake = stake.sub(await accountant.getStake())
-
-        await topUpTokens(token, accountant.address, missingStake)
-        let availableBalance = await accountant.availableBalance()
-        availableBalance.should.be.bignumber.equal(missingStake)
-
-        await accountant.increaseStake(missingStake)
+    it('accountant stake should remain untouched', async () => {
         const accountantStake = await accountant.getStake()
         accountantStake.should.be.bignumber.equal(stake)
-        availableBalance = await accountant.availableBalance()
-        availableBalance.should.be.bignumber.equal(Zero)
+
+        const accountantBalance = await token.balanceOf(accountant.address)
+        accountantBalance.should.be.bignumber.least(await accountant.minimalExpectedBalance())
     })
 
-    it('everyting should back to normal after updating accountant stake until minimal amount', async () => {
-        // Should be possible to register new provider with loan
-        const newProvider = wallet.generateAccount()
-        const providerChannelId = generateChannelId(newProvider.address, accountant.address)
-        const channelStake = new BN(1000)
-        
-        const channelAddress = await registry.getChannelAddress(newProvider.address, accountant.address)
-        await topUpTokens(token, channelAddress, channelStake)
-
-        let signature = signIdentityRegistration(registry.address, accountant.address, channelStake, Zero, beneficiaries[1], newProvider)
-        await registry.registerIdentity(accountant.address, channelStake, Zero, beneficiaries[1], signature)
-        expect(await registry.isRegistered(newProvider.address)).to.be.true
-        expect(await accountant.isOpened(providerChannelId)).to.be.true
-
-        const channel = await accountant.channels(providerChannelId)
-        channel.loan.should.be.bignumber.equal(channelStake)
-        channel.balance.should.be.bignumber.equal(channelStake)
-
-        // Should be possible to increase channel loan
-        const amountToLend = new BN('1500')
-        const provider2ChannelId = generateChannelId(provider.address, accountant.address)
-
-        await topUpTokens(token, txMaker, amountToLend)
-        await token.addApproval(accountant.address, amountToLend)
-
-        await accountant.increaseLoan(provider2ChannelId, amountToLend)
-        const channel2 = await accountant.channels(provider2ChannelId)
-        channel2.loan.should.be.bignumber.equal(amountToLend)
-        channel2.balance.should.be.bignumber.equal(amountToLend)
-
-        // Accountant operator should be able to update channel balance
-        const newBalance = new BN('10000')
-        await topUpTokens(token, accountant.address, newBalance)
-        const availableBalance = await accountant.availableBalance()
-        availableBalance.should.be.bignumber.equal(newBalance)
-
-        const nonce = new BN(1)
-        const sig = signChannelBalanceUpdate(provider2ChannelId, nonce, newBalance, accountantOperator)
-        await accountant.updateChannelBalance(provider2ChannelId, nonce, newBalance, sig)
-        const updatedChannel = await accountant.channels(provider2ChannelId)
-        updatedChannel.balance.should.be.bignumber.equal(newBalance)
-    })
 })
