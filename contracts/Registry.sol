@@ -109,7 +109,7 @@ contract Registry is Ownable, FundsRecovery {
         require(_stakeAmount >= minimalAccountantStake, "accountant have to stake at least minimal stake amount");
 
         address _accountantId = getAccountantAddress(_accountantOperator);
-        require(!isAccountant(_accountantId));
+        require(!isAccountant(_accountantId), "accountant already registered");
 
         // Deploy accountant contract (mini proxy which is pointing to implementation)
         AccountantContract _accountant = AccountantContract(deployMiniProxy(uint256(_accountantOperator), accountantImplementation));
@@ -208,7 +208,7 @@ contract Registry is Ownable, FundsRecovery {
 
     function transferCollectedFeeTo(address _beneficiary) public onlyOwner{
         uint256 _collectedFee = token.balanceOf(address(this));
-        require(_collectedFee > 0);
+        require(_collectedFee > 0, "collected fee cannot be less than zero");
         token.transfer(_beneficiary, _collectedFee);
     }
 }
