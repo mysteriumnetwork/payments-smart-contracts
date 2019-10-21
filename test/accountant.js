@@ -280,6 +280,19 @@ contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress,
         const newBalance = new BN('1000')
         await accountant.updateChannelBalance(channelId, newBalance, {from: operatorAddress})
 
+        // It should enable waiting period for channel balance reduction
+        let channel = await accountant.channels(channelId)
+        const expectedBlockNumber = (await web3.eth.getBlock('latest')).number + 4
+        expect(channel.timelock.toNumber()).to.be.equal(expectedBlockNumber)
+        channel.balance.should.be.bignumber.equal(channelInitialBalace)
+
+        // Move some blocks
+        for (let i = 0; i < 4; i++) {
+            await accountant.moveBlock()
+        }
+
+        await accountant.updateChannelBalance(channelId, newBalance, {from: operatorAddress})
+
         // Channel balance should be decreased
         const channelBalance = (await accountant.channels(channelId)).balance
         channelBalance.should.be.bignumber.lessThan(channelInitialBalace)

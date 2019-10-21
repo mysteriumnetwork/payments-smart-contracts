@@ -41,6 +41,7 @@ contract AccountantImplementation is FundsRecovery {
         uint256 settled;            // total amount already settled by provider
         uint256 loan;               // amount lended by party to accountant
         uint256 lastUsedNonce;      // last known nonce, is used to protect signature based calls from repply attack
+        uint256 timelock;           // blocknumber after which channel balance can be decreased
     }
     mapping(bytes32 => Channel) public channels;
 
@@ -77,6 +78,7 @@ contract AccountantImplementation is FundsRecovery {
 
     event ChannelOpened(bytes32 channelId, uint256 initialBalance);
     event ChannelBalanceUpdated(bytes32 indexed channelId, uint256 newBalance);
+    event ChannelBalanceDecreaseRequested(bytes32 indexed channelId);
     event NewLoan(bytes32 indexed channelId, uint256 loanAmount);
     event MaxLoanValueUpdated(uint256 _newMaxLoan);
     event PromiseSettled(bytes32 indexed channelId, address beneficiary, uint256 amount, uint256 totalSettled);
@@ -194,7 +196,6 @@ contract AccountantImplementation is FundsRecovery {
 
     // Accountant can update channel balance by himself. He can update into any amount size 
     // but not less that provider's loan amount.
-    // TODO accountant should be able to decrease only with timelock
     function updateChannelBalance(bytes32 _channelId, uint256 _newBalance) public onlyOperator {
         require(isAccountantActive(), "accountant have to be active");
         require(isOpened(_channelId), "channel have to be opened");
@@ -208,8 +209,21 @@ contract AccountantImplementation is FundsRecovery {
             require(availableBalance() >= _diff, "should be enough available balance");
             lockedFunds = lockedFunds.add(_diff);
         } else {
+            // If timelock is 0 then we should enable waiting period
+            if (_channel.timelock == 0) {
+                _channel.timelock = getTimelock();
+                emit ChannelBalanceDecreaseRequested(_channelId);
+                return;
+            }
+
+            // It's still waiting period, do nothing
+            if (block.number < _channel.timelock) {
+                return;
+            }
+
             _diff = _channel.balance.sub(_newBalance);
             lockedFunds = lockedFunds.sub(_diff);
+            _channel.timelock = 0;
         }
 
         _channel.balance = _newBalance;
