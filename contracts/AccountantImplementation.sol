@@ -310,15 +310,15 @@ contract AccountantImplementation is FundsRecovery {
 
         // Enable punishment mode when accountnant token amount after loan decrease if less than minimal expected.
         uint256 _minimalExpectedBalance = minimalExpectedBalance().sub(_channelBalanceDiff);
-        if (_minimalExpectedBalance > token.balanceOf(address(this)) - _amount) {
+        uint256 _currentBalance = token.balanceOf(address(this));
+        if (_amount > _currentBalance || _currentBalance.sub(_amount) < _minimalExpectedBalance) {
             if (isAccountantActive()) {
                 status = Status.Punishment;
                 punishment.activationBlock = block.number;
                 emit AccountantPunishmentActivated(block.number);
             }
-            _amount = token.balanceOf(address(this)).sub(_minimalExpectedBalance); // How to ensure that this will not fail?
+            _amount = _currentBalance.sub(_minimalExpectedBalance);
         }
-        // TODO add test to check what happens when loan is bigger than stake + locked in channels funds
 
         uint256 _newLoanAmount = _channel.loan.sub(_amount);
         require(_newLoanAmount <= maxLoan, "amount to lend can't be bigger that maximally allowed");

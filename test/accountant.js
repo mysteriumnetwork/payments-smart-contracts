@@ -29,11 +29,12 @@ const Zero = new BN(0)
 
 const operatorPrivKey = Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8c26933e5d9f0cda92f3c3', 'hex')
 
-contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
+contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress, beneficiaryA, beneficiaryB, beneficiaryC, beneficiaryD, ...otherAccounts]) => {
     const operator = wallet.generateAccount(operatorPrivKey)
     const identityA = wallet.generateAccount()
     const identityB = wallet.generateAccount()
     const identityC = wallet.generateAccount()
+    const identityD = wallet.generateAccount()
 
     let token, accountant, registry, promise
     before(async () => {
@@ -367,6 +368,51 @@ contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress,
 
         // Available balance should be not changed because of getting channel's balance back available
         expect((await accountant.availableBalance()).toNumber()).to.be.equal(accountantInitialAvailableBalace.toNumber())
+    })
+
+    it("should handle huge channel loans", async () => {
+        const channelId = generateChannelId(identityD.address, accountant.address)
+        const amountToLend = OneToken
+
+        // TopUp channel -> send or mint tokens into channel address
+        const channelAddress = await registry.getChannelAddress(identityD.address, accountant.address)
+        await topUpTokens(token, channelAddress, amountToLend)
+
+        // Register identity and open channel with accountant
+        let signature = signIdentityRegistration(registry.address, accountant.address, amountToLend, Zero, beneficiaryD, identityD)
+        await registry.registerIdentity(accountant.address, amountToLend, Zero, beneficiaryD, signature)
+        expect(await registry.isRegistered(identityD.address)).to.be.true
+        expect(await accountant.isOpened(channelId)).to.be.true
+
+        // Settle all you can
+        const channelState = Object.assign({}, {channelId}, await accountant.channels(channelId))
+        const promise = generatePromise(amountToLend, new BN(0), channelState, operator)
+        await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature)
+
+        // Ensure that amountToLend is bigger than stake + locked in channels funds
+        let minimalExpectedBalance = await accountant.minimalExpectedBalance()
+        expect(minimalExpectedBalance.toNumber()).to.be.below(amountToLend.toNumber())
+
+        // Try getting loan back
+        const currentBalance = await token.balanceOf(accountant.address)
+        const nonce = new BN(5)
+        signature = signChannelLoanReturnRequest(channelId, amountToLend, nonce, identityD)
+        await accountant.decreaseLoan(channelId, amountToLend, nonce, signature)
+
+        minimalExpectedBalance = await accountant.minimalExpectedBalance()
+        const availableToUse = currentBalance.sub(minimalExpectedBalance)
+        const channel = await accountant.channels(channelId)
+        expect(channel.loan.toNumber()).to.be.equal(amountToLend.sub(availableToUse).toNumber())
+        expect(channel.balance.toNumber()).to.be.equal(0)
+
+        // Accountant should become not active
+        expect(await accountant.isAccountantActive()).to.be.false
+    })
+
+    it("should resolve emergency", async () => {
+        await topUpTokens(token, accountant.address, OneToken)
+        await accountant.resolveEmergency()
+        expect(await accountant.isAccountantActive()).to.be.true
     })
 
     /**
