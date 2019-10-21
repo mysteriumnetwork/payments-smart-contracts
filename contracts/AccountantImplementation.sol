@@ -227,11 +227,12 @@ contract AccountantImplementation is FundsRecovery {
         uint256 _increaseAmount = _channel.loan.sub(_channel.balance);
 
         // If there are not enought funds to rebalance we have to enable punishment mode and rebalance into max possible amount.
-        // TODO fix me.
-        if (_increaseAmount > availableBalance()) {
+        uint256 _minimalExpectedBalance = minimalExpectedBalance().add(_increaseAmount);
+        uint256 _currentBalance = token.balanceOf(address(this));
+        if (_currentBalance < _minimalExpectedBalance) {
             status = Status.Punishment;
             punishment.activationBlock = block.number;
-            _increaseAmount = availableBalance();
+            _increaseAmount = _minimalExpectedBalance.sub(_currentBalance);
             emit AccountantPunishmentActivated(block.number);
         }
 
@@ -334,17 +335,17 @@ contract AccountantImplementation is FundsRecovery {
         uint256 _punishmentUnits = (round(_blocksPassed, 257) / 257).sub(1);
 
         uint256 _punishmentAmount = _punishmentUnits.mul(_punishmentPerUnit);
+        punishment.amount = punishment.amount.add(_punishmentAmount);
+
+        uint256 _shouldHave = max(lockedFunds, totalLoan).add(max(stake, punishment.amount));
+        uint256 _currentBalance = token.balanceOf(address(this));
+        uint256 _missingFunds = (_currentBalance < _shouldHave) ? _shouldHave.sub(_currentBalance) : uint256(0);
 
         // If there are not enough available funds, they have to be topuped from msg.sender.
-        if (availableBalance() < _punishmentAmount) {
-            uint256 _missingFunds = max(lockedFunds, totalLoan)
-                .add(max(stake, punishment.amount))
-                .add(token.balanceOf(address(this)))
-                .add(_punishmentAmount);
-            token.transferFrom(msg.sender, address(this), _missingFunds);
-        }
+        token.transferFrom(msg.sender, address(this), _missingFunds);
 
-        punishment.amount = punishment.amount.add(_punishmentAmount);
+        // Disable punishment mode
+        status = Status.Active;
 
         emit AccountantPunishmentDeactivated();
     }
