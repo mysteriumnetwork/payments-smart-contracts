@@ -251,21 +251,6 @@ async function settlePromise(state, accountant, promise) {
     await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, invoice.R, promise.signature)
 }
 
-function signAccountantFeeUpdate(newFee, accountantId, operator) {
-    const UPDATE_FEE_PREFIX = "Update accountant fee"
-    const message = Buffer.concat([
-        Buffer.from(UPDATE_FEE_PREFIX),
-        Buffer.from(accountantId.slice(2), 'hex'),
-        to16BitsBuffer(newFee)
-    ])
-
-    // sign and verify the signature
-    const signature = signMessage(message, operator.privKey)
-    expect(verifySignature(message, signature, operator.pubKey)).to.be.true
-
-    return signature
-}
-
 async function signExitRequest(channel, beneficiary, operator) {
     const EXIT_PREFIX = "Exit request:"
     // const DELAY_BLOCKS = (await channel.DELAY_BLOCKS()).toNumber()
@@ -291,22 +276,6 @@ async function signExitRequest(channel, beneficiary, operator) {
     }
 }
 
-function signChannelBalanceUpdate(channelId, nonce, newBalance, operator) {
-    const UPDATE_PREFIX = "Update channel balance"
-    const message = Buffer.concat([
-        Buffer.from(UPDATE_PREFIX),
-        Buffer.from(channelId.slice(2), 'hex'),
-        toBytes32Buffer(nonce),
-        toBytes32Buffer(newBalance)
-    ])
-
-    // sign and verify the signature
-    const signature = signMessage(message, operator.privKey)
-    expect(verifySignature(message, signature, operator.pubKey)).to.be.true
-
-    return signature
-}
-
 function signChannelBeneficiaryChange(channelId, newBeneficiary, channelNonce, identity) {
     const message = Buffer.concat([
         Buffer.from(channelId.slice(2), 'hex'),
@@ -321,33 +290,18 @@ function signChannelBeneficiaryChange(channelId, newBeneficiary, channelNonce, i
     return signature
 }
 
-function signChannelLoanReturnRequest(channelId, channelNonce, identity) {
+function signChannelLoanReturnRequest(channelId, amount, channelNonce, identity) {
     const LOAN_RETURN_PREFIX = "Load return request"
     const message = Buffer.concat([
         Buffer.from(LOAN_RETURN_PREFIX),
         Buffer.from(channelId.slice(2), 'hex'),
+        toBytes32Buffer(amount),
         toBytes32Buffer(channelNonce)
     ])
 
     // sign and verify the signature
     const signature = signMessage(message, identity.privKey)
     expect(verifySignature(message, signature, identity.pubKey)).to.be.true
-
-    return signature
-}
-
-function signFundsWithdrawal(beneficiary, amount, nonce, operator) {
-    const WITHDRAW_PREFIX = "Withdraw request"
-    const message = Buffer.concat([
-        Buffer.from(WITHDRAW_PREFIX),
-        Buffer.from(beneficiary.slice(2), 'hex'),
-        toBytes32Buffer(amount),
-        toBytes32Buffer(nonce)
-    ])
-
-    // sign and verify the signature
-    const signature = signMessage(message, operator.privKey)
-    expect(verifySignature(message, signature, operator.pubKey)).to.be.true
 
     return signature
 }
@@ -399,12 +353,9 @@ module.exports = {
     createProvider,
     createPromise,
     generatePromise,
-    signAccountantFeeUpdate,
-    signChannelBalanceUpdate,
     signChannelBeneficiaryChange,
     signChannelLoanReturnRequest,
     signExitRequest,
-    signFundsWithdrawal,
     signIdentityRegistration,
     validatePromise
 }

@@ -14,7 +14,8 @@ const AccountantImplementation = artifacts.require("AccountantImplementation")
 const MystToken = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
 
-const OneEther = OneToken = web3.utils.toWei('1', 'ether')
+const OneEther = web3.utils.toWei('1', 'ether')
+const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const Zero = new BN(0)
 
 function generateIdentities(amount) {
@@ -43,7 +44,7 @@ contract('Registry', ([txMaker, minter, accountantOperator, fundsDestination, ..
     })
 
     it('should register accountant', async () => {
-        await registry.registerAccountant(accountantOperator, 10, 0)
+        await registry.registerAccountant(accountantOperator, 10, 0, OneToken)
         accountantId = await registry.getAccountantAddress(accountantOperator)
         expect(await registry.isActiveAccountant(accountantId)).to.be.true
     })

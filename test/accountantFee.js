@@ -5,7 +5,6 @@ const { BN } = require('openzeppelin-test-helpers')
 const { randomBytes } = require('crypto')
 const { topUpTokens, generateChannelId, keccak } = require('./utils/index.js')
 const { 
-    signAccountantFeeUpdate,
     signIdentityRegistration,
     createPromise 
 } = require('./utils/client.js')
@@ -29,7 +28,7 @@ contract('Accountant fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
     before(async () => {
         token = await MystToken.new()
         dex = await MystDex.new()
-        const accountantImplementation = await AccountantImplementation.new(token.address, accountantOperator.address, 0)
+        const accountantImplementation = await AccountantImplementation.new(token.address, accountantOperator.address, 0, OneToken)
         channelImplementation = await ChannelImplementation.new()
         registry = await Registry.new(token.address, dex.address, channelImplementation.address, accountantImplementation.address, 0, 0)
 
@@ -41,7 +40,7 @@ contract('Accountant fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
     it('should calculate proper fee righ after accountant registration', async () => {
         // Register accountant
         const accountantFee = 250 // 2.50%
-        await registry.registerAccountant(accountantOperator.address, 100, accountantFee)
+        await registry.registerAccountant(accountantOperator.address, 100, accountantFee, OneToken)
         const accountantId = await registry.getAccountantAddress(accountantOperator.address)
         accountant = await AccountantImplementation.at(accountantId)
 
@@ -58,7 +57,8 @@ contract('Accountant fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
 
     it('should open provider channel', async () => {
         const expectedChannelId = generateChannelId(provider.address, accountant.address)
-        
+        const initialAccountantBalance = await token.balanceOf(accountant.address)
+
         // Guaranteed incomming channel size
         const channelStake = new BN(1000)
 
@@ -74,7 +74,7 @@ contract('Accountant fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
 
         // Channel stake have to be transfered to accountant
         const accountantTokenBalance = await token.balanceOf(accountant.address)
-        accountantTokenBalance.should.be.bignumber.equal(channelStake)
+        accountantTokenBalance.should.be.bignumber.equal(initialAccountantBalance.add(channelStake))
 
         const channel = await accountant.channels(expectedChannelId)
         expect(channel.balance.toNumber()).to.be.equal(channelStake.toNumber())
@@ -93,18 +93,18 @@ contract('Accountant fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
         const fee = await accountant.getAccountantFee(amount)
 
         // Settle promise
-        const initialAccountantBalance = await accountant.availableBalance()
-        const expectedAccountantBalance = initialAccountantBalance.add(fee)
+        const initialAccountantBalance = await token.balanceOf(accountant.address)
+        const expectedAccountantBalance = initialAccountantBalance.sub(amount).add(fee)
         const initialChannelBalance = (await accountant.channels(channelId)).balance
         const expectedChannelBalance = initialChannelBalance.sub(amount)
 
-        const tx = await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, R, promise.signature)
+        await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, R, promise.signature)
 
-        const accountantAvailableBalance = await accountant.availableBalance()
         const channelBalance = (await accountant.channels(channelId)).balance
-
-        accountantAvailableBalance.should.be.bignumber.equal(expectedAccountantBalance)
         channelBalance.should.be.bignumber.equal(expectedChannelBalance)
+
+        const accountantBalance = await token.balanceOf(accountant.address)
+        accountantBalance.should.be.bignumber.equal(expectedAccountantBalance)
     })
 
     it('should update accountant fee', async () => {
@@ -112,8 +112,7 @@ contract('Accountant fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
         const newFee = new BN(175) // 1.75%
         const delayBlocks = 4
 
-        const signature = signAccountantFeeUpdate(newFee, accountant.address, accountantOperator)
-        const tx = await accountant.setAccountantFee(newFee, signature)
+        const tx = await accountant.setAccountantFee(newFee, {from: operatorAddress})
 
         const lastFee = await accountant.lastFee()
         lastFee.value.should.be.bignumber.equal(newFee)
@@ -132,8 +131,7 @@ contract('Accountant fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
 
     it('should not allow to update not active last fee', async () => {
         const newFee = new BN(500) // 5%
-        const signature = signAccountantFeeUpdate(newFee, accountant.address, accountantOperator)
-        await accountant.setAccountantFee(newFee, signature).should.be.rejected
+        await accountant.setAccountantFee(newFee, {from: operatorAddress}).should.be.rejected
     })
 
     it('should calculate new fee after validFrom block is arrived', async () => {
@@ -147,35 +145,14 @@ contract('Accountant fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
         expect(fee).to.be.equal(0.0175)
     })
 
-    it('should fail updating accountant fee with wrong signature', async () => {
+    it('should fail updating accountant fee from not operator account', async () => {
         const newFee = new BN(175) // 1.75%
-
-        const signature = Buffer.from('fake signature')
-        await accountant.setAccountantFee(newFee, signature).should.be.rejected
-    })
-
-    it('operator should be abble to set fee without signature', async () => {
-        const initialFee = await accountant.lastFee()
-        const newFee = new BN(500) // 5%
-        const delayBlocks = 4
-
-        const signature = Buffer.from('') // empty signature
-        const tx = await accountant.setAccountantFee(newFee, signature, {from: operatorAddress})
-
-        const lastFee = await accountant.lastFee()
-        lastFee.value.should.be.bignumber.equal(newFee)
-        expect(lastFee.validFrom.toNumber()).to.be.equal(tx.receipt.blockNumber + delayBlocks)
-
-        const previousFee = await accountant.previousFee()
-        previousFee.value.should.be.bignumber.equal(initialFee.value)
-        previousFee.validFrom.should.be.bignumber.equal(initialFee.validFrom)
+        await accountant.setAccountantFee(newFee).should.be.rejected
     })
 
     it('fee can not be bigger that 50%', async () => {
         const newFee = new BN(5001) // 50.01%
-
-        const signature = signAccountantFeeUpdate(newFee, accountant.address, accountantOperator)
-        await accountant.setAccountantFee(newFee, signature).should.be.rejected
+        await accountant.setAccountantFee(newFee, {from: operatorAddress}).should.be.rejected
     })
 
 })

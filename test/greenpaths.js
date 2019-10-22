@@ -65,7 +65,7 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
     // TODO Topup = Register
     // Ask tx-maker to make tx +  sign cheque for him for that. Works even with registration fee stuff.
     it("register and initialize accountant", async () => {
-        await registry.registerAccountant(operator.address, 10, 0)
+        await registry.registerAccountant(operator.address, 10, 0, OneToken)
         const accountantId = await registry.getAccountantAddress(operator.address)
         expect(await registry.isActiveAccountant(accountantId)).to.be.true
 
@@ -85,6 +85,7 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
     it("register provider identity and open incoming channel with accountant", async () => {
         const providerIdentity = identities[4].address
         const expectedChannelId = generateChannelId(providerIdentity, accountant.address)
+        const initialAccountantBalance = await token.balanceOf(accountant.address)
 
         // Guaranteed incomming channel size
         const channelStake = new BN(2000)
@@ -101,7 +102,7 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
 
         // Channel stake have to be transfered to accountant
         const accountantTokenBalance = await token.balanceOf(accountant.address)
-        accountantTokenBalance.should.be.bignumber.equal(channelStake)
+        accountantTokenBalance.should.be.bignumber.equal(initialAccountantBalance.add(channelStake))
 
         const channel = await accountant.channels(expectedChannelId)
         expect(channel.balance.toNumber()).to.be.equal(channelStake.toNumber())

@@ -58,7 +58,7 @@ contract('Full path (in channel using cheque) test for funds recovery', ([txMake
     })
 
     it('should register accountant', async () => {
-        await registry.registerAccountant(accountantOperator, 10, 0)
+        await registry.registerAccountant(accountantOperator, 10, 0, OneEther)
         expect(await registry.isAccountant(accountantId)).to.be.true
     })
 
