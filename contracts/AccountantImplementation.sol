@@ -24,6 +24,7 @@ contract AccountantImplementation is FundsRecovery {
     uint256 internal totalLoan;                // total amount lended by providers
     uint256 internal maxLoan;                  // maximal allowed provider's loan
     uint256 internal stake;                    // accountant stake is used to prove accountant's sustainability
+    uint256 internal closingTimelock;          // blocknumber after which 
 
     enum Status { Active, Paused, Punishment, Closed } // accountant states
     Status internal status;
@@ -458,11 +459,19 @@ contract AccountantImplementation is FundsRecovery {
         // return max(lockedFunds, totalLoan).add(max(stake, punishment.amount))
     }
 
-    // TODO add loan return logic
     function closeAccountant() public onlyOperator {
         require(isAccountantActive(), "accountant should be active");
         status = Status.Closed;
+        closingTimelock = getEmergencyTimelock();
         emit AccountantClosed(block.number);
+    }
+
+    function getStakeBack(address _beneficiary) public onlyOperator {
+        require(getStatus() == Status.Closed, "accountant have to be closed");
+        require(block.number > closingTimelock, "timelock period have be already passed");
+
+        uint256 _amount = token.balanceOf(address(this)).sub(punishment.amount);
+        token.transfer(_beneficiary, _amount);
     }
 
     // Returns blocknumber until which exit request should be locked
@@ -471,7 +480,7 @@ contract AccountantImplementation is FundsRecovery {
     }
 
     function getEmergencyTimelock() internal view returns (uint256) {
-        return block.number + DELAY_BLOCKS * 10; // +/- 30 days
+        return block.number + DELAY_BLOCKS * 100; // +/- 300 days
     }
 
     function max(uint a, uint b) private pure returns (uint) {

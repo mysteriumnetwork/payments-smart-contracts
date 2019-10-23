@@ -15,7 +15,11 @@ contract TestAccountantImplementation is AccountantImplementation {
     function getTimelock() internal view returns (uint256) {
         return block.number + DELAY_BLOCKS;
     }
-    
+
+    function getEmergencyTimelock() internal view returns (uint256) {
+        return block.number + DELAY_BLOCKS;
+    }
+
     function getNow() public view returns (uint256) {
         return now;
     }
