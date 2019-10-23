@@ -25,7 +25,7 @@ contract AccountantImplementation is FundsRecovery {
     uint256 internal totalLoan;                // total amount lended by providers
     uint256 internal maxLoan;                  // maximal allowed provider's loan
     uint256 internal stake;                    // accountant stake is used to prove accountant's sustainability
-    uint256 internal closingTimelock;          // blocknumber after which 
+    uint256 internal closingTimelock;          // blocknumber after which getting stake back will become possible
 
     enum Status { Active, Paused, Punishment, Closed } // accountant states
     Status internal status;

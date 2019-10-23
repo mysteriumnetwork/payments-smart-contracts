@@ -162,7 +162,7 @@ contract ChannelImplementation is FundsRecovery {
         require(_nonce > lastNonce, "nonce have to be bigger than last one");
 
         address _signer = keccak256(abi.encodePacked(FUNDS_DESTINATION_PREFIX, _newDestination, _nonce)).recover(_signature);
-        require(_signer == operator, "bave to be signed by proper identity");
+        require(_signer == operator, "have to be signed by proper identity");
 
         emit DestinationChanged(fundsDestination, _newDestination);
 
