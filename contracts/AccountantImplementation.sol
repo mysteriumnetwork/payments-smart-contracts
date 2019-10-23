@@ -24,6 +24,7 @@ contract AccountantImplementation is FundsRecovery {
     uint256 internal totalLoan;                // total amount lended by providers
     uint256 internal maxLoan;                  // maximal allowed provider's loan
     uint256 internal stake;                    // accountant stake is used to prove accountant's sustainability
+    uint256 internal closingTimelock;          // blocknumber after which 
 
     enum Status { Active, Paused, Punishment, Closed } // accountant states
     Status internal status;
@@ -179,7 +180,7 @@ contract AccountantImplementation is FundsRecovery {
         _channel.settled = _channel.settled.add(_unpaidAmount);
 
         // Calculate accountant fee
-        uint256 _accountantFee = getAccountantFee(_unpaidAmount);
+        uint256 _accountantFee = calculateAccountantFee(_unpaidAmount);
 
         // Transfer tokens and decrease balance
         token.transfer(_channel.beneficiary, _unpaidAmount.sub(_transactorFee).sub(_accountantFee));
@@ -364,22 +365,16 @@ contract AccountantImplementation is FundsRecovery {
         emit AccountantPunishmentDeactivated();
     }
 
-    // TODO unify with other similar calls and instead of _party use _channelId
-    function setBeneficiary(address _party, address _newBeneficiary, uint256 _nonce, bytes memory _signature) public {
-        require(_newBeneficiary != address(0), "beneficiary can't be zero address");
-        bytes32 _channelId = getChannelId(_party);
-        Channel storage _channel = channels[_channelId];
-
+    function setBeneficiary(bytes32 _channelId, address _newBeneficiary, uint256 _nonce, bytes memory _signature) public {
         require(isOpened(_channelId), "channel have to be opened");
+        require(_newBeneficiary != address(0), "beneficiary can't be zero address");
+        Channel storage _channel = channels[_channelId];
+        require(_nonce > _channel.lastUsedNonce, "nonce have to be bigger than already used");
 
-        if (msg.sender != _party) {
-            require(_nonce > _channel.lastUsedNonce, "nonce have to be bigger than already used");
-            _channel.lastUsedNonce = _nonce;
+        address _signer = keccak256(abi.encodePacked(_channelId, _newBeneficiary, _nonce)).recover(_signature);
+        require(getChannelId(_signer) == _channelId, "have to be signed by channel party");
 
-            address _signer = keccak256(abi.encodePacked(_channelId, _newBeneficiary, _nonce)).recover(_signature);
-            require(_signer == _party, "have to be signed by channel party");
-        }
-
+        _channel.lastUsedNonce = _nonce;
         _channel.beneficiary = _newBeneficiary;
 
         emit ChannelBeneficiaryChanged(_channelId, _newBeneficiary);
@@ -411,8 +406,7 @@ contract AccountantImplementation is FundsRecovery {
         emit AccountantFeeUpdated(_newFee, _validFrom);
     }
 
-    // TODO rename into CalculateAccountantFeeOf(uint256 _amount)
-    function getAccountantFee(uint256 _amount) public view returns (uint256) {
+    function calculateAccountantFee(uint256 _amount) public view returns (uint256) {
         AccountantFee memory _activeFee = (block.number >= lastFee.validFrom) ? lastFee : previousFee;
         return round((_amount * uint256(_activeFee.value) / 100), 100) / 100;
     }
@@ -465,11 +459,19 @@ contract AccountantImplementation is FundsRecovery {
         // return max(lockedFunds, totalLoan).add(max(stake, punishment.amount))
     }
 
-    // TODO add loan return logic
     function closeAccountant() public onlyOperator {
         require(isAccountantActive(), "accountant should be active");
         status = Status.Closed;
+        closingTimelock = getEmergencyTimelock();
         emit AccountantClosed(block.number);
+    }
+
+    function getStakeBack(address _beneficiary) public onlyOperator {
+        require(getStatus() == Status.Closed, "accountant have to be closed");
+        require(block.number > closingTimelock, "timelock period have be already passed");
+
+        uint256 _amount = token.balanceOf(address(this)).sub(punishment.amount);
+        token.transfer(_beneficiary, _amount);
     }
 
     // Returns blocknumber until which exit request should be locked
@@ -478,7 +480,7 @@ contract AccountantImplementation is FundsRecovery {
     }
 
     function getEmergencyTimelock() internal view returns (uint256) {
-        return block.number + DELAY_BLOCKS * 10; // +/- 30 days
+        return block.number + DELAY_BLOCKS * 100; // +/- 300 days
     }
 
     function max(uint a, uint b) private pure returns (uint) {

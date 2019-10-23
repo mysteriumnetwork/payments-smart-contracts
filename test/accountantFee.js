@@ -45,13 +45,13 @@ contract('Accountant fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
         accountant = await AccountantImplementation.at(accountantId)
 
         // Fee of settling one token should be 0.025 token
-        const oneTokenSettleFee = await accountant.getAccountantFee(OneToken)
+        const oneTokenSettleFee = await accountant.calculateAccountantFee(OneToken)
         let fee = oneTokenSettleFee / OneToken
         expect(fee).to.be.equal(0.025)
 
         // When settling sumer small values, we'll round fee to avoid calculation errors or value overflow
         const smallValueToSettle = new BN(100)  // 0.000000000000000100 token
-        fee = await accountant.getAccountantFee(smallValueToSettle)
+        fee = await accountant.calculateAccountantFee(smallValueToSettle)
         fee.should.be.bignumber.equal(new BN(3))
     })
 
@@ -90,7 +90,7 @@ contract('Accountant fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
         const promise = createPromise(channelId, amount, Zero, hashlock, accountantOperator)
 
         // Calculate expected accountant fee
-        const fee = await accountant.getAccountantFee(amount)
+        const fee = await accountant.calculateAccountantFee(amount)
 
         // Settle promise
         const initialAccountantBalance = await token.balanceOf(accountant.address)
@@ -124,7 +124,7 @@ contract('Accountant fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
     })
 
     it('should still calculate previous fee value untill validFrom block not arrived', async () => {
-        const oneTokenSettleFee = await accountant.getAccountantFee(OneToken)
+        const oneTokenSettleFee = await accountant.calculateAccountantFee(OneToken)
         let fee = oneTokenSettleFee / OneToken
         expect(fee).to.be.equal(0.025)
     })
@@ -140,7 +140,7 @@ contract('Accountant fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
             await accountant.moveBlock()
         }
 
-        const oneTokenSettleFee = await accountant.getAccountantFee(OneToken)
+        const oneTokenSettleFee = await accountant.calculateAccountantFee(OneToken)
         fee = oneTokenSettleFee / OneToken
         expect(fee).to.be.equal(0.0175)
     })

@@ -51,7 +51,7 @@ contract('Accountant stake', ([txMaker, operatorAddress, ...beneficiaries]) => {
         await registry.registerAccountant(accountantOperator.address, stake, Zero, OneToken)
         const accountantId = await registry.getAccountantAddress(accountantOperator.address)
         accountant = await AccountantImplementation.at(accountantId)
-        expect(await registry.isActiveAccountant(accountant.address)).to.be.true
+        expect(await registry.isAccountant(accountant.address)).to.be.true
     })
 
     it('should open provider channel and calculate zero available balance', async () => {

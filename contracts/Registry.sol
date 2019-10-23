@@ -33,7 +33,6 @@ contract Registry is Ownable, FundsRecovery {
     struct Accountant {
         address operator;
         function() external view returns(uint256) stake;
-        // TODO add accountant status: healthy, warning, inactive
     }
     mapping(address => Accountant) public accountants;
 
@@ -194,12 +193,10 @@ contract Registry is Ownable, FundsRecovery {
         return _codeLength != 0;
     }
 
-    // TODO write test to recheck what will be returned when such accountant is not registered at all
-    function isActiveAccountant(address _accountantId) public view returns (bool) {
+    function isActiveAccountant(address _accountantId) internal view returns (bool) {
         // If stake is 0, then it's either incactive or unregistered accountant
         AccountantContract.Status status = AccountantContract(_accountantId).getStatus();
         return status == AccountantContract.Status.Active;
-        // return accountants[_accountantId].stake() != uint256(0);
     }
 
     function changeRegistrationFee(uint256 _newFee) public onlyOwner {
