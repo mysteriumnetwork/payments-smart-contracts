@@ -26,7 +26,7 @@ const provider = wallet.generateAccount()
 const operatorPrivKey = Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8c26933e5d9f0cda92f3c3', 'hex')
 const accountantOperator = wallet.generateAccount(operatorPrivKey)
 
-contract.only('Accountant closing', ([txMaker, operatorAddress, ...beneficiaries]) => {
+contract('Accountant closing', ([txMaker, operatorAddress, ...beneficiaries]) => {
     let token, accountant, registry, stake
     before(async () => {
         stake = OneToken

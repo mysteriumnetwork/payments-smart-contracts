@@ -4,7 +4,8 @@ const {
     signMessage,
     verifySignature,
     topUpEthers,
-    topUpTokens
+    topUpTokens,
+    toBytes32Buffer
 } = require('./utils/index.js')
 const wallet = require('./utils/wallet.js')
 const signIdentityRegistration = require('./utils/client.js').signIdentityRegistration
@@ -19,9 +20,13 @@ const OneEther = web3.utils.toWei('1', 'ether')
 const Zero = new BN(0)
 const ZeroAddress = '0x0000000000000000000000000000000000000000'
 
-function createCheque(signer, destination) {
+function createCheque(signer, destination, nonce) {
     const PREFIX = Buffer.from("Set funds destination:")
-    const message = Buffer.concat([PREFIX, Buffer.from(destination.slice(2), 'hex')])
+    const message = Buffer.concat([
+        PREFIX, 
+        Buffer.from(destination.slice(2), 'hex'),
+        toBytes32Buffer(nonce)
+    ])
     const signature = signMessage(message, signer.privKey)
 
     // verify the signature
@@ -82,15 +87,17 @@ contract('Full path (in channel using cheque) test for funds recovery', ([txMake
     })
 
     it('should set funds destination using checque', async () => {
-        const signature = createCheque(identity, fundsDestination)
-        await channel.setFundsDestinationByCheque(fundsDestination, signature).should.be.fulfilled
+        const nonce = new BN(1)
+        const signature = createCheque(identity, fundsDestination, nonce)
+        await channel.setFundsDestinationByCheque(fundsDestination, nonce, signature).should.be.fulfilled
         expect(await channel.getFundsDestination()).to.be.equal(fundsDestination)
     })
 
     it('should fail setting funds destination using wrong identity', async () => {
         const secondIdentity  = wallet.generateAccount()
-        const signature = createCheque(secondIdentity, otherAccounts[1])
-        await channel.setFundsDestinationByCheque(fundsDestination, signature).should.be.rejected
+        const nonce = new BN(2)
+        const signature = createCheque(secondIdentity, otherAccounts[1], nonce)
+        await channel.setFundsDestinationByCheque(fundsDestination, nonce, signature).should.be.rejected
         expect(await channel.getFundsDestination()).to.be.equal(fundsDestination)
     })
 
