@@ -44,7 +44,7 @@ contract('Multi accountants', ([txMaker, ...beneficiaries]) => {
             await registry.registerAccountant(operator.address, 10, 0, OneToken)
             const id = await registry.getAccountantAddress(operator.address)
             accountants.push({id, operator})
-            expect(await registry.isActiveAccountant(id)).to.be.true
+            expect(await registry.isAccountant(id)).to.be.true
         }
     })
 

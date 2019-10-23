@@ -46,7 +46,7 @@ contract('Registry', ([txMaker, minter, accountantOperator, fundsDestination, ..
     it('should register accountant', async () => {
         await registry.registerAccountant(accountantOperator, 10, 0, OneToken)
         accountantId = await registry.getAccountantAddress(accountantOperator)
-        expect(await registry.isActiveAccountant(accountantId)).to.be.true
+        expect(await registry.isAccountant(accountantId)).to.be.true
     })
 
     it('should register identity having 0 balance', async () => {

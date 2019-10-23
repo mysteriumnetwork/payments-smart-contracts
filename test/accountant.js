@@ -55,7 +55,7 @@ contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress,
     it("should register and initialize accountant", async () => {
         await registry.registerAccountant(operator.address, 10, 0, OneToken)
         const accountantId = await registry.getAccountantAddress(operator.address)
-        expect(await registry.isActiveAccountant(accountantId)).to.be.true
+        expect(await registry.isAccountant(accountantId)).to.be.true
 
         // Initialise accountant object
         accountant = await AccountantImplementation.at(accountantId)
