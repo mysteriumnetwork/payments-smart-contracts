@@ -179,7 +179,7 @@ contract AccountantImplementation is FundsRecovery {
         _channel.settled = _channel.settled.add(_unpaidAmount);
 
         // Calculate accountant fee
-        uint256 _accountantFee = getAccountantFee(_unpaidAmount);
+        uint256 _accountantFee = calculateAccountantFee(_unpaidAmount);
 
         // Transfer tokens and decrease balance
         token.transfer(_channel.beneficiary, _unpaidAmount.sub(_transactorFee).sub(_accountantFee));
@@ -405,8 +405,7 @@ contract AccountantImplementation is FundsRecovery {
         emit AccountantFeeUpdated(_newFee, _validFrom);
     }
 
-    // TODO rename into CalculateAccountantFeeOf(uint256 _amount)
-    function getAccountantFee(uint256 _amount) public view returns (uint256) {
+    function calculateAccountantFee(uint256 _amount) public view returns (uint256) {
         AccountantFee memory _activeFee = (block.number >= lastFee.validFrom) ? lastFee : previousFee;
         return round((_amount * uint256(_activeFee.value) / 100), 100) / 100;
     }
