@@ -33,7 +33,6 @@ contract Registry is Ownable, FundsRecovery {
     struct Accountant {
         address operator;
         function() external view returns(uint256) stake;
-        // TODO add accountant status: healthy, warning, inactive
     }
     mapping(address => Accountant) public accountants;
 
