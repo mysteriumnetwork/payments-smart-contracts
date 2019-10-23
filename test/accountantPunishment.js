@@ -98,7 +98,7 @@ contract('Accountant punishment', ([txMaker, operatorAddress, ...beneficiaries])
         channelBalance.should.be.bignumber.equal(expectedChannelBalance)
     })
 
-    it('should rebalance channel only with available abalance and enable punishment mode', async () => {
+    it('should rebalance channel only with available balance and enable punishment mode', async () => {
         const channelId = generateChannelId(provider.address, accountant.address)
         const channel = await accountant.channels(channelId)
         const rebalanceAmount = channel.loan.sub(channel.balance)
@@ -114,7 +114,7 @@ contract('Accountant punishment', ([txMaker, operatorAddress, ...beneficiaries])
         const accountantStake = await accountant.getStake()
         expect(accountantStake.toNumber()).to.be.equal(initialStake.toNumber())
 
-        // There should be zoro available balance
+        // There should be zero available balance
         expect((await accountant.availableBalance()).toNumber()).to.be.equal(0)
 
         // Because of not getting all expected balance, there should be enabled punishment mode
@@ -235,6 +235,81 @@ contract('Accountant punishment', ([txMaker, operatorAddress, ...beneficiaries])
         
         expect(await accountant.isAccountantActive()).to.be.true
     })
-})
 
-// TODO add tests when emergency not resolved on time
+    it('should enable punishment mode again', async () => {
+        const channelId = generateChannelId(provider.address, accountant.address)
+        const channel = await accountant.channels(channelId)
+
+        // Withdraw available balance
+        const availableBalance = await accountant.availableBalance()
+        await accountant.withdraw(beneficiaries[3], availableBalance, {from: operatorAddress})
+
+        // Create accountant promise
+        const amount = channel.settled.add(channel.balance)
+        const R = randomBytes(32)
+        const hashlock = keccak(R)
+
+        const promise = createPromise(channelId, amount, Zero, hashlock, accountantOperator)
+
+        // Settle promise
+        await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, R, promise.signature)
+        const channelBalance = (await accountant.channels(channelId)).balance
+        channelBalance.should.be.bignumber.equal(Zero)
+
+        // Rebalance channel and move status into punishment mode
+        await accountant.rebalanceChannel(channelId)
+        const accountantStatus = await accountant.getStatus() // 0 - Active, 1 - Paused, 2 - Punishment, 3 - Closed
+        expect(accountantStatus.toNumber()).to.be.equal(2)
+        expect(await accountant.isAccountantActive()).to.be.false
+    })
+
+    it('should be not possible to close accountant while in punishment mode', async () => {
+        expect((await accountant.getStatus()).toNumber()).to.be.equal(2)  // 0 - Active, 1 - Paused, 2 - Punishment, 3 - Closed
+        await accountant.closeAccountant({from: operatorAddress}).should.be.rejected
+    })
+
+    it('accountant should be punished for not resolving emergency on time', async () => {
+        const initialLockedFunds = await accountant.getLockedFunds()
+
+        // Move blockchain forward
+        for (let i=0; i<10; i++) {
+            await accountant.moveBlock()
+        }
+
+        await accountant.resolveEmergency()
+
+        const accountantStatus = await accountant.getStatus() // 0 - Active, 1 - Paused, 2 - Punishment, 3 - Closed
+        expect(accountantStatus.toNumber()).to.be.equal(0)
+
+        // Emergency was resolved after 10 blocks (within 2 unit of time), 
+        // punishment amount should be 0.08% of locked in channel funds.
+        const expectedPunishment = initialLockedFunds * 0.04 * 2
+        const punishmentAmount = (await accountant.punishment()).amount.toNumber()
+        expect(punishmentAmount).to.be.equal(expectedPunishment)
+
+        expect(await accountant.isAccountantActive()).to.be.true
+    })
+
+    it('should reduce stake return by punishment amount', async () => {
+        const initialAccountantBalance = await token.balanceOf(accountant.address)
+        const expectedBlockNumber = (await web3.eth.getBlock('latest')).number + 4
+        const punishmentAmount = (await accountant.punishment()).amount
+
+        await accountant.closeAccountant({from: operatorAddress})
+        expect((await accountant.getStatus()).toNumber()).to.be.equal(3)  // 0 - Active, 1 - Paused, 2 - Punishment, 3 - Closed
+
+        // Move blockchain forward
+        for (let i=0; i<5; i++) {
+            await accountant.moveBlock()
+        }
+        expect((await web3.eth.getBlock('latest')).number).to.be.above(expectedBlockNumber)
+
+        await accountant.getStakeBack(beneficiaries[4], {from: operatorAddress})
+
+        const currentAccountantBalance = await token.balanceOf(accountant.address)
+        const beneficiaryBalance = await token.balanceOf(beneficiaries[4])
+        beneficiaryBalance.should.be.bignumber.equal(initialAccountantBalance.sub(punishmentAmount))
+        currentAccountantBalance.should.be.bignumber.equal(punishmentAmount)
+    })
+
+})

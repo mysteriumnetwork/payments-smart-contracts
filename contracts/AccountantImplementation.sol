@@ -17,6 +17,7 @@ contract AccountantImplementation is FundsRecovery {
 
     string constant LOAN_RETURN_PREFIX = "Load return request";
     uint256 constant DELAY_BLOCKS = 18000;  // +/- 3 days
+    uint256 constant UNIT_BLOCKS = 257;     // 1 unit = 1 hour = 257 blocks. 
 
     IdentityRegistry internal registry;
     address internal operator;
@@ -343,11 +344,12 @@ contract AccountantImplementation is FundsRecovery {
         require(getStatus() == Status.Punishment, "accountant should be in punishment status");
 
         // 0.04% of total channels amount per unit
-        uint256 _punishmentPerUnit = round(lockedFunds, 10000).div(10000).mul(4);
+        uint256 _punishmentPerUnit = round(lockedFunds.mul(4), 100).div(100);
 
-        // 1 unit = 1 hour = 257 blocks. No punishment during first unit.
+        // No punishment during first unit.
+        uint256 _unit = getUnitBlocks();
         uint256 _blocksPassed = block.number - punishment.activationBlock;
-        uint256 _punishmentUnits = (round(_blocksPassed, 257) / 257).sub(1);
+        uint256 _punishmentUnits = (round(_blocksPassed, _unit) / _unit).sub(1);
 
         uint256 _punishmentAmount = _punishmentUnits.mul(_punishmentPerUnit);
         punishment.amount = punishment.amount.add(_punishmentAmount);
@@ -472,6 +474,10 @@ contract AccountantImplementation is FundsRecovery {
 
         uint256 _amount = token.balanceOf(address(this)).sub(punishment.amount);
         token.transfer(_beneficiary, _amount);
+    }
+
+    function getUnitBlocks() internal pure returns (uint256) {
+        return UNIT_BLOCKS;
     }
 
     // Returns blocknumber until which exit request should be locked
