@@ -364,22 +364,16 @@ contract AccountantImplementation is FundsRecovery {
         emit AccountantPunishmentDeactivated();
     }
 
-    // TODO unify with other similar calls and instead of _party use _channelId
-    function setBeneficiary(address _party, address _newBeneficiary, uint256 _nonce, bytes memory _signature) public {
-        require(_newBeneficiary != address(0), "beneficiary can't be zero address");
-        bytes32 _channelId = getChannelId(_party);
-        Channel storage _channel = channels[_channelId];
-
+    function setBeneficiary(bytes32 _channelId, address _newBeneficiary, uint256 _nonce, bytes memory _signature) public {
         require(isOpened(_channelId), "channel have to be opened");
+        require(_newBeneficiary != address(0), "beneficiary can't be zero address");
+        Channel storage _channel = channels[_channelId];
+        require(_nonce > _channel.lastUsedNonce, "nonce have to be bigger than already used");
 
-        if (msg.sender != _party) {
-            require(_nonce > _channel.lastUsedNonce, "nonce have to be bigger than already used");
-            _channel.lastUsedNonce = _nonce;
+        address _signer = keccak256(abi.encodePacked(_channelId, _newBeneficiary, _nonce)).recover(_signature);
+        require(getChannelId(_signer) == _channelId, "have to be signed by channel party");
 
-            address _signer = keccak256(abi.encodePacked(_channelId, _newBeneficiary, _nonce)).recover(_signature);
-            require(_signer == _party, "have to be signed by channel party");
-        }
-
+        _channel.lastUsedNonce = _nonce;
         _channel.beneficiary = _newBeneficiary;
 
         emit ChannelBeneficiaryChanged(_channelId, _newBeneficiary);

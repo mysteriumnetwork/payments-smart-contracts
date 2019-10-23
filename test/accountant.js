@@ -344,7 +344,7 @@ contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress,
         const nonce = new BN(3)
         const signature = signChannelBeneficiaryChange(channelId, newBeneficiary, nonce, identityB)
 
-        await accountant.setBeneficiary(identityB.address, newBeneficiary, nonce, signature)
+        await accountant.setBeneficiary(channelId, newBeneficiary, nonce, signature)
 
         expect((await accountant.channels(channelId)).beneficiary).to.be.equal(newBeneficiary)
     })
