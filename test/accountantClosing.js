@@ -2,9 +2,8 @@ require('chai')
 .use(require('chai-as-promised'))
 .should()
 const { BN } = require('openzeppelin-test-helpers')
-const { randomBytes } = require('crypto')
 
-const { topUpTokens, generateChannelId, keccak } = require('./utils/index.js')
+const { topUpTokens } = require('./utils/index.js')
 const { 
     signIdentityRegistration,
     signChannelBalanceUpdate,
@@ -22,7 +21,6 @@ const ChannelImplementation = artifacts.require("ChannelImplementation")
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const Zero = new BN(0)
 
-const provider = wallet.generateAccount()
 const operatorPrivKey = Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8c26933e5d9f0cda92f3c3', 'hex')
 const accountantOperator = wallet.generateAccount(operatorPrivKey)
 

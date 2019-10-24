@@ -20,6 +20,10 @@ contract TestAccountantImplementation is AccountantImplementation {
         return block.number + DELAY_BLOCKS;
     }
 
+    function getUnitBlocks() internal pure returns (uint256) {
+        return DELAY_BLOCKS;
+    }
+
     function getNow() public view returns (uint256) {
         return now;
     }
