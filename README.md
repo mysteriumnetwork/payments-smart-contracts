@@ -36,166 +36,103 @@ npm test
 npm run migrate
 ```
 
-## Current deployment (ethereum Ropsten testnet)
-
-ERC20 Token (Mintable a la myst token): [0x453c11c058f13b36a35e1aee504b20c1a09667de](https://ropsten.etherscan.io/address/0x453c11c058f13b36a35e1aee504b20c1a09667de)
-
-Registry smart contract:
-[0xE6b3a5c92e7c1f9543A0aEE9A93fE2F6B584c1f7](https://ropsten.etherscan.io/address/0xe6b3a5c92e7c1f9543a0aee9a93fe2f6b584c1f7)
-
-### Deloyment log:
-
-    $ npm run deploy
-
-    Deploying 'MystDEX'
-    -------------------
-    > transaction hash:     0x5b0880c3c3915a6b0b19f8cbdb0e4176d7dcb4fe31522587b7261433eccb43f1
-    > Blocks: 1            Seconds: 12
-    > contract address:    0x5C6881e2811E530D9067cC151981A9C27fAf31A9
-    > block number:        5872378
-    > block timestamp:     1561624076
-    > account:             0x4c41f8CB6dB9541004c0B2152D07cD1F2904d33d
-    > balance:             3.89145553
-    > gas used:            1606267
-    > gas price:           1 gwei
-    > value sent:          0 ETH
-    > total cost:          0.001606267 ETH
-
-    Deploying 'DEXProxy'
-    --------------------
-    > transaction hash:     0x44b9c337a4cf9ef5dc663e6cf5d33e1fb09edf91a53b8a5caa89033ab54e8a08
-    > Blocks: 1            Seconds: 40
-    > contract address:    0xC30F3519F43F704E6224b0DB3982c1c494a90d0A
-    > block number:        5872382
-    > block timestamp:     1561624140
-    > account:             0x4c41f8CB6dB9541004c0B2152D07cD1F2904d33d
-    > balance:             3.890848777
-    > gas used:            606753
-    > gas price:           1 gwei
-    > value sent:          0 ETH
-    > total cost:          0.000606753 ETH
-
-    Deploying 'ChannelImplementation'
-    ---------------------------------
-    > transaction hash:     0x4cf0667775ea6d5628b8394a8898f394f192aaa5d15eb550ad1c6a48b746b77b
-    > Blocks: 0            Seconds: 4
-    > contract address:    0xa26b684d8dBa935DD34544FBd3Ab4d7FDe1C4D07
-    > block number:        5872384
-    > block timestamp:     1561624157
-    > account:             0x4c41f8CB6dB9541004c0B2152D07cD1F2904d33d
-    > balance:             3.887661828
-    > gas used:            3186949
-    > gas price:           1 gwei
-    > value sent:          0 ETH
-    > total cost:          0.003186949 ETH
-
-    Deploying 'AccountantImplementation'
-    ------------------------------------
-    > transaction hash:     0x4c2e9d176bd3042218ed60c91982ff1f4f68610723b6762dcc64bc35218521ae
-    > Blocks: 5            Seconds: 16
-    > contract address:    0x5a10863FeB6f3BcaEe9C960D0c24F4887cF15053
-    > block number:        5872390
-    > block timestamp:     1561624204
-    > account:             0x4c41f8CB6dB9541004c0B2152D07cD1F2904d33d
-    > balance:             3.88279432
-    > gas used:            4867508
-    > gas price:           1 gwei
-    > value sent:          0 ETH
-    > total cost:          0.004867508 ETH
-
-    Deploying 'Registry'
-    --------------------
-    > transaction hash:     0x5cf539ea4cf46c7b476fa456e6935e158f4d65be191c27214c80e57bdc7cb503
-    > Blocks: 1            Seconds: 24
-    > contract address:    0xE6b3a5c92e7c1f9543A0aEE9A93fE2F6B584c1f7
-    > block number:        5872394
-    > block timestamp:     1561624257
-    > account:             0x4c41f8CB6dB9541004c0B2152D07cD1F2904d33d
-    > balance:             3.879662274
-    > gas used:            3132046
-    > gas price:           1 gwei
-    > value sent:          0 ETH
-    > total cost:          0.003132046 ETH
-
 ## Current deployment (ethereum Kovan testnet)
-ERC20 Token (Mintable a la myst token): [0x045A6fcb75a53db17E5013B7d2DC6ad69381a151](https://kovan.etherscan.io/address/0x045A6fcb75a53db17E5013B7d2DC6ad69381a151)
+ERC20 Token (Mintable a la myst token): [0x045A6fcb75a53db17E5013B7d2DC6ad69381a151](https://kovan.etherscan.io/address/0xE67e41367c1e17ede951A528b2A8BE35c288c787)
 
 Registry smart contract:
-[0x06d88A209e03221Be1e57D7DfffE158d6e399084](https://kovan.etherscan.io/address/0x06d88A209e03221Be1e57D7DfffE158d6e399084)
+[0xdB8fc76Affa54C27Cea72a689Cb03F40Bf854454](https://kovan.etherscan.io/address/0xdB8fc76Affa54C27Cea72a689Cb03F40Bf854454)
 
 ### Deloyment log:
 
     $ npm run deploy
+
+    Deploying 'SafeMathLib'
+    -----------------------
+    > transaction hash:    0xf8aaf4e1f3443874e75aa44fd28107c8a28b5168be6341206afcd17e69dad8a7
+    > Blocks: 1            Seconds: 4
+    > contract address:    0x3BC2e91d67B924506bc0aB9d61B8c7D1b291538E
+    > block number:        14358116
+    > block timestamp:     1571954468
+    > account:             0x4b902507cc9F6C18c2f0f1cb170315276D6a7eFe
+    > balance:             0.9952566778
+    > gas used:            224802
+    > gas price:           21.1 gwei
+    > value sent:          0 ETH
+    > total cost:          0.0047433222 ETH
+
+    Linking
+    -------
+    * Contract: MystToken <--> Library: SafeMathLib (at address: 0x3BC2e91d67B924506bc0aB9d61B8c7D1b291538E)
 
     Deploying 'MystToken'
     ---------------------
-    > transaction hash:    0xfe7db9c5c133452b61e2d8026a585ea03631b9dc41213a597c9162363ed092ec
-    > Blocks: 1            Seconds: 4
-    > contract address:    0x045A6fcb75a53db17E5013B7d2DC6ad69381a151
-    > block number:        12566703
-    > block timestamp:     1564576480
-    > account:             0x4c41f8CB6dB9541004c0B2152D07cD1F2904d33d
-    > balance:             1.897431927491555
-    > gas used:            1968094
-    > gas price:           1.11 gwei
+    > transaction hash:    0x856fe41aa4047450de88eb321382371f4f7a9d957e66a5dba8ae245d7f0aff99
+    > Blocks: 0            Seconds: 0
+    > contract address:    0xE67e41367c1e17ede951A528b2A8BE35c288c787
+    > block number:        14358119
+    > block timestamp:     1571954480
+    > account:             0x4b902507cc9F6C18c2f0f1cb170315276D6a7eFe
+    > balance:             0.9527568046
+    > gas used:            2014212
+    > gas price:           21.1 gwei
     > value sent:          0 ETH
-    > total cost:          0.00218458434 ETH
+    > total cost:          0.0424998732 ETH
 
     Deploying 'MystDEX'
     -------------------
-    > transaction hash:    0x504a3abedac2e84f630f703156de31de8f39de64e906449c3cc03fbd8d86d930
-    > Blocks: 0            Seconds: 0
-    > contract address:    0xa60ee3235137C2067eA1D3BEEC26D831Bd137c0A
-    > block number:        12566706
-    > block timestamp:     1564576492
-    > account:             0x4c41f8CB6dB9541004c0B2152D07cD1F2904d33d
-    > balance:             1.895648971121555
-    > gas used:            1606267
-    > gas price:           1.11 gwei
+    > transaction hash:    0x423d75441f5afd4cbe654911a7421bcfa2f54cc91fe57b344c80319f85c6485a
+    > Blocks: 2            Seconds: 4
+    > contract address:    0xd4c045E21aa8350A404e686356F00DA442C83f56
+    > block number:        14358123
+    > block timestamp:     1571954496
+    > account:             0x4b902507cc9F6C18c2f0f1cb170315276D6a7eFe
+    > balance:             0.9239150669
+    > gas used:            1366907
+    > gas price:           21.1 gwei
     > value sent:          0 ETH
-    > total cost:          0.00178295637 ETH
+    > total cost:          0.0288417377 ETH
 
     Deploying 'ChannelImplementation'
     ---------------------------------
-    > transaction hash:    0x0b8b413c0a17d6199eecd4b405b8407983261fdf46c9b571c1554d95d7fe94ea
-    > Blocks: 1            Seconds: 4
-    > contract address:    0xcfF46F3646f94F6541d8700C2394BF002915De7d
-    > block number:        12566710
-    > block timestamp:     1564576508
-    > account:             0x4c41f8CB6dB9541004c0B2152D07cD1F2904d33d
-    > balance:             1.892111457731555
-    > gas used:            3186949
-    > gas price:           1.11 gwei
+    > transaction hash:    0xc6cd955adf7053f0e9f15caef3f3dfdfd90701968c4bf0e71d80e768e2a71a23
+    > Blocks: 0            Seconds: 0
+    > contract address:    0xd15b481BC48144345a376eA9C9dDCA698A32950b
+    > block number:        14358127
+    > block timestamp:     1571954512
+    > account:             0x4b902507cc9F6C18c2f0f1cb170315276D6a7eFe
+    > balance:             0.8681689724
+    > gas used:            2641995
+    > gas price:           21.1 gwei
     > value sent:          0 ETH
-    > total cost:          0.00353751339 ETH
+    > total cost:          0.0557460945 ETH
 
     Deploying 'AccountantImplementation'
     ------------------------------------
-    > transaction hash:    0x418c10820ec6efb5ef968fb50e3d59905b0de608fc2e63098862731d98b07bed
-    > Blocks: 2            Seconds: 4
-    > contract address:    0x3C89FC7a44c676Ab222B8918bbb1365639A36Eb1
-    > block number:        12566714
-    > block timestamp:     1564576524
-    > account:             0x4c41f8CB6dB9541004c0B2152D07cD1F2904d33d
-    > balance:             1.886959220681555
-    > gas used:            4641655
-    > gas price:           1.11 gwei
+    > transaction hash:    0x9f4a11c2f2d1a9a550f8788a086ced94436048dfd6218a0438c7e82806de4297
+    > Blocks: 1            Seconds: 4
+    > contract address:    0x7753cfAD258eFbC52A9A1452e42fFbce9bE486cb
+    > block number:        14358131
+    > block timestamp:     1571954528
+    > account:             0x4b902507cc9F6C18c2f0f1cb170315276D6a7eFe
+    > balance:             0.7560186111
+    > gas used:            5315183
+    > gas price:           21.1 gwei
     > value sent:          0 ETH
-    > total cost:          0.00515223705 ETH
+    > total cost:          0.1121503613 ETH
 
     Deploying 'Registry'
     --------------------
-    > transaction hash:    0x9399057ec6b5f47058aca8ea73fb912f0a9a038664541360ae9b0c87c1288650
-    > Blocks: 1            Seconds: 4
-    > contract address:    0x06d88A209e03221Be1e57D7DfffE158d6e399084
-    > block number:        12566718
-    > block timestamp:     1564576540
-    > account:             0x4c41f8CB6dB9541004c0B2152D07cD1F2904d33d
-    > balance:             1.883411246651555
-    > gas used:            3196373
-    > gas price:           1.11 gwei
+    > transaction hash:    0x7abc80a718a96f64cfa496fc4f654c7a2dd4326226a26ae96addd4ad14630ba2
+    > Blocks: 0            Seconds: 4
+    > contract address:    0xdB8fc76Affa54C27Cea72a689Cb03F40Bf854454
+    > block number:        14358135
+    > block timestamp:     1571954544
+    > account:             0x4b902507cc9F6C18c2f0f1cb170315276D6a7eFe
+    > balance:             0.6974369509
+    > gas used:            2776382
+    > gas price:           21.1 gwei
     > value sent:          0 ETH
-    > total cost:          0.00354797403 ETH
+    > total cost:          0.0585816602 ETH
 
 ## Ideas to discuss
 
