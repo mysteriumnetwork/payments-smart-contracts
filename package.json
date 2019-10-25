@@ -21,7 +21,7 @@
   },
   "homepage": "https://github.com/mysteriumnetwork/payments-smart-contracts#readme",
   "dependencies": {
-    "@truffle/hdwallet-provider": "^1.0.20",
+    "@truffle/hdwallet-provider": "^1.0.22",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "chai-bn": "^0.2.0",
@@ -33,7 +33,7 @@
     "openzeppelin-solidity": "^2.3.0",
     "openzeppelin-test-helpers": "^0.4.3",
     "secp256k1": "^3.7.1",
-    "truffle": "^5.0.39",
+    "truffle": "^5.0.41",
     "truffle-flattener": "^1.4.2"
   }
 }
