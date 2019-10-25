@@ -268,7 +268,7 @@ interface IERC20 {
 
 // File: contracts/FundsRecovery.sol
 
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.12;
 
 
 
@@ -316,7 +316,7 @@ contract FundsRecovery is Ownable {
 
 // File: contracts/MystDEX.sol
 
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.12;
 
 
 
@@ -356,12 +356,12 @@ contract MystDEX is Ownable, FundsRecovery {
 
     // Transfers selected tokens into tokens destination address.
     function transferEthers(address payable _to, uint256 _amount) external onlyOwner {
-        require(address(this).balance >= _amount);
+        require(address(this).balance >= _amount, "not enough ether balance");
         _to.transfer(_amount);
     }
 
     function transferMyst(address _to, uint256 _amount) external onlyOwner {
-        require(token.balanceOf(address(this)) >= _amount);
+        require(token.balanceOf(address(this)) >= _amount,"not enough myst balance");
         token.transfer(_to, _amount);
     }
 }
