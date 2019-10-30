@@ -65,6 +65,7 @@ function createProvider(identity, accountant) {
         validateExchangeMessage: validateExchangeMessage.bind(null, state, identity.address),
         savePromise: promise => state.promises.push(promise),
         settlePromise: settlePromise.bind(null, state, accountant),
+        settleAndRebalance: settleAndRebalance.bind(null, state, accountant),
         getBiggestPromise: () => state.promises.reduce((promise, acc) => promise.amount.gt(acc) ? acc : promise, state.promises[0])
     }
 }
@@ -249,6 +250,15 @@ async function settlePromise(state, accountant, promise) {
 
     const invoice = state.invoices[promise.hashlock]
     await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, invoice.R, promise.signature)
+}
+
+async function settleAndRebalance(state, accountant,promise) {
+    if (!promise) {
+        promise = state.promises.sort((a, b) => b.amount.sub(a.amount).toNumber())[0]
+    }
+
+    const invoice = state.invoices[promise.hashlock]
+    await accountant.settleAndRebalance(promise.channelId, promise.amount, promise.fee, invoice.R, promise.signature)
 }
 
 async function signExitRequest(channel, beneficiary, operator) {
