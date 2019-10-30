@@ -17,6 +17,7 @@ async function genCreate2Address(identityHash, accountantId, registry, implement
     ].join('')}`).slice(-40)}`.toLowerCase()
 }
 
+// Generates provider's channelId in accountant smart contract
 function generateChannelId(party, accountantId) {
     return `0x${ethUtils.keccak(Buffer.concat([
         Buffer.from(party.slice(2), 'hex'), 

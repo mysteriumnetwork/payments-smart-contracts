@@ -161,10 +161,13 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
         provider.getBiggestPromise().amount.should.be.bignumber.equal('1161')
         
         // settle biggest promise
-        await provider.settlePromise()
+        await provider.settleAndRebalance()
 
         const beneficiaryBalance = await token.balanceOf(beneficiaries[4])
         beneficiaryBalance.should.be.bignumber.equal('1161')
+
+        const channel = await accountant.channels(generateChannelId(provider.identity.address, accountant.address))
+        channel.balance.should.be.bignumber.equal(channel.loan)
     })
 
 })
