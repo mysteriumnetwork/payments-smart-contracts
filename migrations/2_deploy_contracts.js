@@ -7,9 +7,9 @@ const MystToken = artifacts.require("MystToken")
 const SafeMathLib = artifacts.require("SafeMathLib")
 
 module.exports = async function(deployer, network, accounts) {
-    // We do have MYST deployed on ropsten already
-    if (network  === 'ropsten') {
-        const tokenAddress = '0x453c11c058F13B36a35e1AEe504b20c1A09667De'
+    // We do have MYSTT deployed on kovan already
+    if (network  === 'kovan') {
+        const tokenAddress = '0xE67e41367c1e17ede951A528b2A8BE35c288c787'
         deployer.deploy(DEXImplementation)
         .then(_ => deployer.deploy(DEXProxy, DEXImplementation.address, accounts[0]))
         .then(_ => deployer.deploy(ChannelImplementation))
