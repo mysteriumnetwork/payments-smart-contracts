@@ -1,2 +1,2 @@
 *.sol linguist-language=Solidity
-.sol.flattened linguist-language=Solidity
+*.sol.flattened linguist-language=Solidity
