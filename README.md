@@ -37,7 +37,7 @@ npm run migrate
 ```
 
 ## Current deployment (ethereum Kovan testnet)
-MYSTT ERC20 Token (Mintable a la myst token): [0x045A6fcb75a53db17E5013B7d2DC6ad69381a151](https://kovan.etherscan.io/address/0xE67e41367c1e17ede951A528b2A8BE35c288c787)
+MYSTT ERC20 Token (Mintable a la myst token): [0xE67e41367c1e17ede951A528b2A8BE35c288c787](https://kovan.etherscan.io/address/0xE67e41367c1e17ede951A528b2A8BE35c288c787)
 
 Registry smart contract:
 [0x1Da4C260e0ed55d8Bd564726Cc9133880dc8A099](https://kovan.etherscan.io/address/0x1Da4C260e0ed55d8Bd564726Cc9133880dc8A099)
