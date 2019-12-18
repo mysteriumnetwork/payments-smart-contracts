@@ -76,7 +76,8 @@ contract Registry is Ownable, FundsRecovery {
 
         // Deploy channel contract for given identity (mini proxy which is pointing to implementation)
         bytes32 _salt = keccak256(abi.encodePacked(_identityHash, _accountantId));
-        Channel _channel = Channel(deployMiniProxy(uint256(_salt), getChannelImplementation()));
+        bytes memory _code = getProxyCode(getChannelImplementation());
+        Channel _channel = Channel(deployMiniProxy(uint256(_salt), _code));
         _channel.initialize(address(token), dex, _identityHash, _accountantId, _totalFee);
 
         // Opening incomming (provider's) channel
@@ -108,7 +109,7 @@ contract Registry is Ownable, FundsRecovery {
         require(!isAccountant(_accountantId), "accountant already registered");
 
         // Deploy accountant contract (mini proxy which is pointing to implementation)
-        AccountantContract _accountant = AccountantContract(deployMiniProxy(uint256(_accountantOperator), getAccountantImplementation()));
+        AccountantContract _accountant = AccountantContract(deployMiniProxy(uint256(_accountantOperator), getAccountantProxyCode()));
 
         // Transfer stake into accountant smart contract
         token.transferFrom(msg.sender, address(_accountant), _stakeAmount);
@@ -129,19 +130,8 @@ contract Registry is Ownable, FundsRecovery {
     }
 
     function getAccountantAddress(address _accountantOperator) public view returns (address) {
-        bytes32 _code = keccak256(getProxyCode(getAccountantImplementation()));
+        bytes32 _code = keccak256(getAccountantProxyCode());
         return getCreate2Address(bytes32(uint256(_accountantOperator)), _code);
-    }
-
-    // ------------ CONFIGURE IMPLEMENTATIONS ------------
-    bytes32 constant CHANNEL_IMPLEMENTATION = 0x48df65c92c1c0e8e19a219c69bfeb4cf7c1c123e0c266d555abb508d37c6d96e;  // keccak256('channel implementation')
-    function getChannelImplementation() public view returns (address) {
-        return config.getAddress(CHANNEL_IMPLEMENTATION);
-    }
-
-    bytes32 constant ACCOUNTANT_IMPLEMENTATION = 0xe6906d4b6048dd18329c27945d05f766dd19b003dc60f82fd4037c490ee55be0;  // keccak256('accountant implementation')
-    function getAccountantImplementation() public view returns (address) {
-        return config.getAddress(ACCOUNTANT_IMPLEMENTATION);
     }
 
     // ------------ UTILS ------------
@@ -169,9 +159,19 @@ contract Registry is Ownable, FundsRecovery {
         return _code;
     }
 
-    function deployMiniProxy(uint256 _salt, address _implementation) internal returns (address payable) {
+    function getAccountantProxyCode() public view returns (bytes memory) {
+        bytes memory _code = hex"608060405234801561001057600080fd5b5060f48061001f6000396000f3fe608060408190526321f8a72160e01b81527fe6906d4b6048dd18329c27945d05f766dd19b003dc60f82fd4037c490ee55be060845260009073bebebebebebebebebebebebebebebebebebebebe906321f8a7219060a49060209060248186803b158015606a57600080fd5b505afa158015607d573d6000803e3d6000fd5b505050506040513d6020811015609257600080fd5b505160405190915036600082376000803683856127105a03f43d806000843e81801560bb578184f35b8184fdfea265627a7a7231582008c888d95644063ac32180d65e286ddc65dfec16e8772e3980e2e180b4c9644164736f6c634300050f0032";
+
+        bytes20 _targetBytes = bytes20(address(config));
+        for (uint8 i = 0; i < 20; i++) {
+            _code[88 + i] = _targetBytes[i];
+        }
+
+        return _code;
+    }
+
+    function deployMiniProxy(uint256 _salt, bytes memory _code) internal returns (address payable) {
         address payable _addr;
-        bytes memory _code = getProxyCode(_implementation);
 
         assembly {
             _addr := create2(0, add(_code, 0x20), mload(_code), _salt)
@@ -181,6 +181,11 @@ contract Registry is Ownable, FundsRecovery {
         }
 
         return _addr;
+    }
+
+    bytes32 constant CHANNEL_IMPLEMENTATION = 0x48df65c92c1c0e8e19a219c69bfeb4cf7c1c123e0c266d555abb508d37c6d96e;  // keccak256('channel implementation')
+    function getChannelImplementation() public view returns (address) {
+        return config.getAddress(CHANNEL_IMPLEMENTATION);
     }
 
     // ------------------------------------------------------------------------
