@@ -1,4 +1,4 @@
-pragma solidity ^0.5.12;
+pragma solidity >=0.5.12 <0.6.0;
 
 import { ECDSA } from "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
@@ -24,7 +24,7 @@ contract ChannelImplementation is FundsRecovery {
     struct Accountant {
         address operator;          // signing address
         address contractAddress;   // accountant smart contract address, funds will be send there
-        uint256 settled;           // total amount already settled by accountant 
+        uint256 settled;           // total amount already settled by accountant
     }
 
     ExitRequest public exitRequest;
@@ -91,7 +91,7 @@ contract ChannelImplementation is FundsRecovery {
         require(_unpaidAmount > 0, "amount to settle should be greater that already settled");
 
         // If signer has less tokens than asked to transfer, we can transfer as much as he has already
-        // and rest tokens can be transferred via same promise but in another tx 
+        // and rest tokens can be transferred via same promise but in another tx
         // when signer will top up channel balance.
         uint256 _currentBalance = token.balanceOf(_channelId);
         if (_unpaidAmount > _currentBalance) {

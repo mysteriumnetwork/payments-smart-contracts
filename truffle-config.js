@@ -11,9 +11,9 @@ module.exports = {
     
     compilers: {
         solc: {
-            version: "^0.5.12",
+            version: "^0.5.15",
             settings: {
-                evmVersion: "petersburg",
+                evmVersion: "istanbul",
                 optimizer: {
                     enabled: true,
                     runs: 200

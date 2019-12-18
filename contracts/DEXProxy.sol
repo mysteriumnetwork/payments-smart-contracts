@@ -1,4 +1,4 @@
-pragma solidity ^0.5.12;
+pragma solidity >=0.5.12 <0.6.0;
 
 
 contract DEXProxy {
@@ -14,11 +14,11 @@ contract DEXProxy {
 
     constructor (address _implementation, address _owner) public {
         require(_implementation != address(0x0));
-        
+
         bytes32 _ownerPosition = OWNER_POSITION;
         bytes32 _implementationPosition = IMPLEMENTATION_POSITION;
 
-        assembly { 
+        assembly {
             sstore(_ownerPosition, _owner)       // sets owner
             sstore(_implementationPosition, _implementation) // sets proxy target
         }

@@ -1,4 +1,4 @@
-pragma solidity ^0.5.12;
+pragma solidity >=0.5.12 <0.6.0;
 
 import { ECDSA } from "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
@@ -17,7 +17,7 @@ contract AccountantImplementation is FundsRecovery {
 
     string constant LOAN_RETURN_PREFIX = "Load return request";
     uint256 constant DELAY_BLOCKS = 18000;  // +/- 3 days
-    uint256 constant UNIT_BLOCKS = 257;     // 1 unit = 1 hour = 257 blocks. 
+    uint256 constant UNIT_BLOCKS = 257;     // 1 unit = 1 hour = 257 blocks.
 
     IdentityRegistry internal registry;
     address internal operator;
@@ -170,7 +170,7 @@ contract AccountantImplementation is FundsRecovery {
         require(_unpaidAmount > 0, "amount to settle should be greater that already settled");
 
         // If signer has less tokens than asked to transfer, we can transfer as much as he has already
-        // and rest tokens can be transferred via same promise but in another tx 
+        // and rest tokens can be transferred via same promise but in another tx
         // when signer will top up channel balance.
         uint256 _currentBalance = _channel.balance;
         if (_unpaidAmount > _currentBalance) {
@@ -201,7 +201,7 @@ contract AccountantImplementation is FundsRecovery {
         rebalanceChannel(_channelId);
     }
 
-    // Accountant can update channel balance by himself. He can update into any amount size 
+    // Accountant can update channel balance by himself. He can update into any amount size
     // but not less that provider's loan amount.
     function updateChannelBalance(bytes32 _channelId, uint256 _newBalance) public onlyOperator {
         require(isAccountantActive(), "accountant have to be active");
@@ -300,7 +300,7 @@ contract AccountantImplementation is FundsRecovery {
         emit NewLoan(_channelId, _amount);
     }
 
-    // Withdraw part of loan. This will also decrease channel balance. 
+    // Withdraw part of loan. This will also decrease channel balance.
     function decreaseLoan(bytes32 _channelId, uint256 _amount, uint256 _nonce, bytes memory _signature) public {
         address _signer = keccak256(abi.encodePacked(LOAN_RETURN_PREFIX, _channelId, _amount, _nonce)).recover(_signature);
         require(getChannelId(_signer) == _channelId, "have to be signed by channel party");
@@ -443,7 +443,7 @@ contract AccountantImplementation is FundsRecovery {
         require(getStatus() == Status.Active, "accountant have to be in active state");
         status = Status.Paused;
         emit ChannelOpeningPaused();
-    } 
+    }
 
     function activateChannelOpening() public onlyOperator {
         require(getStatus() == Status.Paused, "accountant have to be in paused state");
@@ -462,7 +462,7 @@ contract AccountantImplementation is FundsRecovery {
 
     // Funds which always have to be holded in accountant smart contract.
     function minimalExpectedBalance() public view returns (uint256) {
-        return max(stake, punishment.amount).add(lockedFunds); 
+        return max(stake, punishment.amount).add(lockedFunds);
         // return max(lockedFunds, totalLoan).add(max(stake, punishment.amount))
     }
 

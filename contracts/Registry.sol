@@ -1,4 +1,4 @@
-pragma solidity ^0.5.12;
+pragma solidity >=0.5.12 <0.6.0;
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { ECDSA } from "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
@@ -116,7 +116,7 @@ contract Registry is Ownable, FundsRecovery {
         // Transfer stake into accountant smart contract
         token.transferFrom(msg.sender, address(_accountant), _stakeAmount);
 
-        // Initialise accountant 
+        // Initialise accountant
         _accountant.initialize(address(token), _accountantOperator, _accountantFee, _maxLoan);
 
         // Save info about newly created accountant
@@ -162,7 +162,7 @@ contract Registry is Ownable, FundsRecovery {
     }
 
     function deployMiniProxy(uint256 _salt, address _implementation) internal returns (address payable) {
-        address payable _addr; 
+        address payable _addr;
         bytes memory _code = getProxyCode(_implementation);
 
         assembly {

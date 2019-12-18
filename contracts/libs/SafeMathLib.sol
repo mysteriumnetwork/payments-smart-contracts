@@ -1,4 +1,4 @@
-pragma solidity ^0.5.8;
+pragma solidity >=0.5.12 <0.6.0;
 
 /**
  * Safe unsigned safe math.

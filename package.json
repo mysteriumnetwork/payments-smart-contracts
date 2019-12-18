@@ -1,39 +1,39 @@
 {
-  "name": "payments-smart-contracts",
-  "version": "0.5.1",
-  "description": "Smart contracts for Mysterium payments flow",
-  "main": "index.js",
-  "scripts": {
-    "test": "truffle test",
-    "compile": "truffle compile",
-    "migrate": "truffle migrate",
-    "flatten": "sh flattener.sh",
-    "deploy": "truffle deploy --network kovan"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/mysteriumnetwork/payments-smart-contracts.git"
-  },
-  "author": "Jaro <me@jaro.lt>",
-  "license": "GPL-3.0",
-  "bugs": {
-    "url": "https://github.com/mysteriumnetwork/payments-smart-contracts/issues"
-  },
-  "homepage": "https://github.com/mysteriumnetwork/payments-smart-contracts#readme",
-  "dependencies": {
-    "@truffle/hdwallet-provider": "^1.0.22",
-    "chai": "^4.2.0",
-    "chai-as-promised": "^7.1.1",
-    "chai-bn": "^0.2.0",
-    "diff": ">=3.5.0",
-    "ethereumjs-tx": "^2.1.1",
-    "ethereumjs-util": "^6.1.0",
-    "ganache-cli": "^6.7.0",
-    "lodash": "^4.17.14",
-    "openzeppelin-solidity": "^2.3.0",
-    "openzeppelin-test-helpers": "^0.4.3",
-    "secp256k1": "^3.7.1",
-    "truffle": "^5.0.41",
-    "truffle-flattener": "^1.4.2"
-  }
+    "name": "payments-smart-contracts",
+    "version": "0.5.1",
+    "description": "Smart contracts for Mysterium payments flow",
+    "main": "index.js",
+    "scripts": {
+        "test": "truffle test",
+        "compile": "truffle compile",
+        "migrate": "truffle migrate",
+        "flatten": "sh flattener.sh",
+        "deploy": "truffle deploy --network kovan"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/mysteriumnetwork/payments-smart-contracts.git"
+    },
+    "author": "Jaro <me@jaro.lt>",
+    "license": "GPL-3.0",
+    "bugs": {
+        "url": "https://github.com/mysteriumnetwork/payments-smart-contracts/issues"
+    },
+    "homepage": "https://github.com/mysteriumnetwork/payments-smart-contracts#readme",
+    "dependencies": {
+        "@truffle/hdwallet-provider": "^1.0.27",
+        "chai": "^4.2.0",
+        "chai-as-promised": "^7.1.1",
+        "chai-bn": "^0.2.0",
+        "diff": ">=3.5.0",
+        "ethereumjs-tx": "^2.1.1",
+        "ethereumjs-util": "^6.1.0",
+        "ganache-cli": "^6.8.0-istanbul.0",
+        "lodash": "^4.17.14",
+        "openzeppelin-solidity": "^2.3.0",
+        "openzeppelin-test-helpers": "^0.4.3",
+        "secp256k1": "^3.7.1",
+        "truffle": "^5.1.4",
+        "truffle-flattener": "^1.4.2"
+    }
 }
