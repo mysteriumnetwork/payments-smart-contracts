@@ -3,6 +3,9 @@ const ethUtils = require('ethereumjs-util')
 const rlp = require('rlp')
 const { randomBytes } = require('crypto')
 const { BN } = require('openzeppelin-test-helpers')
+const leftPad = require('left-pad')
+
+const Config = artifacts.require("Config")
 
 // CREATE2 address is calculated this way:
 // keccak("0xff++msg.sender++salt++keccak(byteCode)")
@@ -20,7 +23,7 @@ async function genCreate2Address(identityHash, accountantId, registry, implement
 // Generates provider's channelId in accountant smart contract
 function generateChannelId(party, accountantId) {
     return `0x${ethUtils.keccak(Buffer.concat([
-        Buffer.from(party.slice(2), 'hex'), 
+        Buffer.from(party.slice(2), 'hex'),
         Buffer.from(accountantId.slice(2), 'hex')]
     )).toString('hex')}`
 }
@@ -28,7 +31,7 @@ function generateChannelId(party, accountantId) {
 function generatePrivateKey() {
     let privKey
     do {
-      privKey = randomBytes(32)
+        privKey = randomBytes(32)
     } while (!secp256k1.privateKeyVerify(privKey))
 
     return privKey
@@ -48,10 +51,10 @@ function signMessage(message, privKey) {
     const messageHash = ethUtils.keccak(message)
     const sigObj = secp256k1.sign(messageHash, privKey)
     return Buffer.concat([
-        sigObj.signature, 
+        sigObj.signature,
         Buffer.from((sigObj.recovery + 27).toString(16), 'hex')
     ])
-    
+
     // Alternative implementatino using ethereumjs-util
     // const { r, s, v } = ethUtils.ecsign(messageHash, privKey)
     // return Buffer.from([r.toString('hex'), s.toString('hex'), v.toString(16)].join(''), 'hex')
@@ -69,7 +72,7 @@ function verifySignature(message, signature, pubKey) {
 
 // Derive address of smart contract created by creator.
 function deriveContractAddress(creator, nonce = 0) {
-    const input = [ creator, nonce ]
+    const input = [creator, nonce]
     const rlp_encoded = rlp.encode(input)
     return toAddress(rlp_encoded)
 }
@@ -77,7 +80,7 @@ function deriveContractAddress(creator, nonce = 0) {
 // Topup given amount of ethers into give to address
 async function topUpEthers(from, to, value) {
     const initialBalance = new BN(await web3.eth.getBalance(to))
-    await web3.eth.sendTransaction({from, to, value})
+    await web3.eth.sendTransaction({ from, to, value })
 
     const expectedBalance = initialBalance.add(new BN(value.toString()))
     expect(await web3.eth.getBalance(to)).to.be.equal(expectedBalance.toString())
@@ -97,7 +100,7 @@ function toBytes32Buffer(item, type) {
         item = new BN(item.replace(/0x/, ''), 16)
     }
 
-    if(typeof item === 'number' || typeof item === 'string') {
+    if (typeof item === 'number' || typeof item === 'string') {
         item = new BN(item)
     }
 
@@ -105,7 +108,7 @@ function toBytes32Buffer(item, type) {
 }
 
 function to16BitsBuffer(item) {
-    if(typeof item === 'number' || typeof item === 'string') {
+    if (typeof item === 'number' || typeof item === 'string') {
         item = new BN(item)
     }
 
@@ -114,14 +117,14 @@ function to16BitsBuffer(item) {
 
 function toBuffer(item) {
     if (item instanceof Buffer)
-       return item
+        return item
 
     switch (typeof item) {
         case 'object':
             if (item instanceof BN)
-               return toBytes32Buffer(item)
+                return toBytes32Buffer(item)
             else
-               throw "Unknown type of given item"
+                throw "Unknown type of given item"
         case 'number':
             return toBytes32Buffer(new BN(item))
         case 'string':
@@ -129,7 +132,23 @@ function toBuffer(item) {
     }
 }
 
-module.exports = { 
+async function setupConfig(owner, channelImplementation, accountantImplementation) {
+    const config = await Config.new()
+
+    await config.setOwner(owner)
+
+    const channelSlot = '0x48df65c92c1c0e8e19a219c69bfeb4cf7c1c123e0c266d555abb508d37c6d96e'    // keccak256('channel implementation')
+    const channelImplAddressBytes = '0x' + leftPad((channelImplementation.slice(2)).toString(16), 64, 0)
+    await config.addConfig(channelSlot, channelImplAddressBytes)
+
+    const accountantSlot = '0xe6906d4b6048dd18329c27945d05f766dd19b003dc60f82fd4037c490ee55be0' // keccak256('accountant implementation')
+    const AccImplAddressBytes = '0x' + leftPad((accountantImplementation.slice(2)).toString(16), 64, 0)
+    await config.addConfig(accountantSlot, AccImplAddressBytes)
+
+    return config
+}
+
+module.exports = {
     genCreate2Address,
     generateChannelId,
     generatePrivateKey,
@@ -145,5 +164,6 @@ module.exports = {
     setLengthLeft: ethUtils.setLengthLeft,
     to16BitsBuffer,
     toBytes32Buffer,
-    toBuffer
+    toBuffer,
+    setupConfig
 }

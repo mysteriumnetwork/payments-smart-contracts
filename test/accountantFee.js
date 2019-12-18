@@ -1,12 +1,12 @@
 require('chai')
-.use(require('chai-as-promised'))
-.should()
+    .use(require('chai-as-promised'))
+    .should()
 const { BN } = require('openzeppelin-test-helpers')
 const { randomBytes } = require('crypto')
-const { topUpTokens, generateChannelId, keccak } = require('./utils/index.js')
-const { 
+const { topUpTokens, generateChannelId, keccak, setupConfig } = require('./utils/index.js')
+const {
     signIdentityRegistration,
-    createPromise 
+    createPromise
 } = require('./utils/client.js')
 const wallet = require('./utils/wallet.js')
 
@@ -30,7 +30,8 @@ contract('Accountant fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
         dex = await MystDex.new()
         const accountantImplementation = await AccountantImplementation.new(token.address, accountantOperator.address, 0, OneToken)
         channelImplementation = await ChannelImplementation.new()
-        registry = await Registry.new(token.address, dex.address, channelImplementation.address, accountantImplementation.address, 0, 0)
+        const config = await setupConfig(txMaker, channelImplementation.address, accountantImplementation.address)
+        registry = await Registry.new(token.address, dex.address, config.address, 0, 0)
 
         // Topup some tokens into txMaker address so it could register accountant
         await topUpTokens(token, txMaker, 1000)
@@ -112,7 +113,7 @@ contract('Accountant fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
         const newFee = new BN(175) // 1.75%
         const delayBlocks = 4
 
-        const tx = await accountant.setAccountantFee(newFee, {from: operatorAddress})
+        const tx = await accountant.setAccountantFee(newFee, { from: operatorAddress })
 
         const lastFee = await accountant.lastFee()
         lastFee.value.should.be.bignumber.equal(newFee)
@@ -131,12 +132,12 @@ contract('Accountant fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
 
     it('should not allow to update not active last fee', async () => {
         const newFee = new BN(500) // 5%
-        await accountant.setAccountantFee(newFee, {from: operatorAddress}).should.be.rejected
+        await accountant.setAccountantFee(newFee, { from: operatorAddress }).should.be.rejected
     })
 
     it('should calculate new fee after validFrom block is arrived', async () => {
         // Jump over a few blocks
-        for (let i=0; i<4; i++) {
+        for (let i = 0; i < 4; i++) {
             await accountant.moveBlock()
         }
 
@@ -152,7 +153,7 @@ contract('Accountant fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
 
     it('fee can not be bigger that 50%', async () => {
         const newFee = new BN(5001) // 50.01%
-        await accountant.setAccountantFee(newFee, {from: operatorAddress}).should.be.rejected
+        await accountant.setAccountantFee(newFee, { from: operatorAddress }).should.be.rejected
     })
 
 })

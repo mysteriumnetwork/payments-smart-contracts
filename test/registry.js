@@ -1,10 +1,11 @@
 require('chai')
-.use(require('chai-as-promised'))
-.should()
+    .use(require('chai-as-promised'))
+    .should()
 const { BN } = require('openzeppelin-test-helpers')
 
 const genCreate2Address = require('./utils/index.js').genCreate2Address
 const topUpTokens = require('./utils/index.js').topUpTokens
+const setupConfig = require('./utils/index.js').setupConfig
 const signIdentityRegistration = require('./utils/client.js').signIdentityRegistration
 const generateAccount = require('./utils/wallet.js').generateAccount
 
@@ -31,7 +32,8 @@ contract('Registry', ([txMaker, minter, accountantOperator, fundsDestination, ..
         dex = await MystDex.new()
         const accountantImplementation = await AccountantImplementation.new()
         channelImplementation = await ChannelImplementation.new()
-        registry = await Registry.new(token.address, dex.address, channelImplementation.address, accountantImplementation.address, 0, 0)
+        const config = await setupConfig(txMaker, channelImplementation.address, accountantImplementation.address)
+        registry = await Registry.new(token.address, dex.address, config.address, 0, 0)
 
         // Topup some tokens into txMaker address so it could register accountant
         await topUpTokens(token, txMaker, 10)
@@ -79,7 +81,7 @@ contract('Registry', ([txMaker, minter, accountantOperator, fundsDestination, ..
             channelImplementation.address.slice(2),
             '5af43d82803e903d91602b57fd5bf3'
         ].join('').toLocaleLowerCase()
-        
+
         expect(byteCode).to.be.equal(expectedByteCode)
     })
 
@@ -134,7 +136,7 @@ contract('Registry', ([txMaker, minter, accountantOperator, fundsDestination, ..
 
     it("should send transaction fee for txMaker", async () => {
         const thirdIdentity = identities[2]
-        const thirdIdentityHash = thirdIdentity.address 
+        const thirdIdentityHash = thirdIdentity.address
         const channelAddress = await genCreate2Address(thirdIdentityHash, accountantId, registry, channelImplementation.address)
         const transactionFee = new BN(5)
         const balanceBefore = await token.balanceOf(txMaker)

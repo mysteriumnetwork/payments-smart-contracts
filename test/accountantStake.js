@@ -1,11 +1,11 @@
 require('chai')
-.use(require('chai-as-promised'))
-.should()
+    .use(require('chai-as-promised'))
+    .should()
 const { BN } = require('openzeppelin-test-helpers')
 const { randomBytes } = require('crypto')
 
-const { topUpTokens, generateChannelId, keccak } = require('./utils/index.js')
-const { 
+const { topUpTokens, generateChannelId, keccak, setupConfig } = require('./utils/index.js')
+const {
     signIdentityRegistration,
     signChannelBalanceUpdate,
     signChannelLoanReturnRequest,
@@ -35,7 +35,8 @@ contract('Accountant stake', ([txMaker, operatorAddress, ...beneficiaries]) => {
         const dex = await MystDex.new()
         const accountantImplementation = await AccountantImplementation.new(token.address, accountantOperator.address, 0, OneToken)
         const channelImplementation = await ChannelImplementation.new()
-        registry = await Registry.new(token.address, dex.address, channelImplementation.address, accountantImplementation.address, Zero, stake)
+        const config = await setupConfig(txMaker, channelImplementation.address, accountantImplementation.address)
+        registry = await Registry.new(token.address, dex.address, config.address, Zero, stake)
 
         // Topup some tokens into txMaker address so it could register accountant
         await topUpTokens(token, txMaker, OneToken)

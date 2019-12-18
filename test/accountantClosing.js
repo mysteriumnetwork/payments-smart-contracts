@@ -1,10 +1,10 @@
 require('chai')
-.use(require('chai-as-promised'))
-.should()
+    .use(require('chai-as-promised'))
+    .should()
 const { BN } = require('openzeppelin-test-helpers')
 
-const { topUpTokens } = require('./utils/index.js')
-const { 
+const { topUpTokens, setupConfig } = require('./utils/index.js')
+const {
     signIdentityRegistration,
     signChannelBalanceUpdate,
     signChannelLoanReturnRequest,
@@ -33,7 +33,8 @@ contract('Accountant closing', ([txMaker, operatorAddress, ...beneficiaries]) =>
         const dex = await MystDex.new()
         const accountantImplementation = await AccountantImplementation.new(token.address, accountantOperator.address, 0, OneToken)
         const channelImplementation = await ChannelImplementation.new()
-        registry = await Registry.new(token.address, dex.address, channelImplementation.address, accountantImplementation.address, Zero, stake)
+        const config = await setupConfig(txMaker, channelImplementation.address, accountantImplementation.address)
+        registry = await Registry.new(token.address, dex.address, config.address, Zero, stake)
 
         // Topup some tokens into txMaker address so it could register accountant
         await topUpTokens(token, txMaker, OneToken)
@@ -50,7 +51,7 @@ contract('Accountant closing', ([txMaker, operatorAddress, ...beneficiaries]) =>
     it('should be able to close accountant', async () => {
         const initialBalance = await token.balanceOf(accountant.address)
         expect((await accountant.getStatus()).toNumber()).to.be.equal(0)  // 0 - Active, 1 - Paused, 2 - Punishment, 3 - Closed
-        await accountant.closeAccountant({from: operatorAddress})
+        await accountant.closeAccountant({ from: operatorAddress })
         expect((await accountant.getStatus()).toNumber()).to.be.equal(3)  // 0 - Active, 1 - Paused, 2 - Punishment, 3 - Closed
         const currentBalance = await token.balanceOf(accountant.address)
         initialBalance.should.be.bignumber.equal(currentBalance)
@@ -59,7 +60,7 @@ contract('Accountant closing', ([txMaker, operatorAddress, ...beneficiaries]) =>
     it('should fail getting stake back until timelock passes', async () => {
         const expectedBlockNumber = (await web3.eth.getBlock('latest')).number + 4
         expect((await web3.eth.getBlock('latest')).number).to.be.below(expectedBlockNumber)
-        await accountant.getStakeBack(beneficiaries[0], {from: operatorAddress}).should.be.rejected
+        await accountant.getStakeBack(beneficiaries[0], { from: operatorAddress }).should.be.rejected
     })
 
     it('should allow to get stake back after timelock passes', async () => {
@@ -67,12 +68,12 @@ contract('Accountant closing', ([txMaker, operatorAddress, ...beneficiaries]) =>
         const expectedBlockNumber = (await web3.eth.getBlock('latest')).number + 4
 
         // Move blockchain forward
-        for (let i=0; i<5; i++) {
+        for (let i = 0; i < 5; i++) {
             await accountant.moveBlock()
         }
         expect((await web3.eth.getBlock('latest')).number).to.be.above(expectedBlockNumber)
 
-        await accountant.getStakeBack(beneficiaries[0], {from: operatorAddress})
+        await accountant.getStakeBack(beneficiaries[0], { from: operatorAddress })
 
         const currentAccountantBalance = await token.balanceOf(accountant.address)
         const beneficiaryBalance = await token.balanceOf(beneficiaries[0])

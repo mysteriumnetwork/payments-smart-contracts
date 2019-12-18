@@ -4,6 +4,7 @@ import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { ECDSA } from "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import { Config } from "./Config.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
 
 interface Channel {
@@ -25,10 +26,9 @@ contract Registry is Ownable, FundsRecovery {
     string constant REGISTER_PREFIX="Register prefix:";
 
     address public dex;
+    Config public config;
     uint256 public registrationFee;
     uint256 public minimalAccountantStake;
-    address internal channelImplementation;
-    address public accountantImplementation;
 
     struct Accountant {
         address operator;
@@ -42,7 +42,7 @@ contract Registry is Ownable, FundsRecovery {
     event RegisteredAccountant(address indexed accountantId, address accountantOperator);
     event ConsumerChannelCreated(address indexed identityHash, address indexed accountantId, address channelAddress);
 
-    constructor (address _tokenAddress, address _dexAddress, address _channelImplementation, address _accountantImplementation, uint256 _regFee, uint256 _minimalAccountantStake) public {
+    constructor (address _tokenAddress, address _dexAddress, address _configAddress, uint256 _regFee, uint256 _minimalAccountantStake) public {
         registrationFee = _regFee;
         minimalAccountantStake = _minimalAccountantStake;
 
@@ -52,11 +52,8 @@ contract Registry is Ownable, FundsRecovery {
         require(_dexAddress != address(0));
         dex = _dexAddress;
 
-        require(_channelImplementation != address(0));
-        channelImplementation = _channelImplementation;
-
-        require(_accountantImplementation != address(0));
-        accountantImplementation = _accountantImplementation;
+        require(_configAddress != address(0));
+        config = Config(_configAddress);
     }
 
     // Reject any ethers send to this smart-contract
@@ -79,7 +76,7 @@ contract Registry is Ownable, FundsRecovery {
 
         // Deploy channel contract for given identity (mini proxy which is pointing to implementation)
         bytes32 _salt = keccak256(abi.encodePacked(_identityHash, _accountantId));
-        Channel _channel = Channel(deployMiniProxy(uint256(_salt), channelImplementation));
+        Channel _channel = Channel(deployMiniProxy(uint256(_salt), getChannelImplementation()));
         _channel.initialize(address(token), dex, _identityHash, _accountantId, _totalFee);
 
         // Opening incomming (provider's) channel
@@ -111,7 +108,7 @@ contract Registry is Ownable, FundsRecovery {
         require(!isAccountant(_accountantId), "accountant already registered");
 
         // Deploy accountant contract (mini proxy which is pointing to implementation)
-        AccountantContract _accountant = AccountantContract(deployMiniProxy(uint256(_accountantOperator), accountantImplementation));
+        AccountantContract _accountant = AccountantContract(deployMiniProxy(uint256(_accountantOperator), getAccountantImplementation()));
 
         // Transfer stake into accountant smart contract
         token.transferFrom(msg.sender, address(_accountant), _stakeAmount);
@@ -126,14 +123,25 @@ contract Registry is Ownable, FundsRecovery {
     }
 
     function getChannelAddress(address _identityHash, address _accountantId) public view returns (address) {
-        bytes32 _code = keccak256(getProxyCode(channelImplementation));
+        bytes32 _code = keccak256(getProxyCode(getChannelImplementation()));
         bytes32 _salt = keccak256(abi.encodePacked(_identityHash, _accountantId));
         return getCreate2Address(_salt, _code);
     }
 
     function getAccountantAddress(address _accountantOperator) public view returns (address) {
-        bytes32 _code = keccak256(getProxyCode(accountantImplementation));
+        bytes32 _code = keccak256(getProxyCode(getAccountantImplementation()));
         return getCreate2Address(bytes32(uint256(_accountantOperator)), _code);
+    }
+
+    // ------------ CONFIGURE IMPLEMENTATIONS ------------
+    bytes32 constant CHANNEL_IMPLEMENTATION = 0x48df65c92c1c0e8e19a219c69bfeb4cf7c1c123e0c266d555abb508d37c6d96e;  // keccak256('channel implementation')
+    function getChannelImplementation() public view returns (address) {
+        return config.getAddress(CHANNEL_IMPLEMENTATION);
+    }
+
+    bytes32 constant ACCOUNTANT_IMPLEMENTATION = 0xe6906d4b6048dd18329c27945d05f766dd19b003dc60f82fd4037c490ee55be0;  // keccak256('accountant implementation')
+    function getAccountantImplementation() public view returns (address) {
+        return config.getAddress(ACCOUNTANT_IMPLEMENTATION);
     }
 
     // ------------ UTILS ------------

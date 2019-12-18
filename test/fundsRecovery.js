@@ -1,8 +1,9 @@
 const { BN } = require('openzeppelin-test-helpers')
-const { 
+const {
     deriveContractAddress,
     topUpEthers,
-    topUpTokens
+    topUpTokens,
+    setupConfig
 } = require('./utils/index.js')
 
 const Registry = artifacts.require("Registry")
@@ -26,7 +27,7 @@ async function getExpectedSmartContractAddress(deployer) {
 
 contract('General tests for funds recovery', ([txMaker, owner, fundsDestination, ...otherAccounts]) => {
     let token, nativeToken, contract, expectedAddress, topupAmount
-    before (async () => {
+    before(async () => {
         token = await Token.new()
         nativeToken = await Token.new() // This special token which usually shoudn't be recoverable
 
@@ -38,17 +39,17 @@ contract('General tests for funds recovery', ([txMaker, owner, fundsDestination,
     })
 
     it('should deploy funds recovery contract into expected address', async () => {
-        contract = await FundsRecovery.new(nativeToken.address, {from: owner})
+        contract = await FundsRecovery.new(nativeToken.address, { from: owner })
         expect(contract.address.toLowerCase()).to.be.equal(expectedAddress.toLowerCase())
     })
 
     it('only owner should successfully set funds destination', async () => {
         // Not contract owner can't set funds destination
-        await contract.setFundsDestination(fundsDestination, {from: txMaker}).should.be.rejected
+        await contract.setFundsDestination(fundsDestination, { from: txMaker }).should.be.rejected
         expect(await contract.getFundsDestination()).to.be.equal(ZeroAddress)
 
         // Tx make from owner account should suceed
-        await contract.setFundsDestination(fundsDestination, {from: owner}).should.be.fulfilled
+        await contract.setFundsDestination(fundsDestination, { from: owner }).should.be.fulfilled
         expect(await contract.getFundsDestination()).to.be.equal(fundsDestination)
     })
 
@@ -78,7 +79,7 @@ contract('General tests for funds recovery', ([txMaker, owner, fundsDestination,
 
 contract('Dex funds recovery', ([_, txMaker, fundsDestination, ...otherAccounts]) => {
     let token, dex, proxy, proxiedDEX, topupAmount, tokensToMint
-    before (async () => {
+    before(async () => {
         token = await Token.new()
     })
 
@@ -92,11 +93,11 @@ contract('Dex funds recovery', ([_, txMaker, fundsDestination, ...otherAccounts]
         await topUpTokens(token, dexAddress, topupAmount)
 
         // Deploy dex smart contract
-        dex = await MystDex.new({from: txMaker})
+        dex = await MystDex.new({ from: txMaker })
         expect(dex.address.toLowerCase()).to.be.equal(dexAddress.toLowerCase())
 
         // Set funds destination
-        await dex.setFundsDestination(fundsDestination, {from: txMaker})
+        await dex.setFundsDestination(fundsDestination, { from: txMaker })
     })
 
     it('should recover ethers sent to dex before deployment', async () => {
@@ -134,7 +135,7 @@ contract('Dex funds recovery', ([_, txMaker, fundsDestination, ...otherAccounts]
         balance.should.be.bignumber.equal(tokensToMint)
 
         // Deploy proxy smart contract
-        proxy = await DEXProxy.new(dex.address, txMaker, {from: txMaker})
+        proxy = await DEXProxy.new(dex.address, txMaker, { from: txMaker })
         proxiedDEX = await MystDex.at(proxy.address)
         expect(proxiedDEX.address.toLowerCase()).to.be.equal(proxyAddress.toLowerCase())
 
@@ -142,7 +143,7 @@ contract('Dex funds recovery', ([_, txMaker, fundsDestination, ...otherAccounts]
         await proxiedDEX.initialise(txMaker, token.address, 1)
 
         // Set funds destination
-        await proxiedDEX.setFundsDestination(fundsDestination, {from: txMaker})
+        await proxiedDEX.setFundsDestination(fundsDestination, { from: txMaker })
     })
 
     it('should recover ethers sent to proxy before deployment', async () => {
@@ -167,7 +168,7 @@ contract('Dex funds recovery', ([_, txMaker, fundsDestination, ...otherAccounts]
 
 contract('Registry funds recovery', ([_, txMaker, identity, account, fundsDestination, ...otherAccounts]) => {
     let token, channelImplementation, accountantImplementation, dex, registry, topupAmount, tokensAmount
-    before (async () => {
+    before(async () => {
         token = await Token.new()
         dex = await MystDex.new()
         accountantImplementation = await AccountantImplementation.new()
@@ -190,11 +191,12 @@ contract('Registry funds recovery', ([_, txMaker, identity, account, fundsDestin
 
         // Deploy registry smart contract
         const nativeToken = await Token.new() // Native token is used as main unit of value in channels. We're recovering any other tokens but not this.
-        registry = await Registry.new(nativeToken.address, dex.address, channelImplementation.address, accountantImplementation.address, 0, 0, {from: txMaker})
+        const config = await setupConfig(_, channelImplementation.address, accountantImplementation.address)
+        registry = await Registry.new(nativeToken.address, dex.address, config.address, 0, 0, { from: txMaker })
         expect(registry.address.toLowerCase()).to.be.equal(registryAddress.toLowerCase())
 
         // Set funds destination
-        await registry.setFundsDestination(fundsDestination, {from: txMaker})
+        await registry.setFundsDestination(fundsDestination, { from: txMaker })
     })
 
     it('should recover ethers sent to registry before its deployment', async () => {
@@ -218,7 +220,7 @@ contract('Registry funds recovery', ([_, txMaker, identity, account, fundsDestin
 
 contract('Channel implementation funds recovery', ([_, txMaker, identity, fundsDestination, ...otherAccounts]) => {
     let token, nativeToken, channelImplementation, topupAmount, tokensToMint
-    before (async () => {
+    before(async () => {
         token = await Token.new()
         nativeToken = await Token.new()
     })
@@ -239,11 +241,11 @@ contract('Channel implementation funds recovery', ([_, txMaker, identity, fundsD
 
         // Deploy IdentityImplementation smart contract
         const accountantImplementation = await AccountantImplementation.new()
-        channelImplementation = await ChannelImplementation.new(nativeToken.address, identity, accountantImplementation.address, Zero, {from: txMaker})
+        channelImplementation = await ChannelImplementation.new(nativeToken.address, identity, accountantImplementation.address, Zero, { from: txMaker })
         expect(channelImplementation.address.toLowerCase()).to.be.equal(implementationAddress.toLowerCase())
 
         // Set funds destination
-        await channelImplementation.setFundsDestination(fundsDestination, {from: txMaker})
+        await channelImplementation.setFundsDestination(fundsDestination, { from: txMaker })
     })
 
     it('should recover ethers sent to identity implementation before its deployment', async () => {
@@ -272,7 +274,7 @@ contract('Channel implementation funds recovery', ([_, txMaker, identity, fundsD
 
 contract('Accountant funds recovery', ([_, txMaker, account, fundsDestination, ...otherAccounts]) => {
     let token, nativeToken, accountantImplementation, topupAmount, tokensToMint
-    before (async () => {
+    before(async () => {
         token = await Token.new()
         nativeToken = await Token.new()
     })
@@ -289,11 +291,11 @@ contract('Accountant funds recovery', ([_, txMaker, account, fundsDestination, .
         await topUpTokens(token, implementationAddress, tokensToMint)
 
         // Deploy Accountant smart contract
-        accountantImplementation = await TestAccountantImplementation.new(nativeToken.address, account, 0, OneToken, {from: txMaker})
+        accountantImplementation = await TestAccountantImplementation.new(nativeToken.address, account, 0, OneToken, { from: txMaker })
         expect(accountantImplementation.address.toLowerCase()).to.be.equal(implementationAddress.toLowerCase())
 
         // Set funds destination
-        await accountantImplementation.setFundsDestination(fundsDestination, {from: account})
+        await accountantImplementation.setFundsDestination(fundsDestination, { from: account })
     })
 
     it('should recover ethers sent to accountant contract before its deployment', async () => {

@@ -71,7 +71,7 @@ contract DEXProxy {
 
     function __upgradeToAndCall(address _newImplementation, bytes memory _data) public payable _onlyProxyOwner {
         ___upgradeTo(_newImplementation);
-        (bool success, bytes memory data) = address(this).call.value(msg.value)(_data);
+        (bool success, ) = address(this).call.value(msg.value)(_data);
         require(success, "Calling new target failed");
     }
 }

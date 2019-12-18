@@ -4,17 +4,18 @@
 */
 
 const { BN } = require('openzeppelin-test-helpers')
-const { 
+const {
     generateChannelId,
     topUpTokens,
-    topUpEthers 
+    topUpEthers,
+    setupConfig
 } = require('./utils/index.js')
 const wallet = require('./utils/wallet.js')
-const { 
+const {
     signChannelBeneficiaryChange,
     signChannelLoanReturnRequest,
     signIdentityRegistration,
-    generatePromise 
+    generatePromise
 } = require('./utils/client.js')
 
 const MystToken = artifacts.require("MystToken")
@@ -42,7 +43,8 @@ contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress,
         const dex = await MystDex.new()
         const accountantImplementation = await AccountantImplementation.new(token.address, operator.address, 0, OneToken)
         const channelImplementation = await ChannelImplementation.new()
-        registry = await Registry.new(token.address, dex.address, channelImplementation.address, accountantImplementation.address, 0, 1)
+        const config = await setupConfig(txMaker, channelImplementation.address, accountantImplementation.address)
+        registry = await Registry.new(token.address, dex.address, config.address, 0, 1)
 
         // Give some ethers for gas for operator
         await topUpEthers(txMaker, operator.address, OneEther)
@@ -137,7 +139,7 @@ contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress,
 
     it("should be possible to settle promise issued by accountant", async () => {
         const channelId = generateChannelId(identityB.address, accountant.address)
-        const channelState = Object.assign({}, {channelId}, await accountant.channels(channelId))
+        const channelState = Object.assign({}, { channelId }, await accountant.channels(channelId))
         const amountToPay = new BN('100')
         const balanceBefore = await token.balanceOf(beneficiaryB)
 
@@ -158,7 +160,7 @@ contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress,
 
     it("should fail settling promise signed by wrong operator", async () => {
         const channelId = generateChannelId(identityB.address, accountant.address)
-        const channelState = Object.assign({}, {channelId}, await accountant.channels(channelId))
+        const channelState = Object.assign({}, { channelId }, await accountant.channels(channelId))
         const amountToPay = new BN('100')
 
         const promise = generatePromise(amountToPay, new BN(0), channelState, identityB)
@@ -185,16 +187,16 @@ contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress,
         expect(await accountant.isOpened(channelId)).to.be.true
 
         // Send transaction
-        const channelState = Object.assign({}, {channelId}, await accountant.channels(channelId))
+        const channelState = Object.assign({}, { channelId }, await accountant.channels(channelId))
         const amountToPay = new BN('100')
         const fee = new BN('7')
 
         const beneficiaryBalanceBefore = await token.balanceOf(beneficiaryC)
         const txMakerBalanceBefore = await token.balanceOf(txMaker)
-        
+
         const promise = generatePromise(amountToPay, fee, channelState, operator)
         await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature)
-        
+
         const beneficiaryBalanceAfter = await token.balanceOf(beneficiaryC)
         beneficiaryBalanceAfter.should.be.bignumber.equal(beneficiaryBalanceBefore.add(amountToPay))
 
@@ -204,7 +206,7 @@ contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress,
 
     it("should settle as much as it can when promise is bigger than channel balance", async () => {
         const channelId = generateChannelId(identityC.address, accountant.address)
-        const channelState = Object.assign({}, {channelId}, await accountant.channels(channelId))
+        const channelState = Object.assign({}, { channelId }, await accountant.channels(channelId))
         const amountToPay = new BN('1000')
         const fee = new BN('0')
 
@@ -238,10 +240,10 @@ contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress,
     it("accountant operator can make increase channel balance to settle bigger promises", async () => {
         const channelId = generateChannelId(identityC.address, accountant.address)
         const newBalance = new BN('10000')
-        await accountant.updateChannelBalance(channelId, newBalance, {from: operatorAddress})
+        await accountant.updateChannelBalance(channelId, newBalance, { from: operatorAddress })
 
         // Channel balance should be incresed
-        const channelState = Object.assign({}, {channelId}, await accountant.channels(channelId))
+        const channelState = Object.assign({}, { channelId }, await accountant.channels(channelId))
         channelState.balance.should.be.bignumber.equal(newBalance)
 
         // Accountant available (not locked in any channel) funds should not include stake and funds locked in channel
@@ -279,7 +281,7 @@ contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress,
         const accountantInitialAvailableBalace = await accountant.availableBalance()
 
         const newBalance = new BN('1000')
-        await accountant.updateChannelBalance(channelId, newBalance, {from: operatorAddress})
+        await accountant.updateChannelBalance(channelId, newBalance, { from: operatorAddress })
 
         // It should enable waiting period for channel balance reduction
         let channel = await accountant.channels(channelId)
@@ -292,7 +294,7 @@ contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress,
             await accountant.moveBlock()
         }
 
-        await accountant.updateChannelBalance(channelId, newBalance, {from: operatorAddress})
+        await accountant.updateChannelBalance(channelId, newBalance, { from: operatorAddress })
 
         // Channel balance should be decreased
         const channelBalance = (await accountant.channels(channelId)).balance
@@ -385,7 +387,7 @@ contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress,
         expect(await accountant.isOpened(channelId)).to.be.true
 
         // Settle all you can
-        const channelState = Object.assign({}, {channelId}, await accountant.channels(channelId))
+        const channelState = Object.assign({}, { channelId }, await accountant.channels(channelId))
         const promise = generatePromise(amountToLend, new BN(0), channelState, operator)
         await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature)
 
@@ -424,7 +426,7 @@ contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress,
 
         const amount = new BN(500)
         const beneficiary = otherAccounts[1]
-        await accountant.withdraw(beneficiary, amount, {from: operatorAddress})
+        await accountant.withdraw(beneficiary, amount, { from: operatorAddress })
 
         const accountantBalance = await token.balanceOf(accountant.address)
         accountantBalance.should.be.bignumber.equal(initialBalance.sub(amount))
@@ -436,10 +438,10 @@ contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress,
     it("should be not possible to withdraw not own funds", async () => {
         // Settle some funds, to make loan > balance
         const channelId = generateChannelId(identityC.address, accountant.address)
-        const channelState = Object.assign({}, {channelId}, await accountant.channels(channelId))
+        const channelState = Object.assign({}, { channelId }, await accountant.channels(channelId))
         const promise = generatePromise(new BN(700), new BN(0), channelState, operator)
         await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature)
-        
+
         const channel = await accountant.channels(channelId)
         channel.loan.should.be.bignumber.greaterThan(channel.balance)
 
