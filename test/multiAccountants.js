@@ -11,6 +11,7 @@ const MystDex = artifacts.require("MystDEX")
 const Registry = artifacts.require("Registry")
 const AccountantImplementation = artifacts.require("AccountantImplementation")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
+const ChannelImplementationProxy = artifacts.require("ChannelImplementationProxy")
 
 const Zero = new BN(0)
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
@@ -30,7 +31,7 @@ contract('Multi accountants', ([txMaker, ...beneficiaries]) => {
         token = await MystToken.new()
         dex = await MystDex.new()
         const accountantImplementation = await AccountantImplementation.new()
-        channelImplementation = await ChannelImplementation.new()
+        channelImplementation = await ChannelImplementationProxy.new()
         const config = await setupConfig(txMaker, channelImplementation.address, accountantImplementation.address)
         registry = await Registry.new(token.address, dex.address, config.address, 0, 0)
 

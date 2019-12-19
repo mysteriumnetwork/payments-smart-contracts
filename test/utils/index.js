@@ -4,8 +4,10 @@ const rlp = require('rlp')
 const { randomBytes } = require('crypto')
 const { BN } = require('openzeppelin-test-helpers')
 const leftPad = require('left-pad')
+const deployConfig = require('../../scripts/deployConfig').deploy
 
 const Config = artifacts.require("Config")
+const ChannelImplementation = artifacts.require("ChannelImplementation")
 
 // CREATE2 address is calculated this way:
 // keccak("0xff++msg.sender++salt++keccak(byteCode)")
@@ -132,14 +134,21 @@ function toBuffer(item) {
     }
 }
 
-async function setupConfig(owner, channelImplementation, accountantImplementation) {
-    const config = await Config.new()
+async function setupConfig(owner, channelProxy, accountantImplementation) {
+    const channelImplementation = (await ChannelImplementation.new()).address
+
+    const configAddress = await deployConfig(web3, owner)
+    const config = await Config.at(configAddress)
 
     await config.setOwner(owner)
 
     const channelSlot = '0x48df65c92c1c0e8e19a219c69bfeb4cf7c1c123e0c266d555abb508d37c6d96e'    // keccak256('channel implementation')
     const channelImplAddressBytes = '0x' + leftPad((channelImplementation.slice(2)).toString(16), 64, 0)
     await config.addConfig(channelSlot, channelImplAddressBytes)
+
+    const channelProxySlot = '0x2ef7e7c50e1b6a574193d0d32b7c0456cf12390a0872cf00be4797e71c3756f7' // keccak256('channel implementation proxy')
+    const channelProxyAddressBytes = '0x' + leftPad((channelProxy.slice(2)).toString(16), 64, 0)
+    await config.addConfig(channelProxySlot, channelProxyAddressBytes)
 
     const accountantSlot = '0xe6906d4b6048dd18329c27945d05f766dd19b003dc60f82fd4037c490ee55be0' // keccak256('accountant implementation')
     const AccImplAddressBytes = '0x' + leftPad((accountantImplementation.slice(2)).toString(16), 64, 0)

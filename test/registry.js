@@ -10,7 +10,7 @@ const signIdentityRegistration = require('./utils/client.js').signIdentityRegist
 const generateAccount = require('./utils/wallet.js').generateAccount
 
 const Registry = artifacts.require("Registry")
-const ChannelImplementation = artifacts.require("ChannelImplementation")
+const ChannelImplementationProxy = artifacts.require("ChannelImplementationProxy")
 const AccountantImplementation = artifacts.require("AccountantImplementation")
 const MystToken = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
@@ -31,7 +31,7 @@ contract('Registry', ([txMaker, minter, accountantOperator, fundsDestination, ..
         token = await MystToken.new()
         dex = await MystDex.new()
         const accountantImplementation = await AccountantImplementation.new()
-        channelImplementation = await ChannelImplementation.new()
+        channelImplementation = await ChannelImplementationProxy.new()
         const config = await setupConfig(txMaker, channelImplementation.address, accountantImplementation.address)
         registry = await Registry.new(token.address, dex.address, config.address, 0, 0)
 

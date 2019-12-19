@@ -43,7 +43,7 @@ contract ChannelImplementation is FundsRecovery {
 
     // Fallback function - redirect ethers topup into DEX
     function () external payable {
-        (bool success, bytes memory data) = address(dex).call.value(msg.value)(msg.data);
+        (bool success, ) = address(dex).call.value(msg.value)(msg.data);
         require(success, "Tx was rejected by DEX");
     }
 
