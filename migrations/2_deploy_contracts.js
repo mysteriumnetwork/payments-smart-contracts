@@ -16,15 +16,16 @@ module.exports = async function (deployer, network, accounts) {
     const configAddress = await deployConfig(web3, accounts[0])
     console.log('    Config address: ', configAddress)
 
-    // We do have MYSTT deployed on kovan already
-    if (network === 'kovan') {
-        const tokenAddress = '0xE67e41367c1e17ede951A528b2A8BE35c288c787'
+    // We do have MYSTT deployed on görli already
+    if (network === 'goerli') {
+        const tokenAddress = '0x7753cfAD258eFbC52A9A1452e42fFbce9bE486cb'
         deployer.deploy(DEXImplementation)
             .then(_ => deployer.deploy(DEXProxy, DEXImplementation.address, accounts[0]))
             .then(_ => deployer.deploy(ChannelImplementation))
             .then(_ => deployer.deploy(AccountantImplementation))
-            .then(_ => deployer.deploy(Config))
-            .then(_ => deployer.deploy(Registry, tokenAddress, DEXProxy.address, Config.address, 0, 0))
+            .then(_ => deployer.deploy(ChannelImplementationProxy, configAddress))
+            .then(_ => setupConfig(configAddress, accounts[0], ChannelImplementation.address, AccountantImplementation.address, ChannelImplementationProxy.address))
+            .then(_ => deployer.deploy(Registry, tokenAddress, DEXProxy.address, configAddress, 0, 0))
     } else {
         await deployer.deploy(SafeMathLib)
         await deployer.link(SafeMathLib, [MystToken])

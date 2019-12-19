@@ -8,7 +8,7 @@
         "compile": "truffle compile",
         "migrate": "truffle migrate",
         "flatten": "sh flattener.sh",
-        "deploy": "truffle deploy --network kovan"
+        "deploy": "truffle deploy --network goerli"
     },
     "repository": {
         "type": "git",
