@@ -8,6 +8,7 @@ const deployConfig = require('../../scripts/deployConfig').deploy
 
 const Config = artifacts.require("Config")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
+const AccountantImplementation = artifacts.require("AccountantImplementation")
 
 // CREATE2 address is calculated this way:
 // keccak("0xff++msg.sender++salt++keccak(byteCode)")
@@ -134,8 +135,9 @@ function toBuffer(item) {
     }
 }
 
-async function setupConfig(owner, channelProxy, accountantImplementation) {
+async function setupConfig(owner, channelProxy, accountantProxy) {
     const channelImplementation = (await ChannelImplementation.new()).address
+    const accountantImplementation = (await AccountantImplementation.new()).address
 
     const configAddress = await deployConfig(web3, owner)
     const config = await Config.at(configAddress)
@@ -153,6 +155,10 @@ async function setupConfig(owner, channelProxy, accountantImplementation) {
     const accountantSlot = '0xe6906d4b6048dd18329c27945d05f766dd19b003dc60f82fd4037c490ee55be0' // keccak256('accountant implementation')
     const AccImplAddressBytes = '0x' + leftPad((accountantImplementation.slice(2)).toString(16), 64, 0)
     await config.addConfig(accountantSlot, AccImplAddressBytes)
+
+    const accountantProxySlot = '0x52948fa93a94851571e57fddc2be83c51e0a64bb5e9ca55f4f90439b9802b575' // keccak256('accountant implementation proxy')
+    const accountantProxyAddressBytes = '0x' + leftPad((accountantProxy.slice(2)).toString(16), 64, 0)
+    await config.addConfig(accountantProxySlot, accountantProxyAddressBytes)
 
     return config
 }

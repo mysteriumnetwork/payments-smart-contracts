@@ -109,7 +109,7 @@ contract Registry is Ownable, FundsRecovery {
         require(!isAccountant(_accountantId), "accountant already registered");
 
         // Deploy accountant contract (mini proxy which is pointing to implementation)
-        AccountantContract _accountant = AccountantContract(deployMiniProxy(uint256(_accountantOperator), getAccountantProxyCode()));
+        AccountantContract _accountant = AccountantContract(deployMiniProxy(uint256(_accountantOperator), getProxyCode(getAccountantImplementation())));
 
         // Transfer stake into accountant smart contract
         token.transferFrom(msg.sender, address(_accountant), _stakeAmount);
@@ -130,7 +130,7 @@ contract Registry is Ownable, FundsRecovery {
     }
 
     function getAccountantAddress(address _accountantOperator) public view returns (address) {
-        bytes32 _code = keccak256(getAccountantProxyCode());
+        bytes32 _code = keccak256(getProxyCode(getAccountantImplementation()));
         return getCreate2Address(bytes32(uint256(_accountantOperator)), _code);
     }
 
@@ -159,17 +159,6 @@ contract Registry is Ownable, FundsRecovery {
         return _code;
     }
 
-    function getAccountantProxyCode() public view returns (bytes memory) {
-        bytes memory _code = hex"608060405234801561001057600080fd5b5060f48061001f6000396000f3fe608060408190526321f8a72160e01b81527fe6906d4b6048dd18329c27945d05f766dd19b003dc60f82fd4037c490ee55be060845260009073bebebebebebebebebebebebebebebebebebebebe906321f8a7219060a49060209060248186803b158015606a57600080fd5b505afa158015607d573d6000803e3d6000fd5b505050506040513d6020811015609257600080fd5b505160405190915036600082376000803683856127105a03f43d806000843e81801560bb578184f35b8184fdfea265627a7a7231582008c888d95644063ac32180d65e286ddc65dfec16e8772e3980e2e180b4c9644164736f6c634300050f0032";
-
-        bytes20 _targetBytes = bytes20(address(config));
-        for (uint8 i = 0; i < 20; i++) {
-            _code[88 + i] = _targetBytes[i];
-        }
-
-        return _code;
-    }
-
     function deployMiniProxy(uint256 _salt, bytes memory _code) internal returns (address payable) {
         address payable _addr;
 
@@ -186,6 +175,11 @@ contract Registry is Ownable, FundsRecovery {
     bytes32 constant CHANNEL_IMPLEMENTATION = 0x2ef7e7c50e1b6a574193d0d32b7c0456cf12390a0872cf00be4797e71c3756f7;  // keccak256('channel implementation proxy')
     function getChannelImplementation() public view returns (address) {
         return config.getAddress(CHANNEL_IMPLEMENTATION);
+    }
+
+    bytes32 constant ACCOUNTANT_IMPLEMENTATION = 0x52948fa93a94851571e57fddc2be83c51e0a64bb5e9ca55f4f90439b9802b575;  // keccak256('channel implementation proxy')
+    function getAccountantImplementation() public view returns (address) {
+        return config.getAddress(ACCOUNTANT_IMPLEMENTATION);
     }
 
     // ------------------------------------------------------------------------
