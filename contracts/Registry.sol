@@ -177,7 +177,7 @@ contract Registry is Ownable, FundsRecovery {
         return config.getAddress(CHANNEL_IMPLEMENTATION);
     }
 
-    bytes32 constant ACCOUNTANT_IMPLEMENTATION = 0x52948fa93a94851571e57fddc2be83c51e0a64bb5e9ca55f4f90439b9802b575;  // keccak256('channel implementation proxy')
+    bytes32 constant ACCOUNTANT_IMPLEMENTATION = 0x52948fa93a94851571e57fddc2be83c51e0a64bb5e9ca55f4f90439b9802b575;  // keccak256('accountant implementation proxy')
     function getAccountantImplementation() public view returns (address) {
         return config.getAddress(ACCOUNTANT_IMPLEMENTATION);
     }

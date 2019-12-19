@@ -17,14 +17,15 @@ module.exports = async function (deployer, network, accounts) {
     if (network === 'goerli') {
         const tokenAddress = '0x7753cfAD258eFbC52A9A1452e42fFbce9bE486cb'
         const configAddress = '0xF8B0E425AB9BE026B67a6429F0C8E3394983EdA8'
-        deployer.deploy(DEXImplementation)
-            .then(_ => deployer.deploy(DEXProxy, DEXImplementation.address, accounts[0]))
-            .then(_ => deployer.deploy(ChannelImplementation))
-            .then(_ => deployer.deploy(ChannelImplementationProxy))
-            .then(_ => deployer.deploy(AccountantImplementation))
-            .then(_ => deployer.deploy(AccountantImplementationProxy))
-            .then(_ => setupConfig(configAddress, accounts[0], ChannelImplementation.address, AccountantImplementation.address, ChannelImplementationProxy.address, AccountantImplementationProxy.address))
-            .then(_ => deployer.deploy(Registry, tokenAddress, DEXProxy.address, configAddress, 0, 0))
+        const dexImplAddress = '0xBB617cdCd308a7b5304F2f6261458821412a6E41'
+        const dexProxyAddress = '0xE3AeE81C87C87D219F1F94DBFD78BBC6bE79e5Fb'
+        const channelImplementationAddress = '0x0518D49B9c0619c7F7bD0745ac773C0f0B5Ac15F'
+        const accountantImplementationAddress = '0x33eC8FEB494a25A965D8FB77bE48a9c1F35CA895'
+
+        await deployer.deploy(ChannelImplementationProxy)
+        await deployer.deploy(AccountantImplementationProxy)
+        await setupConfig(configAddress, accounts[0], channelImplementationAddress, accountantImplementationAddress, ChannelImplementationProxy.address, AccountantImplementationProxy.address)
+        await deployer.deploy(Registry, tokenAddress, dexProxyAddress, configAddress, 0, 0)
     } else {
         // Deploy config
         const configAddress = await deployConfig(web3, accounts[0])

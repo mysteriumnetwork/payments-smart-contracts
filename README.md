@@ -40,7 +40,7 @@ npm run migrate
 MYSTT ERC20 Token (Mintable a la myst token): [0x7753cfAD258eFbC52A9A1452e42fFbce9bE486cb](https://goerli.etherscan.io/address/0x7753cfAD258eFbC52A9A1452e42fFbce9bE486cb)
 
 Registry smart contract:
-[0x611ad702f6A55C16A1bA6733a20D457488B5EAaF](https://goerli.etherscan.io/address/0x611ad702f6A55C16A1bA6733a20D457488B5EAaF)
+[0x3dD81545F3149538EdCb6691A4FfEE1898Bd2ef0](https://goerli.etherscan.io/address/0x3dD81545F3149538EdCb6691A4FfEE1898Bd2ef0)
 
 ### Deloyment log:
 
@@ -124,13 +124,27 @@ Registry smart contract:
 
     Deploying 'ChannelImplementationProxy'
     --------------------------------------
-    > transaction hash:    0x6d075b97eb2854f8f3f9c92e83d7d2ef7635d6756db8dcdbd00fa4892c3ee8f0
-    > Blocks: 1            Seconds: 24
-    > contract address:    0x5488774D8c7D170D4a8ecA89892c54b8DEca510b
-    > block number:        1849163
-    > block timestamp:     1576757588
+    > transaction hash:    0x9208c1600b2e144a3c0755c53d5f3fe7e391e0ef70ab2c404fad41e0a54d8aca
+    > Blocks: 0            Seconds: 8
+    > contract address:    0x3026eB9622e2C5bdC157C6b117F7f4aC2C2Db3b5
+    > block number:        1850097
+    > block timestamp:     1576771600
     > account:             0x4b902507cc9F6C18c2f0f1cb170315276D6a7eFe
-    > balance:             6.32176620324
+    > balance:             6.2873691004
+    > gas used:            106119
+    > gas price:           1.11 gwei
+    > value sent:          0 ETH
+    > total cost:          0.00011779209 ETH
+
+    Deploying 'AccountantImplementationProxy'
+    -----------------------------------------
+    > transaction hash:    0xbbb0a497c14094ff1cd2d7619733272b246d53be909d381fb27de77f4e9be62f
+    > Blocks: 1            Seconds: 24
+    > contract address:    0xDc36899A6cEea1A0F729467ba134d92f6E42FF53
+    > block number:        1850100
+    > block timestamp:     1576771645
+    > account:             0x4b902507cc9F6C18c2f0f1cb170315276D6a7eFe
+    > balance:             6.28725130831
     > gas used:            106119
     > gas price:           1.11 gwei
     > value sent:          0 ETH
@@ -138,17 +152,17 @@ Registry smart contract:
 
     Deploying 'Registry'
     --------------------
-    > transaction hash:    0xc5462a2da6a6f0d9c3eb1482fe76098813f54101bea04dc49c274d701c3320bb
-    > Blocks: 1            Seconds: 20
-    > contract address:    0x611ad702f6A55C16A1bA6733a20D457488B5EAaF
-    > block number:        1849170
-    > block timestamp:     1576757693
+    > transaction hash:    0xed00a8f7b50e82e93d66a43544f2be63cf2013f45090207c4e42c8138cfb31c7
+    > Blocks: 3            Seconds: 40
+    > contract address:    0x3dD81545F3149538EdCb6691A4FfEE1898Bd2ef0
+    > block number:        1850111
+    > block timestamp:     1576771810
     > account:             0x4b902507cc9F6C18c2f0f1cb170315276D6a7eFe
-    > balance:             6.3196179603
-    > gas used:            1761921
+    > balance:             6.2852082523
+    > gas used:            1697491
     > gas price:           1.11 gwei
     > value sent:          0 ETH
-    > total cost:          0.00195573231 ETH
+    > total cost:          0.00188421501 ETH
 
 ## Ideas to discuss
 

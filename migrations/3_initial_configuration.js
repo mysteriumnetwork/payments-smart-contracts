@@ -8,7 +8,7 @@ module.exports = async function (deployer, network, accounts) {
     }
 
     const tokenAddress = "0x7753cfAD258eFbC52A9A1452e42fFbce9bE486cb"
-    const registryAddress = "0x611ad702f6A55C16A1bA6733a20D457488B5EAaF"
+    const registryAddress = "0x3dD81545F3149538EdCb6691A4FfEE1898Bd2ef0"
     const accountantOperator = "0xfb9cbd471f27e69f9ca94c7e804601a1f87d0569"
     const transactorOperator = "0x0828d0386c1122e565f07dd28c7d1340ed5b3315"
 
