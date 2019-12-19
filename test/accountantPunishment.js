@@ -1,11 +1,11 @@
 require('chai')
-.use(require('chai-as-promised'))
-.should()
+    .use(require('chai-as-promised'))
+    .should()
 const { BN } = require('openzeppelin-test-helpers')
 const { randomBytes } = require('crypto')
 
-const { topUpTokens, generateChannelId, keccak } = require('./utils/index.js')
-const { 
+const { topUpTokens, generateChannelId, keccak, setupConfig } = require('./utils/index.js')
+const {
     signIdentityRegistration,
     signChannelBalanceUpdate,
     signChannelLoanReturnRequest,
@@ -18,7 +18,7 @@ const MystToken = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
 const Registry = artifacts.require("Registry")
 const AccountantImplementation = artifacts.require("TestAccountantImplementation")
-const ChannelImplementation = artifacts.require("ChannelImplementation")
+const ChannelImplementationProxy = artifacts.require("ChannelImplementationProxy")
 
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const Zero = new BN(0)
@@ -35,8 +35,9 @@ contract('Accountant punishment', ([txMaker, operatorAddress, ...beneficiaries])
         token = await MystToken.new()
         const dex = await MystDex.new()
         const accountantImplementation = await AccountantImplementation.new(token.address, accountantOperator.address, 0, OneToken)
-        const channelImplementation = await ChannelImplementation.new()
-        registry = await Registry.new(token.address, dex.address, channelImplementation.address, accountantImplementation.address, Zero, stake)
+        const channelImplementation = await ChannelImplementationProxy.new()
+        const config = await setupConfig(txMaker, channelImplementation.address, accountantImplementation.address)
+        registry = await Registry.new(token.address, dex.address, config.address, Zero, stake)
 
         // Topup some tokens into txMaker address so it could register accountant
         await topUpTokens(token, txMaker, OneToken)
@@ -178,9 +179,9 @@ contract('Accountant punishment', ([txMaker, operatorAddress, ...beneficiaries])
     it('accountant operator should not be able to update channel balance', async () => {
         const newBalance = new BN('10')
         await topUpTokens(token, txMaker, newBalance)
-        
+
         const channelId = generateChannelId(provider.address, accountant.address)
-        await accountant.updateChannelBalance(channelId, newBalance, {from: operatorAddress}).should.be.rejected
+        await accountant.updateChannelBalance(channelId, newBalance, { from: operatorAddress }).should.be.rejected
     })
 
     it('should fail resolving emergency when txMaker balance is not enough', async () => {
@@ -209,17 +210,17 @@ contract('Accountant punishment', ([txMaker, operatorAddress, ...beneficiaries])
         await accountant.resolveEmergency().should.be.rejected
     })
 
-    it('should all back to normal',  async () => {
+    it('should all back to normal', async () => {
         // Should allow to register new identity
         const newProvider = wallet.generateAccount()
         const channelStake = new BN(1000)
-        
+
         const channelAddress = await registry.getChannelAddress(newProvider.address, accountant.address)
         await topUpTokens(token, channelAddress, channelStake)
-        
+
         let signature = signIdentityRegistration(registry.address, accountant.address, channelStake, Zero, beneficiaries[1], newProvider)
         await registry.registerIdentity(accountant.address, channelStake, Zero, beneficiaries[1], signature)
-        
+
         // Should fully rebalance channel
         const channelId = generateChannelId(provider.address, accountant.address)
         await accountant.rebalanceChannel(channelId)
@@ -229,10 +230,10 @@ contract('Accountant punishment', ([txMaker, operatorAddress, ...beneficiaries])
         // Operator should be able to update channel balance
         const newBalance = new BN(70000)
         await topUpTokens(token, accountant.address, newBalance)
-        await accountant.updateChannelBalance(channelId, newBalance, {from: operatorAddress})
+        await accountant.updateChannelBalance(channelId, newBalance, { from: operatorAddress })
         channel = await accountant.channels(channelId)
         channel.balance.should.be.bignumber.equal(newBalance)
-        
+
         expect(await accountant.isAccountantActive()).to.be.true
     })
 
@@ -242,7 +243,7 @@ contract('Accountant punishment', ([txMaker, operatorAddress, ...beneficiaries])
 
         // Withdraw available balance
         const availableBalance = await accountant.availableBalance()
-        await accountant.withdraw(beneficiaries[3], availableBalance, {from: operatorAddress})
+        await accountant.withdraw(beneficiaries[3], availableBalance, { from: operatorAddress })
 
         // Create accountant promise
         const amount = channel.settled.add(channel.balance)
@@ -265,14 +266,14 @@ contract('Accountant punishment', ([txMaker, operatorAddress, ...beneficiaries])
 
     it('should be not possible to close accountant while in punishment mode', async () => {
         expect((await accountant.getStatus()).toNumber()).to.be.equal(2)  // 0 - Active, 1 - Paused, 2 - Punishment, 3 - Closed
-        await accountant.closeAccountant({from: operatorAddress}).should.be.rejected
+        await accountant.closeAccountant({ from: operatorAddress }).should.be.rejected
     })
 
     it('accountant should be punished for not resolving emergency on time', async () => {
         const initialLockedFunds = await accountant.getLockedFunds()
 
         // Move blockchain forward
-        for (let i=0; i<10; i++) {
+        for (let i = 0; i < 10; i++) {
             await accountant.moveBlock()
         }
 
@@ -281,7 +282,7 @@ contract('Accountant punishment', ([txMaker, operatorAddress, ...beneficiaries])
         const accountantStatus = await accountant.getStatus() // 0 - Active, 1 - Paused, 2 - Punishment, 3 - Closed
         expect(accountantStatus.toNumber()).to.be.equal(0)
 
-        // Emergency was resolved after 10 blocks (within 2 unit of time), 
+        // Emergency was resolved after 10 blocks (within 2 unit of time),
         // punishment amount should be 0.08% of locked in channel funds.
         const expectedPunishment = initialLockedFunds * 0.04 * 2
         const punishmentAmount = (await accountant.punishment()).amount.toNumber()
@@ -295,16 +296,16 @@ contract('Accountant punishment', ([txMaker, operatorAddress, ...beneficiaries])
         const expectedBlockNumber = (await web3.eth.getBlock('latest')).number + 4
         const punishmentAmount = (await accountant.punishment()).amount
 
-        await accountant.closeAccountant({from: operatorAddress})
+        await accountant.closeAccountant({ from: operatorAddress })
         expect((await accountant.getStatus()).toNumber()).to.be.equal(3)  // 0 - Active, 1 - Paused, 2 - Punishment, 3 - Closed
 
         // Move blockchain forward
-        for (let i=0; i<5; i++) {
+        for (let i = 0; i < 5; i++) {
             await accountant.moveBlock()
         }
         expect((await web3.eth.getBlock('latest')).number).to.be.above(expectedBlockNumber)
 
-        await accountant.getStakeBack(beneficiaries[4], {from: operatorAddress})
+        await accountant.getStakeBack(beneficiaries[4], { from: operatorAddress })
 
         const currentAccountantBalance = await token.balanceOf(accountant.address)
         const beneficiaryBalance = await token.balanceOf(beneficiaries[4])

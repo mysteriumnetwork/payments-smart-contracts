@@ -1,4 +1,4 @@
-pragma solidity ^0.5.12;
+pragma solidity >=0.5.12 <0.6.0;
 
 import { SafeMathLib } from "./libs/SafeMathLib.sol";
 
@@ -193,7 +193,7 @@ contract MystToken is ERC20, Ownable, SafeMath {
         //  already 0 to mitigate the race condition described here:
         //  https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
         if ((_value != 0) && (allowed[msg.sender][_spender] != 0)) revert();
-    
+
         allowed[msg.sender][_spender] = _value;
         emit Approval(msg.sender, _spender, _value);
         return true;
@@ -223,7 +223,7 @@ contract MystToken is ERC20, Ownable, SafeMath {
      */
     function subApproval(address _spender, uint _subtractedValue) onlyPayloadSize(2 * 32) public returns (bool success) {
         uint oldVal = allowed[msg.sender][_spender];
-  
+
         if (_subtractedValue > oldVal) {
             allowed[msg.sender][_spender] = 0;
         } else {

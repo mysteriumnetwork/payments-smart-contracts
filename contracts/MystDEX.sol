@@ -1,4 +1,4 @@
-pragma solidity ^0.5.12;
+pragma solidity >=0.5.12 <0.6.0;
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
@@ -12,7 +12,7 @@ contract MystDEX is Ownable, FundsRecovery {
     bool public initialised;
     uint256 rate;   // Wei per token
     IERC20 token;
-    
+
     // Default function - converts ethers to MYST
     function () external payable {
         require(initialised, "Contract is not initialised");

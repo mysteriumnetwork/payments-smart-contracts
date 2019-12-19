@@ -1,15 +1,15 @@
 language: node_js
-node_js: "9"
+node_js: "12.12.0"
 
 install:
   npm install
 
 script:
-  - npx ganache-cli --port 7545 --mnemonic 'amused glory pen avocado toilet dragon entry kitchen cliff retreat canyon danger' &
+  - rm -rf build
+  - npm run compile
+  - npx ganache-cli --hardfork istanbul --port 7545 --mnemonic 'amused glory pen avocado toilet dragon entry kitchen cliff retreat canyon danger' &
   - npm test
 
-before_deploy:
-  - npm run compile
 deploy:
   provider: releases
   api_key: "$GIT_RELEASES_API_KEY"

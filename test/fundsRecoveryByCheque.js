@@ -1,11 +1,12 @@
 const { BN } = require('openzeppelin-test-helpers')
-const { 
+const {
     genCreate2Address,
     signMessage,
     verifySignature,
     topUpEthers,
     topUpTokens,
-    toBytes32Buffer
+    toBytes32Buffer,
+    setupConfig
 } = require('./utils/index.js')
 const wallet = require('./utils/wallet.js')
 const signIdentityRegistration = require('./utils/client.js').signIdentityRegistration
@@ -23,7 +24,7 @@ const ZeroAddress = '0x0000000000000000000000000000000000000000'
 function createCheque(signer, destination, nonce) {
     const PREFIX = Buffer.from("Set funds destination:")
     const message = Buffer.concat([
-        PREFIX, 
+        PREFIX,
         Buffer.from(destination.slice(2), 'hex'),
         toBytes32Buffer(nonce)
     ])
@@ -41,13 +42,14 @@ contract('Full path (in channel using cheque) test for funds recovery', ([txMake
     const accountant = wallet.generateAccount()   // Generate hub operator keys
     const accountantOperator = accountant.address
     let token, registry, channel, accountantId, expectedAddress, topupAmount, tokensToMint
-    before (async () => {
+    before(async () => {
         token = await Token.new()
         nativeToken = await Token.new()
         const dex = await MystDex.new()
         const channelImplementation = await ChannelImplementation.new()
         const accountantImplementation = await AccountantImplementation.new()
-        registry = await Registry.new(nativeToken.address, dex.address, channelImplementation.address, accountantImplementation.address, 0, 0)
+        const config = await setupConfig(txMaker, channelImplementation.address, accountantImplementation.address)
+        registry = await Registry.new(nativeToken.address, dex.address, config.address, 0, 0)
 
         accountantId = await registry.getAccountantAddress(accountantOperator)
         expectedAddress = await genCreate2Address(identityHash, accountantId, registry, channelImplementation.address)
@@ -94,7 +96,7 @@ contract('Full path (in channel using cheque) test for funds recovery', ([txMake
     })
 
     it('should fail setting funds destination using wrong identity', async () => {
-        const secondIdentity  = wallet.generateAccount()
+        const secondIdentity = wallet.generateAccount()
         const nonce = new BN(2)
         const signature = createCheque(secondIdentity, otherAccounts[1], nonce)
         await channel.setFundsDestinationByCheque(fundsDestination, nonce, signature).should.be.rejected
@@ -104,7 +106,7 @@ contract('Full path (in channel using cheque) test for funds recovery', ([txMake
     it('should recover ethers', async () => {
         const initialBalance = await web3.eth.getBalance(fundsDestination)
 
-        await channel.claimEthers({from: otherAccounts[1]}).should.be.fulfilled
+        await channel.claimEthers({ from: otherAccounts[1] }).should.be.fulfilled
 
         const expectedBalance = Number(initialBalance) + topupAmount
         expect(await web3.eth.getBalance(fundsDestination)).to.be.equal(expectedBalance.toString())

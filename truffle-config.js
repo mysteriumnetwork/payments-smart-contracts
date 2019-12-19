@@ -11,9 +11,9 @@ module.exports = {
     
     compilers: {
         solc: {
-            version: "^0.5.12",
+            version: "^0.5.15",
             settings: {
-                evmVersion: "petersburg",
+                evmVersion: "istanbul",
                 optimizer: {
                     enabled: true,
                     runs: 200
@@ -33,11 +33,11 @@ module.exports = {
         gas: 5000000,
         gasPrice: 3000000000,
         confirmations: 1,
-        skipDryRun: true
+            sipDryRun: true
       },
-      kovan: {
+        goerli: {
         provider: () => new HDWalletProvider(mnemonic, INFURA_URL),
-        network_id: 42,
+            network_id: 5,
         gas: 5000000,
         gasPrice: 1110000000,
         confirmations: 1,

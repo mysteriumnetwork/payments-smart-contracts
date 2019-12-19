@@ -268,7 +268,7 @@ interface IERC20 {
 
 // File: contracts/FundsRecovery.sol
 
-pragma solidity ^0.5.12;
+pragma solidity >=0.5.12 <0.6.0;
 
 
 
@@ -316,7 +316,7 @@ contract FundsRecovery is Ownable {
 
 // File: contracts/MystDEX.sol
 
-pragma solidity ^0.5.12;
+pragma solidity >=0.5.12 <0.6.0;
 
 
 
@@ -329,7 +329,7 @@ contract MystDEX is Ownable, FundsRecovery {
     bool public initialised;
     uint256 rate;   // Wei per token
     IERC20 token;
-    
+
     // Default function - converts ethers to MYST
     function () external payable {
         require(initialised, "Contract is not initialised");

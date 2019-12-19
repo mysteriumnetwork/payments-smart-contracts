@@ -1,13 +1,14 @@
 /*
-    In this file we'll have a few end-to-end workflows which emulates all necesary 
+    In this file we'll have a few end-to-end workflows which emulates all necesary
     on-chain and off-chain interactions from registering identity, to settlement of received funds
 */
 
 const { BN } = require('openzeppelin-test-helpers')
-const { 
+const {
     topUpTokens,
     topUpEthers,
-    generateChannelId
+    generateChannelId,
+    setupConfig
 } = require('./utils/index.js')
 const {
     createAccountantService,
@@ -22,7 +23,8 @@ const MystToken = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
 const Registry = artifacts.require("Registry")
 const AccountantImplementation = artifacts.require("AccountantImplementation")
-const ChannelImplementation = artifacts.require("ChannelImplementation")
+const AccountantImplementationProxy = artifacts.require("AccountantImplementationProxy")
+const ChannelImplementationProxy = artifacts.require("ChannelImplementationProxy")
 
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const OneEther = web3.utils.toWei(new BN(1), 'ether')
@@ -38,7 +40,7 @@ function generateIdentities(amount) {
 
 async function pay(consumer, provider, accountantService, amount, repetitions = 1) {
     const agreementId = provider.generateInvoice(new BN(0)).agreementId
-    for (let i=0; i < repetitions; i++) {
+    for (let i = 0; i < repetitions; i++) {
         const invoice = provider.generateInvoice(amount, agreementId)
         const exchangeMsg = consumer.createExchangeMsg(invoice, provider.identity.address)
         const promise = await accountantService.exchangePromise(exchangeMsg, consumer.identity.pubKey, provider.identity.address)
@@ -50,9 +52,10 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
     before(async () => {
         token = await MystToken.new()
         const dex = await MystDex.new()
-        const accountantImplementation = await AccountantImplementation.new()
-        const channelImplementation = await ChannelImplementation.new()
-        registry = await Registry.new(token.address, dex.address, channelImplementation.address, accountantImplementation.address, 0, 1)
+        const accountantImplementation = await AccountantImplementationProxy.new()
+        const channelImplementation = await ChannelImplementationProxy.new()
+        const config = await setupConfig(txMaker, channelImplementation.address, accountantImplementation.address)
+        registry = await Registry.new(token.address, dex.address, config.address, 0, 1)
 
         // Give some ethers for gas for operator
         await topUpEthers(txMaker, operator.address, OneEther)
@@ -133,7 +136,7 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
 
         // Provider validates exchange message
         provider.validateExchangeMessage(exchangeMsg, consumer.identity.pubKey)
-        
+
         // Exchange given message into payment promise from accountant
         const promise = await accountantService.exchangePromise(exchangeMsg, consumer.identity.pubKey, provider.identity.address)
 
@@ -159,7 +162,7 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
 
         // check aggregated promise amount
         provider.getBiggestPromise().amount.should.be.bignumber.equal('1161')
-        
+
         // settle biggest promise
         await provider.settleAndRebalance()
 
