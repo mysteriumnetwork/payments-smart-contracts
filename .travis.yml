@@ -7,7 +7,7 @@ install:
 script:
   - rm -rf build
   - npm run compile
-  - npx ganache-cli --hardfork istanbul --port 7545 --mnemonic 'amused glory pen avocado toilet dragon entry kitchen cliff retreat canyon danger' &
+  - npx ganache-cli --port 7545 --mnemonic 'amused glory pen avocado toilet dragon entry kitchen cliff retreat canyon danger' &
   - npm test
 
 deploy:
