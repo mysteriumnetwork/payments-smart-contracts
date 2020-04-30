@@ -3,7 +3,7 @@ pragma solidity >=0.5.12 <0.6.0;
 import "./Config.sol";
 
 contract ChannelImplementationProxy {
-    address constant CONFIG_ADDRESS = 0xa56A3e78757FFD0038d78065e2514786A055a8eB;
+    address constant CONFIG_ADDRESS = 0xfedb838efbfad9302e111f58dee8ed6e472c594f;
 
     function () external payable {
         address _target = Config(CONFIG_ADDRESS).getAddress(0x48df65c92c1c0e8e19a219c69bfeb4cf7c1c123e0c266d555abb508d37c6d96e); // keccak256('channel implementation')
