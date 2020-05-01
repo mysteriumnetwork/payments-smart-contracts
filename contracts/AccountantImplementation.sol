@@ -202,6 +202,11 @@ contract AccountantImplementation is FundsRecovery {
         rebalanceChannel(_channelId);
     }
 
+    function settleWithBeneficiary(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _promiseSignature, address _newBeneficiary, uint256 _nonce, bytes memory _signature) public {
+        setBeneficiary(_channelId, _newBeneficiary, _nonce, _signature);
+        settleAndRebalance(_channelId, _amount, _transactorFee, _lock, _promiseSignature);
+    }
+
     // Accountant can update channel balance by himself. He can update into any amount size
     // but not less that provider's loan amount.
     function updateChannelBalance(bytes32 _channelId, uint256 _newBalance) public onlyOperator {
