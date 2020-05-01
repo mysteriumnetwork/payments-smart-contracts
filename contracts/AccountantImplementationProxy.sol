@@ -3,7 +3,7 @@ pragma solidity >=0.5.12 <0.6.0;
 import "./Config.sol";
 
 contract AccountantImplementationProxy {
-    address constant CONFIG_ADDRESS = 0xF8B0E425AB9BE026B67a6429F0C8E3394983EdA8;
+    address constant CONFIG_ADDRESS = 0x46e9742C098267122DA466d6b7a3fb844436Ac37;
 
     function () external payable {
         address _target = Config(CONFIG_ADDRESS).getAddress(0xe6906d4b6048dd18329c27945d05f766dd19b003dc60f82fd4037c490ee55be0);

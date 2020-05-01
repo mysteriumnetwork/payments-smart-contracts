@@ -5,7 +5,7 @@ const MystDex = artifacts.require("MystDEX")
 
 const OneEther = web3.utils.toWei(new BN(1), 'ether')
 
-contract.only('Mysterium simplified DEX', ([_, owner, ...otherAccounts]) => {
+contract('Mysterium simplified DEX', ([_, owner, ...otherAccounts]) => {
     let token, dex
     before(async () => {
         token = await MystToken.new()
