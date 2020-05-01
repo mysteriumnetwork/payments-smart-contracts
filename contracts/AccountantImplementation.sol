@@ -168,6 +168,7 @@ contract AccountantImplementation is FundsRecovery {
         // Calculate amount of tokens to be claimed.
         uint256 _unpaidAmount = _amount.sub(_channel.settled);
         require(_unpaidAmount > 0, "amount to settle should be greater that already settled");
+        require(_transactorFee <= _unpaidAmount, "transactor fee should be equal to or less than _unpaidAmount");
 
         // If signer has less tokens than asked to transfer, we can transfer as much as he has already
         // and rest tokens can be transferred via same promise but in another tx
