@@ -19,7 +19,7 @@ We're using truffle for smart contract compilation and running tests.
 npm install
 ```
 
-2. Run local ethereum node, e.g. `ganache`.
+2. Run local ethereum node, e.g. `ganache`. Make sure to use version greater than 6.9.1.
 
 ```bash
 npx ganache-cli --port 7545 --mnemonic "amused glory pen avocado toilet dragon entry kitchen cliff retreat canyon danger"
@@ -35,6 +35,16 @@ npm test
 ```bash
 npm run migrate
 ```
+
+**NOTE** IF your tests fail, first thing to check is the config address in `accountantImplementationProxy.sol` and `channelImplementationProxy.sol`. 
+
+When running tests, you'll see a line in stdout, with a config address like so:
+
+`Config address:  0xed3585D6BEEE0f045E209dbc419C2ad0c3138612`
+
+Change the CONFIG_ADDRESS constants to point to the address that your terminal displays and tests should work.
+
+`address constant CONFIG_ADDRESS = 0xed3585D6BEEE0f045E209dbc419C2ad0c3138612;`
 
 ## Current deployment (ethereum Görli testnet)
 MYSTT ERC20 Token (Mintable a la myst token): [0x7753cfAD258eFbC52A9A1452e42fFbce9bE486cb](https://goerli.etherscan.io/address/0x7753cfAD258eFbC52A9A1452e42fFbce9bE486cb)

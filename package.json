@@ -5,6 +5,7 @@
     "main": "index.js",
     "scripts": {
         "test": "truffle test",
+        "e2e": "truffle test --network e2e",
         "compile": "truffle compile",
         "migrate": "truffle migrate",
         "flatten": "sh flattener.sh",
@@ -34,7 +35,7 @@
         "openzeppelin-solidity": "^2.3.0",
         "openzeppelin-test-helpers": "^0.4.3",
         "secp256k1": "^3.7.1",
-        "truffle": "^5.1.23",
+        "truffle": "^5.1.25",
         "truffle-flattener": "^1.4.3"
     }
 }
