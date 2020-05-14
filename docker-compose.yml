@@ -1,0 +1,14 @@
+version: '3.0'
+services:
+  psc:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    depends_on:
+      - ganache
+  ganache:
+    image: trufflesuite/ganache-cli:v6.9.1
+    expose:
+      - 8545
+    command: >
+      --mnemonic "amused glory pen avocado toilet dragon entry kitchen cliff retreat canyon danger"
