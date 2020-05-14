@@ -38,6 +38,12 @@ func Release() error {
 		return err
 	}
 
+	err = sh.RunV("docker-compose", "up", "-d")
+	if err != nil {
+		log.Error().Err(err).Msgf("could not build container")
+		return err
+	}
+
 	_ = os.Mkdir("./build", os.ModeDir)
 	o, err := sh.Output("docker", strings.Split("ps -a --filter ancestor=payments-smart-contracts_psc --format {{.ID}}", " ")...)
 	if err != nil {
