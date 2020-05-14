@@ -51,7 +51,7 @@ func Release() error {
 		return err
 	}
 
-	err = sh.RunV("docker", fmt.Sprintf("cp %v:/src/build/ ./build", strings.TrimSpace(o)))
+	err = sh.RunV("docker", strings.Split(fmt.Sprintf("cp %v:/src/build/ ./build", strings.TrimSpace(o)), " ")...)
 	if err != nil {
 		log.Error().Err(err).Msgf("could not copy build artifacts")
 		return err
