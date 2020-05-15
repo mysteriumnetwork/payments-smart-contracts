@@ -62,5 +62,5 @@ func Release() error {
 		return err
 	}
 
-	return sh.RunV("ghr", "-replace", "-t", token, tag, "build/contracts/")
+	return sh.RunV("ghr", "-replace", "-t", token, tag, "./build/build/contracts/")
 }
