@@ -44,7 +44,7 @@ func Release() error {
 		return err
 	}
 
-	_ = os.Mkdir("./build", os.ModeDir)
+	_ = os.Mkdir("./build", 0700)
 	o, err := sh.Output("docker", strings.Split("ps -a --filter ancestor=payments-smart-contracts_psc --format {{.ID}}", " ")...)
 	if err != nil {
 		log.Error().Err(err).Msgf("could not get container ID")
