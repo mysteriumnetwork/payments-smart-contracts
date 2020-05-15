@@ -29,6 +29,11 @@ func Release() error {
 	if tag == "" {
 		return errors.New("no tag specified")
 	}
+	token := os.Getenv("GITHUB_TOKEN")
+	if tag == "" {
+		return errors.New("no github token specified")
+	}
+
 	log.Info().Msgf("releasing for TAG: %v", tag)
 
 	defer sh.RunV("docker-compose", "down")
@@ -57,5 +62,7 @@ func Release() error {
 		return err
 	}
 
-	return sh.RunV("ghr", "-replace", tag, "build/contracts/")
+	return sh.RunWith(map[string]string{
+		"GITHUB_TOKEN": token,
+	}, "ghr", "-replace", tag, "build/contracts/")
 }
