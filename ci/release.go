@@ -30,7 +30,7 @@ func Release() error {
 		return errors.New("no tag specified")
 	}
 	token := os.Getenv("GITHUB_TOKEN")
-	if tag == "" {
+	if token == "" {
 		return errors.New("no github token specified")
 	}
 
