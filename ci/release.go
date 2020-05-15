@@ -62,7 +62,5 @@ func Release() error {
 		return err
 	}
 
-	return sh.RunWith(map[string]string{
-		"GITHUB_TOKEN": token,
-	}, "ghr", "-replace", tag, "build/contracts/")
+	return sh.RunV("ghr", "-replace", "-t", token, tag, "build/contracts/")
 }
