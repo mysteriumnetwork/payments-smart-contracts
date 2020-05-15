@@ -10,7 +10,7 @@ variables:
   BUILD_NUMBER: $CI_PIPELINE_ID
   GITHUB_OWNER: mysteriumnetwork
   GITHUB_REPO: payments-smart-contracts
-  GITHUB_TOKEN: $GITHUB_TOKEN
+  GITHUB_TOKEN: $GITHUB_API_TOKEN
 
   GO_PACKAGE: github.com/mysteriumnetwork/payments-smart-contracts
   GIT_CLONE_PATH: /home/gitlab-runner/go/src/$GO_PACKAGE
