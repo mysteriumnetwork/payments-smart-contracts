@@ -11,7 +11,7 @@ interface Channel {
     function initialize(address _token, address _dex, address _identityHash, address _accountantId, uint256 _fee) external;
 }
 
-interface AccountantContract {
+interface HermesContract {
     enum Status { Active, Paused, Punishment, Closed }
     function initialize(address _token, address _operator, uint16 _accountantFee, uint256 _maxLoan) external;
     function openChannel(address _party, address _beneficiary, uint256 _amountToLend) external;
@@ -62,42 +62,41 @@ contract Registry is Ownable, FundsRecovery {
     }
 
     // Register identity and open spending and incomming channels with given accountant
-    // _loanAmount - it's amount of tokens lended to accountant to guarantee incomming channel's balance.
-    function registerIdentity(address _accountantId, uint256 _loanAmount, uint256 _transactorFee, address _beneficiary, bytes memory _signature) public {
-        require(isActiveAccountant(_accountantId), "provided accountant have to be active");
+    // _stakeAmount - it's amount of tokens staked into hermes to guarantee incomming channel's balance.
+    function registerIdentity(address _hermesId, uint256 _stakeAmount, uint256 _transactorFee, address _beneficiary, bytes memory _signature) public {
+        require(isActiveAccountant(_hermesId), "provided hermes have to be active");
 
         // Check if given signature is valid
-        address _identityHash = keccak256(abi.encodePacked(address(this), _accountantId, _loanAmount, _transactorFee, _beneficiary)).recover(_signature);
+        address _identityHash = keccak256(abi.encodePacked(address(this), _hermesId, _stakeAmount, _transactorFee, _beneficiary)).recover(_signature);
         require(_identityHash != address(0), "wrong signature");
 
-        // Tokens amount to get from channel to cover tx fee, registration fee and provider's loan/stake
-        uint256 _totalFee = registrationFee.add(_loanAmount).add(_transactorFee);
-        require(_totalFee <= token.balanceOf(getChannelAddress(_identityHash, _accountantId)), "not enought funds in channel to cover fees");
+        // Tokens amount to get from channel to cover tx fee, registration fee and provider's stake
+        uint256 _totalFee = registrationFee.add(_stakeAmount).add(_transactorFee);
+        require(_totalFee <= token.balanceOf(getChannelAddress(_identityHash, _hermesId)), "not enought funds in channel to cover fees");
 
         // Deploy channel contract for given identity (mini proxy which is pointing to implementation)
-        bytes32 _salt = keccak256(abi.encodePacked(_identityHash, _accountantId));
+        bytes32 _salt = keccak256(abi.encodePacked(_identityHash, _hermesId));
         bytes memory _code = getProxyCode(getChannelImplementation());
         Channel _channel = Channel(deployMiniProxy(uint256(_salt), _code));
-        _channel.initialize(address(token), dex, _identityHash, _accountantId, _totalFee);
+        _channel.initialize(address(token), dex, _identityHash, _hermesId, _totalFee);
 
-        // Opening incomming (provider's) channel
-        if (_loanAmount > 0) {
-            require(token.approve(_accountantId, _loanAmount), "accountant should get approval to transfer tokens");
+        // Opening incoming (provider's) channel
+        if (_stakeAmount > 0 && _beneficiary != address(0)) {
+            require(token.approve(_hermesId, _stakeAmount), "hermes should get approval to transfer tokens");
+            HermesContract(_hermesId).openChannel(_identityHash, _beneficiary, _stakeAmount);
         }
-        require(_beneficiary != address(0), "beneficiary can't be zero address");
-        AccountantContract(_accountantId).openChannel(_identityHash, _beneficiary, _loanAmount);
 
         // Pay fee for transaction maker
         if (_transactorFee > 0) {
             token.transfer(msg.sender, _transactorFee);
         }
 
-        emit ConsumerChannelCreated(_identityHash, _accountantId, address(_channel));
+        emit ConsumerChannelCreated(_identityHash, _hermesId, address(_channel));
 
         // Mark identity as registered if this is first registration attempt / first channel opened
         if (!isRegistered(_identityHash)) {
             identities[_identityHash] = true;
-            emit RegisteredIdentity(_identityHash, _accountantId);
+            emit RegisteredIdentity(_identityHash, _hermesId);
         }
     }
 
@@ -109,7 +108,7 @@ contract Registry is Ownable, FundsRecovery {
         require(!isAccountant(_accountantId), "accountant already registered");
 
         // Deploy accountant contract (mini proxy which is pointing to implementation)
-        AccountantContract _accountant = AccountantContract(deployMiniProxy(uint256(_accountantOperator), getProxyCode(getAccountantImplementation())));
+        HermesContract _accountant = HermesContract(deployMiniProxy(uint256(_accountantOperator), getProxyCode(getAccountantImplementation())));
 
         // Transfer stake into accountant smart contract
         token.transferFrom(msg.sender, address(_accountant), _stakeAmount);
@@ -202,8 +201,8 @@ contract Registry is Ownable, FundsRecovery {
 
     function isActiveAccountant(address _accountantId) internal view returns (bool) {
         // If stake is 0, then it's either incactive or unregistered accountant
-        AccountantContract.Status status = AccountantContract(_accountantId).getStatus();
-        return status == AccountantContract.Status.Active;
+        HermesContract.Status status = HermesContract(_accountantId).getStatus();
+        return status == HermesContract.Status.Active;
     }
 
     function changeRegistrationFee(uint256 _newFee) public onlyOwner {
