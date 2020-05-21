@@ -30,7 +30,7 @@ const Zero = new BN(0)
 
 const operatorPrivKey = Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8c26933e5d9f0cda92f3c3', 'hex')
 
-contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress, beneficiaryA, beneficiaryB, beneficiaryC, beneficiaryD, ...otherAccounts]) => {
+contract.only('Accountant Contract Implementation tests', ([txMaker, operatorAddress, beneficiaryA, beneficiaryB, beneficiaryC, beneficiaryD, ...otherAccounts]) => {
     const operator = wallet.generateAccount(operatorPrivKey)
     const identityA = wallet.generateAccount()
     const identityB = wallet.generateAccount()
@@ -81,20 +81,13 @@ contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress,
         expect(channelId).to.be.equal(expectedChannelId)
     })
 
-    it("registered identity should already have incoming channel", async () => {
+    it("registered identity with zero stake should not have hermes channel", async () => {
         const regSignature = signIdentityRegistration(registry.address, accountant.address, Zero, Zero, beneficiaryA, identityA)
         await registry.registerIdentity(accountant.address, Zero, Zero, beneficiaryA, regSignature)
         expect(await registry.isRegistered(identityA.address)).to.be.true
 
         const expectedChannelId = generateChannelId(identityA.address, accountant.address)
-        expect(await accountant.isOpened(expectedChannelId)).to.be.true
-
-        const channel = await accountant.channels(expectedChannelId)
-        expect(channel.beneficiary).to.be.equal(beneficiaryA)
-        expect(channel.balance.toNumber()).to.be.equal(0)
-        expect(channel.settled.toNumber()).to.be.equal(0)
-        expect(channel.loan.toNumber()).to.be.equal(0)
-        expect(channel.lastUsedNonce.toNumber()).to.be.equal(0)
+        expect(await accountant.isOpened(expectedChannelId)).to.be.false
     })
 
     it("should be possible to open channel during registering identity into registry", async () => {
