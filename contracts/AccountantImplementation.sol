@@ -6,8 +6,9 @@ import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
 
 interface IdentityRegistry {
-    function isRegistered(address _identityHash) external view returns (bool);
+    function isRegistered(address _identity) external view returns (bool);
     function minimalAccountantStake() external view returns (uint256);
+    function getChannelAddress(address _identity, address _hermesId) external view returns (address);
 }
 
 // Uni-directional settle based accountant
@@ -23,6 +24,7 @@ contract AccountantImplementation is FundsRecovery {
     address internal operator;
     uint256 internal lockedFunds;              // funds locked in channels
     uint256 internal totalLoan;                // total amount lended by providers
+    uint256 internal minStake;                 // minimal possible provider's stake (channel opening during promise settlement will use it)
     uint256 internal maxLoan;                  // maximal allowed provider's loan
     uint256 internal stake;                    // accountant stake is used to prove accountant's sustainability
     uint256 internal closingTimelock;          // blocknumber after which getting stake back will become possible
@@ -41,7 +43,8 @@ contract AccountantImplementation is FundsRecovery {
         address beneficiary;        // address where funds will be send
         uint256 balance;            // amount available to settle
         uint256 settled;            // total amount already settled by provider
-        uint256 loan;               // amount lended by party to accountant
+        uint256 stake;              // amount staked by identity to guarante channel size
+        uint256 stakeGoal;
         uint256 lastUsedNonce;      // last known nonce, is used to protect signature based calls from repply attack
         uint256 timelock;           // blocknumber after which channel balance can be decreased
     }
@@ -57,8 +60,8 @@ contract AccountantImplementation is FundsRecovery {
         return operator;
     }
 
-    function getChannelId(address _party) public view returns (bytes32) {
-        return keccak256(abi.encodePacked(_party, address(this)));
+    function getChannelId(address _identity) public view returns (bytes32) {
+        return keccak256(abi.encodePacked(_identity, address(this)));
     }
 
     function getRegistry() public view returns (address) {
@@ -82,6 +85,7 @@ contract AccountantImplementation is FundsRecovery {
     event ChannelBalanceUpdated(bytes32 indexed channelId, uint256 newBalance);
     event ChannelBalanceDecreaseRequested(bytes32 indexed channelId);
     event NewLoan(bytes32 indexed channelId, uint256 loanAmount);
+    event MinLoanValueUpdated(uint256 _newMinLoan);
     event MaxLoanValueUpdated(uint256 _newMaxLoan);
     event PromiseSettled(bytes32 indexed channelId, address beneficiary, uint256 amount, uint256 totalSettled);
     event ChannelBeneficiaryChanged(bytes32 channelId, address newBeneficiary);
@@ -106,7 +110,7 @@ contract AccountantImplementation is FundsRecovery {
 
     // Because of proxy pattern this function is used insted of constructor.
     // Have to be called right after proxy deployment.
-    function initialize(address _token, address _operator, uint16 _fee, uint256 _maxLoan) public {
+    function initialize(address _token, address _operator, uint16 _fee, uint256 _maxLoan, uint256 _minLoan) public {
         require(!isInitialized(), "have to be not initialized");
         require(_operator != address(0), "operator have to be set");
         require(_token != address(0), "token can't be deployd into zero address");
@@ -117,6 +121,7 @@ contract AccountantImplementation is FundsRecovery {
         operator = _operator;
         lastFee = AccountantFee(_fee, uint64(block.number));
         maxLoan = _maxLoan;
+        minLoan = _minLoan;
         stake = token.balanceOf(address(this));
     }
 
@@ -128,14 +133,18 @@ contract AccountantImplementation is FundsRecovery {
       -------------------------------------- MAIN FUNCTIONALITY -----------------------------------
     */
 
-    // Open incomming payments (also known as provider) channel.
-    function openChannel(address _party, address _beneficiary, uint256 _amountToLend) public {
+    // Open incomming payments (also known as provider) channel. Can be called only by Registry.
+    function openChannel(address _identity, address _beneficiary, uint256 _amountToLend) public {
         require(msg.sender == address(registry), "only registry can open channels");
-        require(getStatus() == Status.Active, "accountant have to be in active state");
+        require(getStatus() == Status.Active, "hermes have to be in active state");
+        _openChannel(_identity, _beneficiary, _amountToLend);
+    }
 
+    // Open incomming payments (also known as provider) channel.
+    function _openChannel(address _identity, address _beneficiary, uint256 _amountToLend) internal {
         // channel ID is keccak(identityHash, accountantID)
-        bytes32 _channelId = keccak256(abi.encodePacked(_party, address(this)));
-        require(!isOpened(_channelId), "channel have to be not opened yet");
+        bytes32 _channelId = keccak256(abi.encodePacked(_identity, address(this)));
+        require(!isChannelOpened(_channelId), "channel have to be not opened yet");
 
         channels[_channelId].beneficiary = _beneficiary;
         channels[_channelId].balance = _amountToLend;
@@ -157,9 +166,8 @@ contract AccountantImplementation is FundsRecovery {
 
     // Settle promise
     // _lock is random number generated by receiver used in HTLC
-    function settlePromise(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _signature) public {
+    function _settlePromise(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _signature) internal {
         Channel storage _channel = channels[_channelId];
-        require(_channel.beneficiary != address(0), "channel should exist");
 
         bytes32 _hashlock = keccak256(abi.encodePacked(_lock));
         address _signer = keccak256(abi.encodePacked(_channelId, _amount, _transactorFee, _hashlock)).recover(_signature);
@@ -197,21 +205,52 @@ contract AccountantImplementation is FundsRecovery {
         emit PromiseSettled(_channelId, _channel.beneficiary, _unpaidAmount, _channel.settled);
     }
 
-    function settleAndRebalance(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _signature) public {
-        settlePromise(_channelId, _amount, _transactorFee, _lock, _signature);
+    function settlePromise(bytes32 _identity, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _signature) public {
+        bytes32 _channelId = getChannelId(_identity);
+
+        // If channel don't opened yet, open it with minStake 
+        if !isChannelOpened(_channelId) {
+            address _beneficiary = registry.getChannelAddress(_identity, address(this));
+            _openChannel(_identity, _beneficiary, 0);
+        }
+
+        require(isChannelOpened(_channelId), "channel should exist");
+        _settlePromise(_channelId, _amount, _transactorFee, _lock, _signature);
+    }
+
+    function settleAndRebalance(bytes32 _identity, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _signature) public {
+        bytes32 _channelId = getChannelId(_identity);
+
+        // If channel don't opened yet, open it with minStake 
+        if !isChannelOpened(_channelId) {
+            address _beneficiary = registry.getChannelAddress(_identity, address(this));
+            _openChannel(_identity, _beneficiary, 0);
+        }
+
+        _settlePromise(_channelId, _amount, _transactorFee, _lock, _signature);
         rebalanceChannel(_channelId);
     }
 
-    function settleWithBeneficiary(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _promiseSignature, address _newBeneficiary, uint256 _nonce, bytes memory _signature) public {
-        setBeneficiary(_channelId, _newBeneficiary, _nonce, _signature);
-        settleAndRebalance(_channelId, _amount, _transactorFee, _lock, _promiseSignature);
+    function settleWithBeneficiary(bytes32 _identity, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _promiseSignature, address _newBeneficiary, uint256 _nonce, bytes memory _signature) public {
+        bytes32 _channelId = getChannelId(_identity);
+
+        // If channel don't opened yet, open it with minStake 
+        if (!isChannelOpened(_channelId)) {
+            _openChannel(_identity, _beneficiary, _amount / 10);
+            _amount = _amount - amount * 10 / 100
+        }
+        
+        _setBeneficiary(_channelId, _newBeneficiary, _nonce, _signature);
+        _settlePromise(_channelId, _amount, _transactorFee, _lock, _promiseSignature);
+        rebalanceChannel(_channelId);    
     }
+
 
     // Accountant can update channel balance by himself. He can update into any amount size
     // but not less that provider's loan amount.
     function updateChannelBalance(bytes32 _channelId, uint256 _newBalance) public onlyOperator {
         require(isAccountantActive(), "accountant have to be active");
-        require(isOpened(_channelId), "channel have to be opened");
+        require(isChannelOpened(_channelId), "channel have to be opened");
         require(_newBalance >= channels[_channelId].loan, "balance can't be less than loan amount");
 
         Channel storage _channel = channels[_channelId];
@@ -286,7 +325,7 @@ contract AccountantImplementation is FundsRecovery {
 
     // Anyone can increase channel's capacity by lending more for accountant
     function increaseLoan(bytes32 _channelId, uint256 _amount) public {
-        require(isOpened(_channelId), "channel have to be opened");
+        require(isChannelOpened(_channelId), "channel have to be opened");
         require(getStatus() != Status.Closed, "accountant should be not closed");
 
         Channel storage _channel = channels[_channelId];
@@ -311,7 +350,7 @@ contract AccountantImplementation is FundsRecovery {
         address _signer = keccak256(abi.encodePacked(LOAN_RETURN_PREFIX, _channelId, _amount, _nonce)).recover(_signature);
         require(getChannelId(_signer) == _channelId, "have to be signed by channel party");
 
-        require(isOpened(_channelId), "channel have to be opened");
+        require(isChannelOpened(_channelId), "channel have to be opened");
         Channel storage _channel = channels[_channelId];
 
         require(_nonce > _channel.lastUsedNonce, "nonce have to be bigger than already used");
@@ -379,7 +418,7 @@ contract AccountantImplementation is FundsRecovery {
     }
 
     function setBeneficiary(bytes32 _channelId, address _newBeneficiary, uint256 _nonce, bytes memory _signature) public {
-        require(isOpened(_channelId), "channel have to be opened");
+        require(isChannelOpened(_channelId), "channel have to be opened");
         require(_newBeneficiary != address(0), "beneficiary can't be zero address");
         Channel storage _channel = channels[_channelId];
         require(_nonce > _channel.lastUsedNonce, "nonce have to be bigger than already used");
@@ -404,6 +443,14 @@ contract AccountantImplementation is FundsRecovery {
         maxLoan = _newMaxLoan;
         emit MaxLoanValueUpdated(_newMaxLoan);
     }
+
+    // TODO: we should decide if accountant should be able to set own minimal loan/stake. 
+    // function setMinLoan(uint256 _newMinLoan) public onlyOperator {
+    //     require(isAccountantActive(), "accountant have to be active");
+    //     require(_newMinLoan < maxLoan, "min loan have to be smaller than max loan");
+    //     minLoan = _newMinLoan;
+    //     emit MinLoanValueUpdated(_newMinLoan);
+    // }
 
     function setAccountantFee(uint16 _newFee) public onlyOperator {
         require(getStatus() != Status.Closed, "accountant should be not closed");
@@ -435,7 +482,7 @@ contract AccountantImplementation is FundsRecovery {
         emit AccountantStakeIncreased(stake);
     }
 
-    function isOpened(bytes32 _channelId) public view returns (bool) {
+    function isChannelOpened(bytes32 _channelId) public view returns (bool) {
         return channels[_channelId].beneficiary != address(0);
     }
 

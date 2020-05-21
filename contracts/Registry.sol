@@ -122,9 +122,9 @@ contract Registry is Ownable, FundsRecovery {
         emit RegisteredAccountant(address(_accountant), _accountantOperator);
     }
 
-    function getChannelAddress(address _identityHash, address _accountantId) public view returns (address) {
+    function getChannelAddress(address _identity, address _hermesId) public view returns (address) {
         bytes32 _code = keccak256(getProxyCode(getChannelImplementation()));
-        bytes32 _salt = keccak256(abi.encodePacked(_identityHash, _accountantId));
+        bytes32 _salt = keccak256(abi.encodePacked(_identity, _hermesId));
         return getCreate2Address(_salt, _code);
     }
 
