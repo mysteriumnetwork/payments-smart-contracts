@@ -23,9 +23,9 @@ contract AccountantImplementation is FundsRecovery {
     IdentityRegistry internal registry;
     address internal operator;
     uint256 internal lockedFunds;              // funds locked in channels
-    uint256 internal totalLoan;                // total amount lended by providers
+    uint256 internal totalStake;               // total amount staked by providers
     uint256 internal minStake;                 // minimal possible provider's stake (channel opening during promise settlement will use it)
-    uint256 internal maxLoan;                  // maximal allowed provider's loan
+    uint256 internal maxStake;                 // maximal allowed provider's stake
     uint256 internal stake;                    // accountant stake is used to prove accountant's sustainability
     uint256 internal closingTimelock;          // blocknumber after which getting stake back will become possible
 
@@ -84,7 +84,7 @@ contract AccountantImplementation is FundsRecovery {
     event ChannelOpened(bytes32 channelId, uint256 initialBalance);
     event ChannelBalanceUpdated(bytes32 indexed channelId, uint256 newBalance);
     event ChannelBalanceDecreaseRequested(bytes32 indexed channelId);
-    event NewLoan(bytes32 indexed channelId, uint256 loanAmount);
+    event NewStake(bytes32 indexed channelId, uint256 stakeAmount);
     event MinLoanValueUpdated(uint256 _newMinLoan);
     event MaxLoanValueUpdated(uint256 _newMaxLoan);
     event PromiseSettled(bytes32 indexed channelId, address beneficiary, uint256 amount, uint256 totalSettled);
@@ -137,31 +137,23 @@ contract AccountantImplementation is FundsRecovery {
     function openChannel(address _identity, address _beneficiary, uint256 _amountToLend) public {
         require(msg.sender == address(registry), "only registry can open channels");
         require(getStatus() == Status.Active, "hermes have to be in active state");
-        _openChannel(_identity, _beneficiary, _amountToLend);
+        bytes32 _channelId = getChannelId(_identity);
+        _openChannel(_channelId, _beneficiary, _amountToLend);
     }
 
-    // Open incomming payments (also known as provider) channel.
-    function _openChannel(address _identity, address _beneficiary, uint256 _amountToLend) internal {
-        // channel ID is keccak(identityHash, accountantID)
-        bytes32 _channelId = keccak256(abi.encodePacked(_identity, address(this)));
+    // Open incoming payments (also known as provider) channel.
+    function _openChannel(address _channelId, address _beneficiary, uint256 _amountToStake) internal {
         require(!isChannelOpened(_channelId), "channel have to be not opened yet");
 
         channels[_channelId].beneficiary = _beneficiary;
-        channels[_channelId].balance = _amountToLend;
+        channels[_channelId].balance = _amountToStake;
 
-        // During opening new channel user can lend some funds to be guaranteed on channels size
-        if (_amountToLend > 0) {
-            require(_amountToLend <= maxLoan, "amount to lend can't be bigger that maximally allowed");
-            require(token.transferFrom(msg.sender, address(this), _amountToLend), "token transfer should succeed");
-
-            lockedFunds = lockedFunds.add(_amountToLend);
-            channels[_channelId].loan = _amountToLend;
-            totalLoan = totalLoan.add(_amountToLend);
-
-            emit NewLoan(_channelId, _amountToLend);
+        // During opening new channel user can stake some funds to be guaranteed on channels size
+        if (_amountToStake > 0) {
+            _increaseStake(_channelId, _amountToStake);
         }
 
-        emit ChannelOpened(_channelId, _amountToLend);
+        emit ChannelOpened(_channelId, _amountToStake);
     }
 
     // Settle promise
@@ -323,26 +315,33 @@ contract AccountantImplementation is FundsRecovery {
       -------------------------------------- LOAN MANAGEMENT --------------------------------------
     */
 
-    // Anyone can increase channel's capacity by lending more for accountant
-    function increaseLoan(bytes32 _channelId, uint256 _amount) public {
+    function _increaseStake(bytes32 _channelId, uint256 _amountToAdd) internal {
+        require(_amountToAdd > 0, "should stake more than zero");
+
+        Channel storage _channel = channels[_channelId];
+        uint256 _newStakeAmount = _channel.stake.add(_amountToAdd);
+        require(_newStakeAmount <= maxLoan, "total amount to stake can't be bigger that maximally allowed");
+
+        require(token.transferFrom(msg.sender, address(this), _amountToAdd), "token transfer should succeed");
+
+        lockedFunds = lockedFunds.add(_amountToAdd);
+        totalStake = totalStake.add(_amountToAdd);
+        _channel.stake = _newStakeAmount;
+
+        emit NewStake(_channelId, _newStakeAmount);
+    }
+
+    // Anyone can increase channel's capacity by staking more into hermes
+    function increaseStake(bytes32 _channelId, uint256 _amount) public {
         require(isChannelOpened(_channelId), "channel have to be opened");
         require(getStatus() != Status.Closed, "accountant should be not closed");
 
+        _increaseStake(_channelId, _amount);
+
+        // Update channel balance so bigger promises would be already used
         Channel storage _channel = channels[_channelId];
-
-        uint256 _newLoanAmount = _channel.loan.add(_amount);
-        require(_newLoanAmount <= maxLoan, "amount to lend can't be bigger that maximally allowed");
-
-        // TODO Transfer from consumer channel instead of msg.sender
-        require(token.transferFrom(msg.sender, address(this), _amount), "transfer have to be successfull");
-
-        lockedFunds = lockedFunds.add(_newLoanAmount.sub(_channel.balance));
-        totalLoan = totalLoan.add(_amount);
-        _channel.balance = _newLoanAmount;
-        _channel.loan = _newLoanAmount;
-
-        emit ChannelBalanceUpdated(_channelId, _newLoanAmount);
-        emit NewLoan(_channelId, _amount);
+        _channel.balance = _channel.stake;
+        emit ChannelBalanceUpdated(_channelId, _channel.balance);
     }
 
     // Withdraw part of loan. This will also decrease channel balance.
@@ -383,7 +382,7 @@ contract AccountantImplementation is FundsRecovery {
         totalLoan = totalLoan.sub(_amount);
 
         emit ChannelBalanceUpdated(_channelId, _channel.balance);
-        emit NewLoan(_channelId, _newLoanAmount);
+        emit NewStake(_channelId, _newLoanAmount);
     }
 
     /*
