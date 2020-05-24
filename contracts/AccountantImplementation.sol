@@ -492,7 +492,13 @@ contract AccountantImplementation is FundsRecovery {
         emit MaxStakeValueUpdated(_newMaxStake);
     }
 
-
+    // TODO: we should decide if accountant should be able to set own minimal stake.
+    function setMinStake(uint256 _newMinStake) public onlyOperator {
+        require(isAccountantActive(), "accountant have to be active");
+        require(_newMinStake < maxStake, "min stake have to be smaller than max stake");
+        minStake = _newMinStake;
+        emit MinStakeValueUpdated(_newMinStake);
+    }
 
     function setAccountantFee(uint16 _newFee) public onlyOperator {
         require(getStatus() != Status.Closed, "accountant should be not closed");

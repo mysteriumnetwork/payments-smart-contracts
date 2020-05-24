@@ -11,7 +11,7 @@ Here I'm collecting changes (with motivatinos) made during last refactoring.
 - Settlement will increase stake if `channel.stake < minStake`.
 - Added notion of `minStake` into hermes contract. During hermes registration 1 MYSTT will be used as default `minStake` value.
 - There is new function `settleIntoStake` which will use all not settled promise amount as stake increase.
--
+- Hermes operator can set new `minStake` value.
 
 
 
