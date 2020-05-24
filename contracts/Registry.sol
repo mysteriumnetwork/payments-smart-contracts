@@ -13,7 +13,7 @@ interface Channel {
 
 interface HermesContract {
     enum Status { Active, Paused, Punishment, Closed }
-    function initialize(address _token, address _operator, uint16 _accountantFee, uint256 _maxLoan) external;
+    function initialize(address _token, address _operator, uint16 _accountantFee, uint256 _maxStake) external;
     function openChannel(address _party, address _beneficiary, uint256 _amountToLend) external;
     function getStake() external view returns (uint256);
     function getStatus() external view returns (Status);
@@ -100,7 +100,7 @@ contract Registry is Ownable, FundsRecovery {
         }
     }
 
-    function registerAccountant(address _accountantOperator, uint256 _stakeAmount, uint16 _accountantFee, uint256 _maxLoan) public {
+    function registerAccountant(address _accountantOperator, uint256 _stakeAmount, uint16 _accountantFee, uint256 _maxStake) public {
         require(_accountantOperator != address(0), "operator can't be zero address");
         require(_stakeAmount >= minimalAccountantStake, "accountant have to stake at least minimal stake amount");
 
@@ -114,7 +114,7 @@ contract Registry is Ownable, FundsRecovery {
         token.transferFrom(msg.sender, address(_accountant), _stakeAmount);
 
         // Initialise accountant
-        _accountant.initialize(address(token), _accountantOperator, _accountantFee, _maxLoan);
+        _accountant.initialize(address(token), _accountantOperator, _accountantFee, _maxStake);
 
         // Save info about newly created accountant
         accountants[address(_accountant)] = Accountant(_accountantOperator, _accountant.getStake);
