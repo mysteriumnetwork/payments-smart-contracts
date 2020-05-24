@@ -30,7 +30,7 @@ const Zero = new BN(0)
 
 const operatorPrivKey = Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8c26933e5d9f0cda92f3c3', 'hex')
 
-contract.only('Accountant Contract Implementation tests', ([txMaker, operatorAddress, beneficiaryA, beneficiaryB, beneficiaryC, beneficiaryD, ...otherAccounts]) => {
+contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress, beneficiaryA, beneficiaryB, beneficiaryC, beneficiaryD, ...otherAccounts]) => {
     const operator = wallet.generateAccount(operatorPrivKey)
     const identityA = wallet.generateAccount()
     const identityB = wallet.generateAccount()

@@ -25,7 +25,7 @@ function generateIdentities(amount) {
 
 const identities = generateIdentities(3)   // Generates array of identities
 
-contract('Registry', ([txMaker, minter, accountantOperator, fundsDestination, ...otherAccounts]) => {
+contract.only('Registry', ([txMaker, minter, accountantOperator, fundsDestination, ...otherAccounts]) => {
     let token, channelImplementation, accountantId, dex, registry
     before(async () => {
         token = await MystToken.new()

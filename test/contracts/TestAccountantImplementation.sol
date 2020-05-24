@@ -32,8 +32,8 @@ contract TestAccountantImplementation is AccountantImplementation {
         return lockedFunds;
     }
 
-    function getTotalLoan() public view returns (uint256) {
-        return totalLoan;
+    function getTotalStake() public view returns (uint256) {
+        return totalStake;
     }
 
     uint256 internal jumps;
