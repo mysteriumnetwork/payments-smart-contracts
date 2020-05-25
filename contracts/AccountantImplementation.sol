@@ -145,13 +145,13 @@ contract AccountantImplementation is FundsRecovery {
     function _openChannel(bytes32 _channelId, address _beneficiary, uint256 _amountToStake) internal {
         require(!isChannelOpened(_channelId), "channel have to be not opened yet");
 
-        channels[_channelId].beneficiary = _beneficiary;
-        channels[_channelId].balance = _amountToStake;
-
         // During opening new channel user can stake some funds to be guaranteed on channels size
         if (_amountToStake > 0) {
             _increaseStake(_channelId, _amountToStake, false);
         }
+
+        channels[_channelId].beneficiary = _beneficiary;
+        channels[_channelId].balance = _amountToStake;
 
         emit ChannelOpened(_channelId, _amountToStake);
     }
@@ -226,7 +226,6 @@ contract AccountantImplementation is FundsRecovery {
             _openChannel(_channelId, _beneficiary, 0);
         }
 
-        require(isChannelOpened(_channelId), "channel should exist");
         _settlePromise(_channelId, _amount, _transactorFee, _lock, _signature);
     }
 
@@ -373,9 +372,9 @@ contract AccountantImplementation is FundsRecovery {
             require(token.transferFrom(msg.sender, address(this), _amountToAdd), "token transfer should succeed");
         }
 
-        lockedFunds = lockedFunds.add(_amountToAdd);
-        totalStake = totalStake.add(_amountToAdd);
         _channel.stake = _newStakeAmount;
+        lockedFunds = lockedFunds.add(_newStakeAmount.sub(_channel.balance));
+        totalStake = totalStake.add(_amountToAdd);
 
         emit NewStake(_channelId, _newStakeAmount);
     }

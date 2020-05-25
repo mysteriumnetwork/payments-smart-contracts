@@ -47,7 +47,7 @@ contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, 
 
         // Give tokens for txMaker so it could use them registration and lending stuff
         await topUpTokens(token, txMaker, OneToken)
-        await token.approve(registry.address, OneToken)  
+        await token.approve(registry.address, OneToken)
     })
 
     it("should register and initialize hermes hub", async () => {
@@ -67,14 +67,14 @@ contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, 
         const expectedChannelId = generateChannelId(provider.address, hermes.address)
 
         // TopUp payment channel
-        const channelAddress =  await registry.getChannelAddress(provider.address, hermes.address)
+        const channelAddress = await registry.getChannelAddress(provider.address, hermes.address)
         await topUpTokens(token, channelAddress, amountToLend)
 
         // Register identity and open channel with hermes
         const signature = signIdentityRegistration(registry.address, hermes.address, amountToLend, Zero, beneficiaryA, provider)
         await registry.registerIdentity(hermes.address, amountToLend, Zero, beneficiaryA, signature)
         expect(await registry.isRegistered(provider.address)).to.be.true
-        expect(await hermes.isOpened(expectedChannelId)).to.be.true
+        expect(await hermes.isChannelOpened(expectedChannelId)).to.be.true
     })
 
     it("should settle into proper beneficiary", async () => {
@@ -84,7 +84,7 @@ contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, 
         const balanceBefore = await token.balanceOf(beneficiaryA)
 
         const promise = generatePromise(amountToPay, Zero, channelState, operator)
-        await hermes.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature)
+        await hermes.settlePromise(provider.address, promise.amount, promise.fee, promise.lock, promise.signature)
 
         const balanceAfter = await token.balanceOf(beneficiaryA)
         balanceAfter.should.be.bignumber.equal(balanceBefore.add(amountToPay))
@@ -105,7 +105,7 @@ contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, 
         const balanceBefore = await token.balanceOf(beneficiaryB)
 
         const promise = generatePromise(amountToPay, Zero, channelState, operator)
-        await hermes.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature)
+        await hermes.settlePromise(provider.address, promise.amount, promise.fee, promise.lock, promise.signature)
 
         const balanceAfter = await token.balanceOf(beneficiaryB)
         balanceAfter.should.be.bignumber.equal(balanceBefore.add(amountToPay))
