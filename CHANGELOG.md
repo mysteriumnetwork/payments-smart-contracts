@@ -24,4 +24,3 @@ Questions
 ? What if same registration will be done twice? (e.g. with different beneficiary). Add tests for that.
 ? How about Hermes contract versionings? Can we support more versions of hermes contracts? Of payment channels?
 ? Is is possible easily to increase stake until wanted amount without promise? E.g. same identity as consumer could issue promise as provider? Or app could provide payload to call needed function which will update stake and take tokens from msg.sender.
-? We don't actually need to pass identity into `settlePromise` functions, it is already in `_signature`. But maybe it is valuable for debugging purpose?
