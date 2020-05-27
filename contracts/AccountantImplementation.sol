@@ -253,35 +253,6 @@ contract AccountantImplementation is FundsRecovery {
         rebalanceChannel(_channelId);
     }
 
-    function settleIntoStake(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _signature) public {
-        require(isChannelOpened(_channelId), "channel has to be opened");
-
-        Channel storage _channel = channels[_channelId];
-        bytes32 _hashlock = keccak256(abi.encodePacked(_lock));
-        address _signer = keccak256(abi.encodePacked(_channelId, _amount, _transactorFee, _hashlock)).recover(_signature);
-        require(_signer == operator, "have to be signed by operator");
-
-        // Calculate amount of tokens to be claimed.
-        uint256 _unpaidAmount = _amount.sub(_channel.settled);
-        require(_transactorFee <= _unpaidAmount, "transactor fee should be equal to or less than _unpaidAmount");
-
-        // Use all _unpaidAmount to increase channel stake.
-        _increaseStake(_channelId, _unpaidAmount.sub(_transactorFee), true);
-
-        // Increase already paid amount.
-        _channel.settled = _channel.settled.add(_unpaidAmount);
-
-        emit PromiseSettled(_channelId, _channel.beneficiary, _unpaidAmount, _channel.settled);
-
-        // Pay fee
-        if (_transactorFee > 0) {
-            token.transfer(msg.sender, _transactorFee);
-        }
-
-        // Rebalance channel with new state.
-        rebalanceChannel(_channelId);
-    }
-
     // Accountant can update channel balance by himself. He can update into any amount size
     // but not less that provider's stake amount.
     function updateChannelBalance(bytes32 _channelId, uint256 _newBalance) public onlyOperator {
@@ -377,6 +348,35 @@ contract AccountantImplementation is FundsRecovery {
         totalStake = totalStake.add(_amountToAdd);
 
         emit NewStake(_channelId, _newStakeAmount);
+    }
+
+    function settleIntoStake(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _signature) public {
+        require(isChannelOpened(_channelId), "channel have to be opened");
+
+        Channel storage _channel = channels[_channelId];
+        bytes32 _hashlock = keccak256(abi.encodePacked(_lock));
+        address _signer = keccak256(abi.encodePacked(_channelId, _amount, _transactorFee, _hashlock)).recover(_signature);
+        require(_signer == operator, "have to be signed by operator");
+
+        // Calculate amount of tokens to be claimed.
+        uint256 _unpaidAmount = _amount.sub(_channel.settled);
+        require(_transactorFee <= _unpaidAmount, "transactor fee should be equal to or less than _unpaidAmount");
+
+        // Use all _unpaidAmount to increase channel stake.
+        _increaseStake(_channelId, _unpaidAmount.sub(_transactorFee), true);
+
+        // Increase already paid amount.
+        _channel.settled = _channel.settled.add(_unpaidAmount);
+
+        emit PromiseSettled(_channelId, _channel.beneficiary, _unpaidAmount, _channel.settled);
+
+        // Pay fee
+        if (_transactorFee > 0) {
+            token.transfer(msg.sender, _transactorFee);
+        }
+
+        // Rebalance channel with new state.
+        rebalanceChannel(_channelId);
     }
 
     // Anyone can increase channel's capacity by staking more into hermes
