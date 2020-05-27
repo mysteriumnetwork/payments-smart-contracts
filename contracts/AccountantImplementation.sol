@@ -44,7 +44,6 @@ contract AccountantImplementation is FundsRecovery {
         uint256 balance;            // amount available to settle
         uint256 settled;            // total amount already settled by provider
         uint256 stake;              // amount staked by identity to guarante channel size
-        uint256 stakeGoal;
         uint256 lastUsedNonce;      // last known nonce, is used to protect signature based calls from repply attack
         uint256 timelock;           // blocknumber after which channel balance can be decreased
     }
