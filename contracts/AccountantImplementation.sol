@@ -190,15 +190,7 @@ contract AccountantImplementation is FundsRecovery {
             uint256 _stakeIncrease = min(_amountToSettle / 10, maxStake.sub(_channel.stake));
 
             _increaseStake(_channelId, _stakeIncrease, true);
-            // _channel.stake = _channel.stake.add(_stakeIncrease);
-            // lockedFunds = lockedFunds.add(_stakeIncrease).sub(_channel.balance);  // sub balance in case there was anything
-            // totalStake = totalStake.add(_stakeIncrease);
             _amountToSettle = _amountToSettle.sub(_stakeIncrease);
-
-            // emit NewStake(_channelId, _newStakeAmount);
-
-            // If there is not enough stake yet, balance should be 0.
-            // _channel.balance = 0;
         } else {
             // Update balance and decrease hermes locked funds.
             _channel.balance = _channel.balance.sub(_unpaidAmount);
@@ -562,7 +554,6 @@ contract AccountantImplementation is FundsRecovery {
     // Funds which always have to be holded in accountant smart contract.
     function minimalExpectedBalance() public view returns (uint256) {
         return max(stake, punishment.amount).add(lockedFunds);
-        // return max(lockedFunds, totalStake).add(max(stake, punishment.amount))
     }
 
     function closeAccountant() public onlyOperator {

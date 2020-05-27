@@ -7,11 +7,6 @@ import { AccountantImplementation } from "../../contracts/AccountantImplementati
 contract TestAccountantImplementation is AccountantImplementation {
     uint256 constant DELAY_BLOCKS = 4;
 
-    // Constructor is needed only in tests where we don't use minimal Proxies and testing implementation directly
-    // constructor (address _token, address _operator, uint16 _fee, uint256 _maxStake) public {
-    //     initialize(_token, _operator, _fee, _maxStake);
-    // }
-
     function initialize(address _token, address _operator, uint16 _fee, uint256 _maxStake) public {
         super.initialize(_token, _operator, _fee, _maxStake);
         minStake = 25;
