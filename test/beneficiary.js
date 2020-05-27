@@ -32,7 +32,7 @@ const Zero = new BN(0)
 const operator = wallet.generateAccount(Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8c26933e5d9f0cda92f3c3', 'hex'))  // Generate accountant operator wallet
 const provider = wallet.generateAccount()
 
-contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
+contract.only("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
     let token, hermes, registry, beneficiaryChangeSignature
     before(async () => {
         token = await MystToken.new()
@@ -156,5 +156,32 @@ contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, 
 
         await hermes.setBeneficiary(channelId, beneficiaryC, nonce, beneficiaryChangeSignature).should.be.rejected
         expect((await hermes.channels(channelId)).beneficiary).to.be.equal(beneficiaryA)
+    })
+
+    it("should settle promise into proper beneficiary for provider with zero stake", async () => {
+        const identity = wallet.generateAccount()
+        const channelId = generateChannelId(identity.address, hermes.address)
+        const channelState = Object.assign({}, { channelId }, await hermes.channels(channelId))
+        const initialBalance = await token.balanceOf(beneficiaryB)
+        const amountToPay = new BN('20')
+        const nonce = new BN(4)
+
+        // Register identity and open channel with hermes
+        const signature = signIdentityRegistration(registry.address, hermes.address, Zero, Zero, beneficiaryB, identity)
+        await registry.registerIdentity(hermes.address, Zero, Zero, beneficiaryB, signature)
+        expect(await registry.isRegistered(identity.address)).to.be.true
+        expect(await hermes.isChannelOpened(channelId)).to.be.false
+
+        // Settle promise and open provider's channel
+        promise = generatePromise(amountToPay, Zero, channelState, operator)
+        const beneficiaryChangeSignature = signChannelBeneficiaryChange(channelId, beneficiaryB, nonce, identity) // remember signature for the future
+        await hermes.settleWithBeneficiary(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature, beneficiaryB, nonce, beneficiaryChangeSignature)
+
+        expect(await hermes.isChannelOpened(channelId)).to.be.true
+        expect((await hermes.channels(channelId)).beneficiary).to.be.equal(beneficiaryB)
+
+        const balanceAfter = await token.balanceOf(beneficiaryB)
+        const amountToSettle = amountToPay.sub(amountToPay.div(new BN(10))) // amountToPay - 10% which will be used as stake
+        balanceAfter.should.be.bignumber.equal(initialBalance.add(amountToSettle))
     })
 })

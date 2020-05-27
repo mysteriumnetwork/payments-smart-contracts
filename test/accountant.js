@@ -90,6 +90,21 @@ contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress,
         expect(await accountant.isChannelOpened(expectedChannelId)).to.be.false
     })
 
+    it("should still be possible to settle promise even when there is zero stake", async () => {
+        const channelId = generateChannelId(identityA.address, accountant.address)
+        const channelState = Object.assign({}, { channelId }, await accountant.channels(channelId))
+        const consumerChannelAddress = await registry.getChannelAddress(identityA.address, accountant.address)  // User's topup channes is used as beneficiary when channel opening during settlement is used.
+        const amountToPay = new BN('25')
+        const balanceBefore = await token.balanceOf(consumerChannelAddress)
+
+        promise = generatePromise(amountToPay, Zero, channelState, operator, identityA.address)
+        await accountant.settlePromise(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
+
+        const balanceAfter = await token.balanceOf(consumerChannelAddress)
+        const amountToSettle = amountToPay.sub(amountToPay.div(new BN(10))) // amountToPay - 10% which will be used as stake
+        balanceAfter.should.be.bignumber.equal(balanceBefore.add(amountToSettle))
+    })
+
     it("should be possible to open channel during registering identity into registry", async () => {
         const initialAccountantBalance = await token.balanceOf(accountant.address)
         const expectedChannelId = generateChannelId(identityB.address, accountant.address)
@@ -123,7 +138,7 @@ contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress,
 
         // Accountant available (not locked in any channel) funds should be not incresed
         const availableBalance = await accountant.availableBalance()
-        expect(availableBalance.toNumber()).to.be.equal(100000) // Equal to initial balance
+        expect(availableBalance.toNumber()).to.be.equal(99975) // Equal to initial balance
     })
 
     /**
