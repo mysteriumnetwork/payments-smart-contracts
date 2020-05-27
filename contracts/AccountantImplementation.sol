@@ -16,7 +16,7 @@ contract AccountantImplementation is FundsRecovery {
     using ECDSA for bytes32;
     using SafeMath for uint256;
 
-    string constant STAKE_RETURN_PREFIX = "Load return request";
+    string constant STAKE_RETURN_PREFIX = "Stake return request";
     uint256 constant DELAY_BLOCKS = 18000;  // +/- 3 days
     uint256 constant UNIT_BLOCKS = 257;     // 1 unit = 1 hour = 257 blocks.
 
@@ -172,7 +172,7 @@ contract AccountantImplementation is FundsRecovery {
 
         // Hermes is allowing to settle at least minStake amount when there is not enough stake collected.
         // If promise has more tokens than in balance, we can transfer as much as there are in balance and
-        // rest tokens can be transfered via same promise but in another tx when channel will be reblanced.
+        // rest tokens can be transferred via same promise but in another tx when channel will be rebalanced.
         uint256 _currentBalance = (_channel.stake >= minStake) ? _channel.balance : minStake;
         if (_unpaidAmount > _currentBalance) {
             _unpaidAmount = _currentBalance;
@@ -187,7 +187,7 @@ contract AccountantImplementation is FundsRecovery {
         // Update channel balance and increase stake if min stake not reached yet.
         uint256 _amountToSettle = _unpaidAmount.sub(_transactorFee).sub(_accountantFee);
         if (_channel.stake < minStake) {
-            // Calculate stake increase duties by adding 10% of _amountToSettle there, but new stake can't increaase maxStake.
+            // Calculate stake increase duties by adding 10% of _amountToSettle there, but new stake can't increase maxStake.
             uint256 _stakeIncrease = min(_amountToSettle / 10, maxStake.sub(_channel.stake));
 
             _increaseStake(_channelId, _stakeIncrease, true);
@@ -220,7 +220,7 @@ contract AccountantImplementation is FundsRecovery {
     function settlePromise(address _identity, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _signature) public {
         bytes32 _channelId = getChannelId(_identity);
 
-        // If channel don't opened yet, open it
+        // If channel isn't opened yet, open it
         if (!isChannelOpened(_channelId)) {
             address _beneficiary = registry.getChannelAddress(_identity, address(this));
             _openChannel(_channelId, _beneficiary, 0);
@@ -232,7 +232,7 @@ contract AccountantImplementation is FundsRecovery {
     function settleAndRebalance(address _identity, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _signature) public {
         bytes32 _channelId = getChannelId(_identity);
 
-        // If channel don't opened yet, open it
+        // If channel isn't opened yet, open it
         if (!isChannelOpened(_channelId)) {
             address _beneficiary = registry.getChannelAddress(_identity, address(this));
             _openChannel(_channelId, _beneficiary, 0);
@@ -243,7 +243,7 @@ contract AccountantImplementation is FundsRecovery {
     }
 
     function settleWithBeneficiary(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _promiseSignature, address _newBeneficiary, uint256 _nonce, bytes memory _signature) public {
-        // If channel don't opened yet, open it
+        // If channel isn't opened yet, open it
         if (!isChannelOpened(_channelId)) {
             _openChannel(_channelId, _newBeneficiary, 0);
         }
@@ -254,7 +254,7 @@ contract AccountantImplementation is FundsRecovery {
     }
 
     function settleIntoStake(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _signature) public {
-        require(isChannelOpened(_channelId), "channel have to be opened");
+        require(isChannelOpened(_channelId), "channel has to be opened");
 
         Channel storage _channel = channels[_channelId];
         bytes32 _hashlock = keccak256(abi.encodePacked(_lock));
@@ -285,8 +285,8 @@ contract AccountantImplementation is FundsRecovery {
     // Accountant can update channel balance by himself. He can update into any amount size
     // but not less that provider's stake amount.
     function updateChannelBalance(bytes32 _channelId, uint256 _newBalance) public onlyOperator {
-        require(isAccountantActive(), "accountant have to be active");
-        require(isChannelOpened(_channelId), "channel have to be opened");
+        require(isAccountantActive(), "accountant has to be active");
+        require(isChannelOpened(_channelId), "channel has to be opened");
         require(_newBalance >= channels[_channelId].stake, "balance can't be less than stake amount");
 
         Channel storage _channel = channels[_channelId];
@@ -324,7 +324,7 @@ contract AccountantImplementation is FundsRecovery {
         require(isAccountantActive(), "accountant have to be active");
 
         Channel storage _channel = channels[_channelId];
-        require(_channel.stake > _channel.balance, "new balance should be bigger that current");
+        require(_channel.stake > _channel.balance, "new balance should be bigger than current");
 
         uint256 _increaseAmount = _channel.stake.sub(_channel.balance);
 
@@ -381,7 +381,7 @@ contract AccountantImplementation is FundsRecovery {
 
     // Anyone can increase channel's capacity by staking more into hermes
     function increaseStake(bytes32 _channelId, uint256 _amount) public {
-        require(isChannelOpened(_channelId), "channel have to be opened");
+        require(isChannelOpened(_channelId), "channel has to be opened");
         require(getStatus() != Status.Closed, "accountant should be not closed");
 
         _increaseStake(_channelId, _amount, false);
@@ -397,13 +397,13 @@ contract AccountantImplementation is FundsRecovery {
         address _signer = keccak256(abi.encodePacked(STAKE_RETURN_PREFIX, _channelId, _amount, _nonce)).recover(_signature);
         require(getChannelId(_signer) == _channelId, "have to be signed by channel party");
 
-        require(isChannelOpened(_channelId), "channel have to be opened");
+        require(isChannelOpened(_channelId), "channel has to be opened");
         Channel storage _channel = channels[_channelId];
 
-        require(_nonce > _channel.lastUsedNonce, "nonce have to be bigger than already used");
+        require(_nonce > _channel.lastUsedNonce, "nonce has to be bigger than already used");
         _channel.lastUsedNonce = _nonce;
 
-        require(_amount <= _channel.stake, "can't withdraw more than lended");
+        require(_amount <= _channel.stake, "can't withdraw more than the current stake");
 
         uint256 _channelBalanceDiff = min(_channel.balance, _amount);
 
@@ -420,7 +420,7 @@ contract AccountantImplementation is FundsRecovery {
         }
 
         uint256 _newStakeAmount = _channel.stake.sub(_amount);
-        require(_newStakeAmount <= maxStake, "amount to lend can't be bigger that maximally allowed");
+        require(_newStakeAmount <= maxStake, "amount to lend can't be bigger than maximum allowed");
 
         token.transfer(_channel.beneficiary, _amount);
 
@@ -465,7 +465,7 @@ contract AccountantImplementation is FundsRecovery {
     }
 
     function setBeneficiary(bytes32 _channelId, address _newBeneficiary, uint256 _nonce, bytes memory _signature) public {
-        require(isChannelOpened(_channelId), "channel have to be opened");
+        require(isChannelOpened(_channelId), "channel has to be opened");
         require(_newBeneficiary != address(0), "beneficiary can't be zero address");
         Channel storage _channel = channels[_channelId];
         require(_nonce > _channel.lastUsedNonce, "nonce have to be bigger than already used");
@@ -486,15 +486,15 @@ contract AccountantImplementation is FundsRecovery {
     }
 
     function setMaxStake(uint256 _newMaxStake) public onlyOperator {
-        require(isAccountantActive(), "accountant have to be active");
+        require(isAccountantActive(), "accountant has to be active");
         maxStake = _newMaxStake;
         emit MaxStakeValueUpdated(_newMaxStake);
     }
 
     // TODO: we should decide if accountant should be able to set own minimal stake.
     function setMinStake(uint256 _newMinStake) public onlyOperator {
-        require(isAccountantActive(), "accountant have to be active");
-        require(_newMinStake < maxStake, "min stake have to be smaller than max stake");
+        require(isAccountantActive(), "accountant has to be active");
+        require(_newMinStake < maxStake, "min stake has to be smaller than max stake");
         minStake = _newMinStake;
         emit MinStakeValueUpdated(_newMinStake);
     }

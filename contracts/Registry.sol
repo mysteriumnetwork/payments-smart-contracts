@@ -64,7 +64,7 @@ contract Registry is Ownable, FundsRecovery {
     // Register identity and open spending and incomming channels with given accountant
     // _stakeAmount - it's amount of tokens staked into hermes to guarantee incomming channel's balance.
     function registerIdentity(address _hermesId, uint256 _stakeAmount, uint256 _transactorFee, address _beneficiary, bytes memory _signature) public {
-        require(isActiveAccountant(_hermesId), "provided hermes have to be active");
+        require(isActiveAccountant(_hermesId), "provided has have to be active");
 
         // Check if given signature is valid
         address _identityHash = keccak256(abi.encodePacked(address(this), _hermesId, _stakeAmount, _transactorFee, _beneficiary)).recover(_signature);
