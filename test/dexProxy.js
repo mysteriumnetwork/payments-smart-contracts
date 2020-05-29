@@ -6,13 +6,13 @@ const SecondProxyTarget = artifacts.require("SecondProxyTarget")
 
 contract('DEX Proxy', ([_, owner, ...otherAccounts]) => {
     let proxy, implementation, proxiedImplementation
-    before (async () => {
+    before(async () => {
         implementation = await ProxyTarget.new()
         proxy = await DEXProxy.new(implementation.address, owner)
         proxiedImplementation = await ProxyTarget.at(proxy.address)
     })
 
-    it('should always work', () => {})
+    it('should always work', () => { })
 
     it('should have proper proxy owner', async () => {
         const proxyOwner = await proxy.___proxyOwner()
@@ -20,7 +20,7 @@ contract('DEX Proxy', ([_, owner, ...otherAccounts]) => {
     })
 
     it('should correctly transfer ownership', async () => {
-        await proxy.___setProxyOwner(otherAccounts[0], {from: owner})
+        await proxy.___setProxyOwner(otherAccounts[0], { from: owner })
         const newOwner = await proxy.___proxyOwner()
         expect(newOwner).to.be.equal(otherAccounts[0])
     })
@@ -39,21 +39,21 @@ contract('DEX Proxy', ([_, owner, ...otherAccounts]) => {
 
     it('should set new implementation', async () => {
         const newImplementation = await SecondProxyTarget.new()
-        await proxy.___upgradeTo(newImplementation.address, {from: otherAccounts[0]})
-        
+        await proxy.___upgradeTo(newImplementation.address, { from: otherAccounts[0] })
+
         const expectedName = await proxiedImplementation.name()
         expect(expectedName).to.be.equal('SecondTarget')
     })
 
     it('should fail when not owner is setting new implementation', async () => {
         await proxy.___upgradeTo(implementation.address).should.be.rejected
-        
+
         const expectedName = await proxiedImplementation.name()
         expect(expectedName).to.be.equal('SecondTarget')
     })
 
     it('should change target back to original', async () => {
-        await proxy.___upgradeTo(implementation.address, {from: otherAccounts[0]})
+        await proxy.___upgradeTo(implementation.address, { from: otherAccounts[0] })
 
         const expectedName = await proxiedImplementation.name()
         expect(expectedName).to.be.equal('FirstTarget')
