@@ -32,7 +32,7 @@ const Zero = new BN(0)
 const operator = wallet.generateAccount(Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8c26933e5d9f0cda92f3c3', 'hex'))  // Generate accountant operator wallet
 const provider = wallet.generateAccount()
 
-contract.only("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
+contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
     let token, hermes, registry, beneficiaryChangeSignature
     before(async () => {
         token = await MystToken.new()
@@ -119,8 +119,8 @@ contract.only("Setting beneficiary tests", ([txMaker, operatorAddress, beneficia
         const nonce = new BN(2)
 
         beneficiaryChangeSignature = signChannelBeneficiaryChange(channelId, beneficiaryC, nonce, provider) // remember signature for the future
-        const promise = generatePromise(amountToPay, Zero, channelState, operator)
-        await hermes.settleWithBeneficiary(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature, beneficiaryC, nonce, beneficiaryChangeSignature)
+        const promise = generatePromise(amountToPay, Zero, channelState, operator, provider.address)
+        await hermes.settleWithBeneficiary(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature, beneficiaryC, nonce, beneficiaryChangeSignature)
 
         expect((await hermes.channels(channelId)).beneficiary).to.be.equal(beneficiaryC)
 
@@ -138,8 +138,8 @@ contract.only("Setting beneficiary tests", ([txMaker, operatorAddress, beneficia
         const nonce = new BN(3)
 
         const signature = signChannelBeneficiaryChange(channelId, beneficiaryA, nonce, provider)
-        const promise = generatePromise(amountToPay, transactorFee, channelState, operator)
-        await hermes.settleWithBeneficiary(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature, beneficiaryA, nonce, signature)
+        const promise = generatePromise(amountToPay, transactorFee, channelState, operator, provider.address)
+        await hermes.settleWithBeneficiary(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature, beneficiaryA, nonce, signature)
 
         expect((await hermes.channels(channelId)).beneficiary).to.be.equal(beneficiaryA)
 
@@ -173,9 +173,9 @@ contract.only("Setting beneficiary tests", ([txMaker, operatorAddress, beneficia
         expect(await hermes.isChannelOpened(channelId)).to.be.false
 
         // Settle promise and open provider's channel
-        promise = generatePromise(amountToPay, Zero, channelState, operator)
+        promise = generatePromise(amountToPay, Zero, channelState, operator, identity.address)
         const beneficiaryChangeSignature = signChannelBeneficiaryChange(channelId, beneficiaryB, nonce, identity) // remember signature for the future
-        await hermes.settleWithBeneficiary(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature, beneficiaryB, nonce, beneficiaryChangeSignature)
+        await hermes.settleWithBeneficiary(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature, beneficiaryB, nonce, beneficiaryChangeSignature)
 
         expect(await hermes.isChannelOpened(channelId)).to.be.true
         expect((await hermes.channels(channelId)).beneficiary).to.be.equal(beneficiaryB)
