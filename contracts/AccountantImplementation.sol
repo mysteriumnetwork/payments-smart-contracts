@@ -384,8 +384,8 @@ contract AccountantImplementation is FundsRecovery {
     }
 
     // Withdraw part of stake. This will also decrease channel balance.
-    function decreaseStake(bytes32 _channelId, uint256 _amount, uint256 _nonce, bytes memory _signature) public {
-        address _signer = keccak256(abi.encodePacked(STAKE_RETURN_PREFIX, _channelId, _amount, _nonce)).recover(_signature);
+    function decreaseStake(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, uint256 _nonce, bytes memory _signature) public {
+        address _signer = keccak256(abi.encodePacked(STAKE_RETURN_PREFIX, _channelId, _amount, _transactorFee, _nonce)).recover(_signature);
         require(getChannelId(_signer) == _channelId, "have to be signed by channel party");
 
         require(isChannelOpened(_channelId), "channel has to be opened");
@@ -395,6 +395,7 @@ contract AccountantImplementation is FundsRecovery {
         _channel.lastUsedNonce = _nonce;
 
         require(_amount <= _channel.stake, "can't withdraw more than the current stake");
+        require(_amount >= _transactorFee, "amount should be bigger that transactor fee");
 
         uint256 _channelBalanceDiff = min(_channel.balance, _amount);
 
@@ -413,10 +414,16 @@ contract AccountantImplementation is FundsRecovery {
         uint256 _newStakeAmount = _channel.stake.sub(_amount);
         require(_newStakeAmount <= maxStake, "amount to lend can't be bigger than maximum allowed");
 
-        token.transfer(_channel.beneficiary, _amount);
+        // Pay transacor fee then widtraw the rest
+        if (_transactorFee > 0) {
+            token.transfer(msg.sender, _transactorFee);
+        }
+        token.transfer(_channel.beneficiary, _amount.sub(_transactorFee));
 
+        // Update channel state
         _channel.stake = _newStakeAmount;
         _channel.balance = _channel.balance.sub(_channelBalanceDiff);
+        _channel.stakeGoal = minStake;     // By withdrawing part of staake, user is "renewing" aggreement with hermes.
         lockedFunds = lockedFunds.sub(_channelBalanceDiff);
         totalStake = totalStake.sub(_amount);
 
