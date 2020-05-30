@@ -102,7 +102,7 @@ contract('Accountant stake', ([txMaker, operatorAddress, ...beneficiaries]) => {
         channelBalance.should.be.bignumber.equal(expectedChannelBalance)
     })
 
-    it('should rebalance channel only with available abalance and enable punishment mode', async () => {
+    it('should rebalance channel only with available balance and enable punishment mode', async () => {
         const channelId = generateChannelId(provider.address, accountant.address)
         const channel = await accountant.channels(channelId)
         const rebalanceAmount = channel.stake.sub(channel.balance)
