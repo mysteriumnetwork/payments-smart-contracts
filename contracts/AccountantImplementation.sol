@@ -404,7 +404,7 @@ contract AccountantImplementation is FundsRecovery {
         _channel.lastUsedNonce = _nonce;
 
         require(_amount <= _channel.stake, "can't withdraw more than the current stake");
-        require(_amount >= _transactorFee, "amount should be bigger that transactor fee");
+        require(_amount >= _transactorFee, "amount should be bigger than transactor fee");
 
         uint256 _channelBalanceDiff = min(_channel.balance, _amount);
 
@@ -423,7 +423,7 @@ contract AccountantImplementation is FundsRecovery {
         uint256 _newStakeAmount = _channel.stake.sub(_amount);
         require(_newStakeAmount <= maxStake, "amount to lend can't be bigger than maximum allowed");
 
-        // Pay transacor fee then widtraw the rest
+        // Pay transacor fee then withdraw the rest
         if (_transactorFee > 0) {
             token.transfer(msg.sender, _transactorFee);
         }
@@ -432,7 +432,7 @@ contract AccountantImplementation is FundsRecovery {
         // Update channel state
         _channel.stake = _newStakeAmount;
         _channel.balance = _channel.balance.sub(_channelBalanceDiff);
-        _channel.stakeGoal = minStake;     // By withdrawing part of staake, user is "renewing" aggreement with hermes.
+        _channel.stakeGoal = minStake;     // By withdrawing part of stake, user is "renewing" aggreement with hermes.
         lockedFunds = lockedFunds.sub(_channelBalanceDiff);
         totalStake = totalStake.sub(_amount);
 
