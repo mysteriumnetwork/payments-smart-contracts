@@ -17,6 +17,7 @@ contract AccountantImplementation is FundsRecovery {
     using SafeMath for uint256;
 
     string constant STAKE_RETURN_PREFIX = "Stake return request";
+    string constant STAKE_GOAL_UPDATE_PREFIX = "Stake goal update request";
     uint256 constant DELAY_BLOCKS = 18000;  // +/- 3 days
     uint256 constant UNIT_BLOCKS = 257;     // 1 unit = 1 hour = 257 blocks.
 
@@ -89,8 +90,9 @@ contract AccountantImplementation is FundsRecovery {
     event ChannelBalanceUpdated(bytes32 indexed channelId, uint256 newBalance);
     event ChannelBalanceDecreaseRequested(bytes32 indexed channelId);
     event NewStake(bytes32 indexed channelId, uint256 stakeAmount);
-    event MinStakeValueUpdated(uint256 _newMinStake);
-    event MaxStakeValueUpdated(uint256 _newMaxStake);
+    event MinStakeValueUpdated(uint256 newMinStake);
+    event MaxStakeValueUpdated(uint256 newMaxStake);
+    event StakeGoalUpdated(bytes32 indexed channelId, uint256 newStakeGoal);
     event PromiseSettled(bytes32 indexed channelId, address beneficiary, uint256 amount, uint256 totalSettled);
     event ChannelBeneficiaryChanged(bytes32 channelId, address newBeneficiary);
     event AccountantFeeUpdated(uint16 newFee, uint64 validFromBlock);
@@ -251,6 +253,11 @@ contract AccountantImplementation is FundsRecovery {
         setBeneficiary(_channelId, _newBeneficiary, _nonce, _signature);
         _settlePromise(_channelId, _amount, _transactorFee, _lock, _promiseSignature);
         rebalanceChannel(_channelId);
+    }
+
+    function settleWithGoalIncrease(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _promiseSignature, uint256 _newStakeGoal, uint256 _nonce, bytes memory _goalChangeSignature) public {
+        updateStakeGoal(_channelId, _newStakeGoal, _nonce, _goalChangeSignature);
+        _settlePromise(_channelId, _amount, _transactorFee, _lock, _promiseSignature);
     }
 
     // Accountant can update channel balance by himself. He can update into any amount size
@@ -438,6 +445,22 @@ contract AccountantImplementation is FundsRecovery {
 
         emit ChannelBalanceUpdated(_channelId, _channel.balance);
         emit NewStake(_channelId, _newStakeAmount);
+    }
+
+    function updateStakeGoal(bytes32 _channelId, uint256 _newStakeGoal, uint256 _nonce, bytes memory _signature) public {
+        require(isChannelOpened(_channelId), "channel have to be opened");
+        require(_newStakeGoal >= minStake, "stake goal can't be less than minimal stake");
+
+        Channel storage _channel = channels[_channelId];
+        require(_nonce > _channel.lastUsedNonce, "nonce have to be bigger than already used");
+
+        address _signer = keccak256(abi.encodePacked(STAKE_GOAL_UPDATE_PREFIX, _channelId, _newStakeGoal, _nonce)).recover(_signature);
+        require(getChannelId(_signer) == _channelId, "have to be signed by channel party");
+
+        _channel.lastUsedNonce = _nonce;
+        _channel.stakeGoal = _newStakeGoal;
+
+        emit StakeGoalUpdated(_channelId, _newStakeGoal);
     }
 
     /*

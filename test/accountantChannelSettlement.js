@@ -12,8 +12,7 @@ const {
 } = require('./utils/index.js')
 const wallet = require('./utils/wallet.js')
 const {
-    signChannelBeneficiaryChange,
-    signChannelLoanReturnRequest,
+    signStakeGoalUpdate,
     signIdentityRegistration,
     generatePromise
 } = require('./utils/client.js')
@@ -36,7 +35,7 @@ const providerB = wallet.generateAccount()
 
 const minStake = new BN(25)
 
-contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
+contract.only("Channel openinig via settlement tests", ([txMaker, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
     let token, hermes, registry, promise
     before(async () => {
         token = await MystToken.new()
@@ -190,7 +189,7 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
 
     it('should have different stake goals for new and old channel after minStake change', async () => {
         const initialMinStake = (await hermes.getStakeThresholds())[0]
-        const newMinStake = new BN('87654321')
+        const newMinStake = new BN('400')
 
         // Set new stake
         await hermes.setMinStake(newMinStake, { from: operator.address })
@@ -215,6 +214,36 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
 
         stakeGoalA.should.be.bignumber.equal(initialMinStake)
         stakeGoalB.should.be.bignumber.equal(newMinStake)
+    })
+
+    it('should set new stake goal', async () => {
+        const channelId = generateChannelId(providerA.address, hermes.address)
+        const channelState = Object.assign({}, { channelId }, await hermes.channels(channelId))
+        const newStakeGoal = new BN('500')
+        const nonce = new BN('1')
+        const amountToPay = new BN('250')
+
+        const goalUpdateSignature = signStakeGoalUpdate(channelId, newStakeGoal, nonce, providerA)
+        const promise = generatePromise(amountToPay, Zero, channelState, operator, providerA.address)
+        await hermes.settleWithGoalIncrease(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature, newStakeGoal, nonce, goalUpdateSignature)
+
+        const stakeGoal = (await hermes.channels(channelId)).stakeGoal
+        stakeGoal.should.be.bignumber.equal(newStakeGoal)
+    })
+
+    it('should take 10% of stake again, until stake goal reached', async () => {
+        const channelId = generateChannelId(providerA.address, hermes.address)
+        const channelState = Object.assign({}, { channelId }, await hermes.channels(channelId))
+        const amountToPay = new BN('250')
+        const consumerChannelAddress = await registry.getChannelAddress(providerA.address, hermes.address)  // User's topup channes is used as beneficiary when channel opening during settlement is used.
+        const balanceBefore = await token.balanceOf(consumerChannelAddress)
+
+        const promise = generatePromise(amountToPay, Zero, channelState, operator, providerA.address)
+        await hermes.settleAndRebalance(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
+
+        const balanceAfter = await token.balanceOf(consumerChannelAddress)
+        const amountToSettle = amountToPay.sub(amountToPay.div(new BN(10)))
+        balanceAfter.should.be.bignumber.equal(balanceBefore.add(amountToSettle))
     })
 
 })

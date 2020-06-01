@@ -333,6 +333,23 @@ function signIdentityRegistration(registryAddress, accountantId, stake, fee, ben
     return signature
 }
 
+function signStakeGoalUpdate(channelId, stakeGoal, channelNonce, identity) {
+    const STAKE_GOAL_UPDATE_PREFIX = "Stake goal update request"
+
+    const message = Buffer.concat([
+        Buffer.from(STAKE_GOAL_UPDATE_PREFIX),
+        Buffer.from(channelId.slice(2), 'hex'),
+        toBytes32Buffer(stakeGoal),
+        toBytes32Buffer(channelNonce)
+    ])
+
+    // sign and verify the signature
+    const signature = signMessage(message, identity.privKey)
+    expect(verifySignature(message, signature, identity.pubKey)).to.be.true
+
+    return signature
+}
+
 // We're using signature as bytes array (`bytes memory`), so we have properly construct it.
 function serialiseSignature(signature) {
     const bytesArrayPosition = toBytes32Buffer(new BN(160))
@@ -368,5 +385,6 @@ module.exports = {
     signChannelLoanReturnRequest,
     signExitRequest,
     signIdentityRegistration,
+    signStakeGoalUpdate,
     validatePromise
 }
