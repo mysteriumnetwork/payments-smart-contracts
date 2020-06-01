@@ -103,7 +103,7 @@ contract('Accountant punishment', ([txMaker, operatorAddress, ...beneficiaries])
         const channelId = generateChannelId(provider.address, accountant.address)
         const channel = await accountant.channels(channelId)
         const rebalanceAmount = channel.stake.sub(channel.balance)
-        const initialStake = await accountant.getStake()
+        const initialStake = await accountant.getAccountantStake()
 
         // Make accountant available balance to be half of needed
         await topUpTokens(token, accountant.address, rebalanceAmount / 2)
@@ -112,7 +112,7 @@ contract('Accountant punishment', ([txMaker, operatorAddress, ...beneficiaries])
         await accountant.rebalanceChannel(channelId)
 
         // Stake should remain untouched
-        const accountantStake = await accountant.getStake()
+        const accountantStake = await accountant.getAccountantStake()
         expect(accountantStake.toNumber()).to.be.equal(initialStake.toNumber())
 
         // There should be zero available balance
@@ -161,14 +161,14 @@ contract('Accountant punishment', ([txMaker, operatorAddress, ...beneficiaries])
         channel.balance.should.be.bignumber.equal(initialChannelStake.add(amountToStake))
     })
 
-    it('provider should be able to get his loan back (at least part of it)', async () => {
+    it('provider should be able to get his stake back (at least part of it)', async () => {
         const channelId = generateChannelId(provider.address, accountant.address)
         const channelStakeAmount = (await accountant.channels(channelId)).stake
         const initialBeneficiaryBalance = await token.balanceOf(beneficiaries[0])
 
         const nonce = new BN(1)
-        const signature = signChannelLoanReturnRequest(channelId, channelStakeAmount, nonce, provider)
-        await accountant.decreaseStake(channelId, channelStakeAmount, nonce, signature)
+        const signature = signChannelLoanReturnRequest(channelId, channelStakeAmount, Zero, nonce, provider)
+        await accountant.decreaseStake(channelId, channelStakeAmount, Zero, nonce, signature)
 
         const channel = await accountant.channels(channelId)
         const beneficiaryBalance = await token.balanceOf(beneficiaries[0])

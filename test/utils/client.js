@@ -300,12 +300,13 @@ function signChannelBeneficiaryChange(channelId, newBeneficiary, channelNonce, i
     return signature
 }
 
-function signChannelLoanReturnRequest(channelId, amount, channelNonce, identity) {
+function signChannelLoanReturnRequest(channelId, amount, fee, channelNonce, identity) {
     const LOAN_RETURN_PREFIX = "Stake return request"
     const message = Buffer.concat([
         Buffer.from(LOAN_RETURN_PREFIX),
         Buffer.from(channelId.slice(2), 'hex'),
         toBytes32Buffer(amount),
+        toBytes32Buffer(fee),
         toBytes32Buffer(channelNonce)
     ])
 

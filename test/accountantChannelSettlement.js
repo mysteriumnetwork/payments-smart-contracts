@@ -177,7 +177,7 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
         // Generate promise and settle into stake
         const promise = generatePromise(amountToPay, transactorFee, channelState, operator, providerA.address)
         await hermes.settleIntoStake(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature)
-        console.log('FEE: ', promise.fee.toString(), promise.amount.toString())
+
         // It should have increased stake
         const channelStakeAfter = (await hermes.channels(channelId)).stake
         channelStakeAfter.should.be.bignumber.greaterThan(channel.stake)  // prove that stak was increased
