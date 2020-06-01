@@ -189,7 +189,32 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
     })
 
     it('should have different stake goals for new and old channel after minStake change', async () => {
-        // TODO
+        const initialMinStake = (await hermes.getStakeThresholds())[0]
+        const newMinStake = new BN('87654321')
+
+        // Set new stake
+        await hermes.setMinStake(newMinStake, { from: operator.address })
+
+        // Register identity and open provider channel by settling promise
+        const regSignature = signIdentityRegistration(registry.address, hermes.address, Zero, Zero, beneficiaryB, providerB)
+        await registry.registerIdentity(hermes.address, Zero, Zero, beneficiaryB, regSignature)
+        expect(await registry.isRegistered(providerB.address)).to.be.true
+
+        const channelId = generateChannelId(providerB.address, hermes.address)
+        const channelState = Object.assign({}, { channelId }, await hermes.channels(channelId))
+
+        const promise = generatePromise(initialMinStake, Zero, channelState, operator, providerB.address)
+        await hermes.settlePromise(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
+        expect(await hermes.isChannelOpened(channelId)).to.be.true
+
+        // Providers should have different stake goals
+        const channelA = generateChannelId(providerA.address, hermes.address)
+        const channelB = generateChannelId(providerB.address, hermes.address)
+        const stakeGoalA = (await hermes.channels(channelA)).stakeGoal
+        const stakeGoalB = (await hermes.channels(channelB)).stakeGoal
+
+        stakeGoalA.should.be.bignumber.equal(initialMinStake)
+        stakeGoalB.should.be.bignumber.equal(newMinStake)
     })
 
 })

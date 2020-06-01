@@ -463,4 +463,18 @@ contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress,
         initialBalance.should.be.bignumber.equal(await token.balanceOf(accountant.address))
     })
 
+    it("accountant should be able to set new minStake", async () => {
+        const stakeBefore = (await accountant.getStakeThresholds())[0]
+        const newMinStake = 87654321
+        await accountant.setMinStake(newMinStake, { from: operator.address })
+
+        const stakeAfter = (await accountant.getStakeThresholds())[0]
+        expect(stakeBefore.toNumber()).to.be.equal(25)
+        expect(stakeAfter.toNumber()).to.be.equal(87654321)
+    })
+
+    it("not accountant should be not able to set new minStake", async () => {
+        const newMinStake = 1
+        await accountant.setMinStake(newMinStake).should.be.rejected
+    })
 })

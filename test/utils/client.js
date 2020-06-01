@@ -317,11 +317,11 @@ function signChannelLoanReturnRequest(channelId, amount, fee, channelNonce, iden
     return signature
 }
 
-function signIdentityRegistration(registryAddress, accountantId, loan, fee, beneficiary, identity) {
+function signIdentityRegistration(registryAddress, accountantId, stake, fee, beneficiary, identity) {
     const message = Buffer.concat([
         Buffer.from(registryAddress.slice(2), 'hex'),
         Buffer.from(accountantId.slice(2), 'hex'),
-        toBytes32Buffer(loan),
+        toBytes32Buffer(stake),
         toBytes32Buffer(fee),
         Buffer.from(beneficiary.slice(2), 'hex')
     ])
