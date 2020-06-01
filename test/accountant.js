@@ -256,7 +256,7 @@ contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress,
 
         // Accountant available (not locked in any channel) funds should not include stake and funds locked in channel
         const lockedFunds = await accountant.getLockedFunds()
-        const stake = await accountant.getStake()
+        const stake = await accountant.getAccountantStake()
         const expectedBalance = (await token.balanceOf(accountant.address)).sub(stake).sub(lockedFunds)
         const availableBalance = await accountant.availableBalance()
         expect(availableBalance.toNumber()).to.be.equal(expectedBalance.toNumber())
@@ -367,9 +367,9 @@ contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress,
 
         const nonce = new BN(4)
         const amount = initialChannelState.stake
-        const signature = signChannelLoanReturnRequest(channelId, amount, nonce, identityB)
+        const signature = signChannelLoanReturnRequest(channelId, amount, Zero, nonce, identityB)
 
-        await accountant.decreaseStake(channelId, amount, nonce, signature)
+        await accountant.decreaseStake(channelId, amount, Zero, nonce, signature)
         const beneficiaryBalance = await token.balanceOf(otherAccounts[0])
         beneficiaryBalance.should.be.bignumber.equal(initialChannelState.stake)
 
@@ -407,8 +407,8 @@ contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress,
         // Try getting stake back
         const currentBalance = await token.balanceOf(accountant.address)
         const nonce = new BN(5)
-        signature = signChannelLoanReturnRequest(channelId, amountToLend, nonce, identityD)
-        await accountant.decreaseStake(channelId, amountToLend, nonce, signature)
+        signature = signChannelLoanReturnRequest(channelId, amountToLend, Zero, nonce, identityD)
+        await accountant.decreaseStake(channelId, amountToLend, Zero, nonce, signature)
 
         minimalExpectedBalance = await accountant.minimalExpectedBalance()
         const availableToUse = currentBalance.sub(minimalExpectedBalance)
@@ -463,4 +463,18 @@ contract('Accountant Contract Implementation tests', ([txMaker, operatorAddress,
         initialBalance.should.be.bignumber.equal(await token.balanceOf(accountant.address))
     })
 
+    it("accountant should be able to set new minStake", async () => {
+        const stakeBefore = (await accountant.getStakeThresholds())[0]
+        const newMinStake = 87654321
+        await accountant.setMinStake(newMinStake, { from: operator.address })
+
+        const stakeAfter = (await accountant.getStakeThresholds())[0]
+        expect(stakeBefore.toNumber()).to.be.equal(25)
+        expect(stakeAfter.toNumber()).to.be.equal(87654321)
+    })
+
+    it("not accountant should be not able to set new minStake", async () => {
+        const newMinStake = 1
+        await accountant.setMinStake(newMinStake).should.be.rejected
+    })
 })

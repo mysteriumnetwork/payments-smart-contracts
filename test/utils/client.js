@@ -300,12 +300,13 @@ function signChannelBeneficiaryChange(channelId, newBeneficiary, channelNonce, i
     return signature
 }
 
-function signChannelLoanReturnRequest(channelId, amount, channelNonce, identity) {
+function signChannelLoanReturnRequest(channelId, amount, fee, channelNonce, identity) {
     const LOAN_RETURN_PREFIX = "Stake return request"
     const message = Buffer.concat([
         Buffer.from(LOAN_RETURN_PREFIX),
         Buffer.from(channelId.slice(2), 'hex'),
         toBytes32Buffer(amount),
+        toBytes32Buffer(fee),
         toBytes32Buffer(channelNonce)
     ])
 
@@ -316,13 +317,30 @@ function signChannelLoanReturnRequest(channelId, amount, channelNonce, identity)
     return signature
 }
 
-function signIdentityRegistration(registryAddress, accountantId, loan, fee, beneficiary, identity) {
+function signIdentityRegistration(registryAddress, accountantId, stake, fee, beneficiary, identity) {
     const message = Buffer.concat([
         Buffer.from(registryAddress.slice(2), 'hex'),
         Buffer.from(accountantId.slice(2), 'hex'),
-        toBytes32Buffer(loan),
+        toBytes32Buffer(stake),
         toBytes32Buffer(fee),
         Buffer.from(beneficiary.slice(2), 'hex')
+    ])
+
+    // sign and verify the signature
+    const signature = signMessage(message, identity.privKey)
+    expect(verifySignature(message, signature, identity.pubKey)).to.be.true
+
+    return signature
+}
+
+function signStakeGoalUpdate(channelId, stakeGoal, channelNonce, identity) {
+    const STAKE_GOAL_UPDATE_PREFIX = "Stake goal update request"
+
+    const message = Buffer.concat([
+        Buffer.from(STAKE_GOAL_UPDATE_PREFIX),
+        Buffer.from(channelId.slice(2), 'hex'),
+        toBytes32Buffer(stakeGoal),
+        toBytes32Buffer(channelNonce)
     ])
 
     // sign and verify the signature
@@ -367,5 +385,6 @@ module.exports = {
     signChannelLoanReturnRequest,
     signExitRequest,
     signIdentityRegistration,
+    signStakeGoalUpdate,
     validatePromise
 }

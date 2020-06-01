@@ -17,6 +17,7 @@ contract AccountantImplementation is FundsRecovery {
     using SafeMath for uint256;
 
     string constant STAKE_RETURN_PREFIX = "Stake return request";
+    string constant STAKE_GOAL_UPDATE_PREFIX = "Stake goal update request";
     uint256 constant DELAY_BLOCKS = 18000;  // +/- 3 days
     uint256 constant UNIT_BLOCKS = 257;     // 1 unit = 1 hour = 257 blocks.
 
@@ -26,7 +27,7 @@ contract AccountantImplementation is FundsRecovery {
     uint256 internal totalStake;               // total amount staked by providers
     uint256 internal minStake;                 // minimal possible provider's stake (channel opening during promise settlement will use it)
     uint256 internal maxStake;                 // maximal allowed provider's stake
-    uint256 internal stake;                    // accountant stake is used to prove accountant's sustainability
+    uint256 internal accountantStake;          // accountant stake is used to prove accountant's sustainability
     uint256 internal closingTimelock;          // blocknumber after which getting stake back will become possible
 
     enum Status { Active, Paused, Punishment, Closed } // accountant states
@@ -44,6 +45,7 @@ contract AccountantImplementation is FundsRecovery {
         uint256 balance;            // amount available to settle
         uint256 settled;            // total amount already settled by provider
         uint256 stake;              // amount staked by identity to guarante channel size
+        uint256 stakeGoal;          // any stake between minStake and maxStake
         uint256 lastUsedNonce;      // last known nonce, is used to protect signature based calls from repply attack
         uint256 timelock;           // blocknumber after which channel balance can be decreased
     }
@@ -67,8 +69,12 @@ contract AccountantImplementation is FundsRecovery {
         return address(registry);
     }
 
-    function getStake() public view returns (uint256) {
-        return stake;
+    function getAccountantStake() public view returns (uint256) {
+        return accountantStake;
+    }
+
+    function getStakeThresholds() public view returns (uint256, uint256) {
+        return (minStake, maxStake);
     }
 
     // Returns accountant state
@@ -84,8 +90,9 @@ contract AccountantImplementation is FundsRecovery {
     event ChannelBalanceUpdated(bytes32 indexed channelId, uint256 newBalance);
     event ChannelBalanceDecreaseRequested(bytes32 indexed channelId);
     event NewStake(bytes32 indexed channelId, uint256 stakeAmount);
-    event MinStakeValueUpdated(uint256 _newMinStake);
-    event MaxStakeValueUpdated(uint256 _newMaxStake);
+    event MinStakeValueUpdated(uint256 newMinStake);
+    event MaxStakeValueUpdated(uint256 newMaxStake);
+    event StakeGoalUpdated(bytes32 indexed channelId, uint256 newStakeGoal);
     event PromiseSettled(bytes32 indexed channelId, address beneficiary, uint256 amount, uint256 totalSettled);
     event ChannelBeneficiaryChanged(bytes32 channelId, address newBeneficiary);
     event AccountantFeeUpdated(uint16 newFee, uint64 validFromBlock);
@@ -121,7 +128,7 @@ contract AccountantImplementation is FundsRecovery {
         lastFee = AccountantFee(_fee, uint64(block.number));
         minStake = 100000000; // 1 token
         maxStake = _maxStake;
-        stake = token.balanceOf(address(this));
+        accountantStake = token.balanceOf(address(this));
     }
 
     function isInitialized() public view returns (bool) {
@@ -149,8 +156,10 @@ contract AccountantImplementation is FundsRecovery {
             _increaseStake(_channelId, _amountToStake, false);
         }
 
-        channels[_channelId].beneficiary = _beneficiary;
-        channels[_channelId].balance = _amountToStake;
+        Channel storage _channel = channels[_channelId];
+        _channel.beneficiary = _beneficiary;
+        _channel.balance = _amountToStake;
+        _channel.stakeGoal = minStake;
 
         emit ChannelOpened(_channelId, _amountToStake);
     }
@@ -172,7 +181,7 @@ contract AccountantImplementation is FundsRecovery {
         // Hermes is allowing to settle at least minStake amount when there is not enough stake collected.
         // If promise has more tokens than in balance, we can transfer as much as there are in balance and
         // rest tokens can be transferred via same promise but in another tx when channel will be rebalanced.
-        uint256 _currentBalance = (_channel.stake >= minStake) ? _channel.balance : minStake;
+        uint256 _currentBalance = (_channel.stake >= _channel.stakeGoal) ? _channel.balance : _channel.stakeGoal;
         if (_unpaidAmount > _currentBalance) {
             _unpaidAmount = _currentBalance;
         }
@@ -185,7 +194,7 @@ contract AccountantImplementation is FundsRecovery {
 
         // Update channel balance and increase stake if min stake not reached yet.
         uint256 _amountToSettle = _unpaidAmount.sub(_transactorFee).sub(_accountantFee);
-        if (_channel.stake < minStake) {
+        if (_channel.stake < _channel.stakeGoal) {
             // Calculate stake increase duties by adding 10% of _amountToSettle there, but new stake can't increase maxStake.
             uint256 _stakeIncrease = min(_amountToSettle / 10, maxStake.sub(_channel.stake));
 
@@ -233,7 +242,9 @@ contract AccountantImplementation is FundsRecovery {
         rebalanceChannel(_channelId);
     }
 
-    function settleWithBeneficiary(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _promiseSignature, address _newBeneficiary, uint256 _nonce, bytes memory _signature) public {
+    function settleWithBeneficiary(address _identity, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _promiseSignature, address _newBeneficiary, uint256 _nonce, bytes memory _signature) public {
+        bytes32 _channelId = getChannelId(_identity);
+
         // If channel isn't opened yet, open it
         if (!isChannelOpened(_channelId)) {
             _openChannel(_channelId, _newBeneficiary, 0);
@@ -242,6 +253,11 @@ contract AccountantImplementation is FundsRecovery {
         setBeneficiary(_channelId, _newBeneficiary, _nonce, _signature);
         _settlePromise(_channelId, _amount, _transactorFee, _lock, _promiseSignature);
         rebalanceChannel(_channelId);
+    }
+
+    function settleWithGoalIncrease(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _promiseSignature, uint256 _newStakeGoal, uint256 _nonce, bytes memory _goalChangeSignature) public {
+        updateStakeGoal(_channelId, _newStakeGoal, _nonce, _goalChangeSignature);
+        _settlePromise(_channelId, _amount, _transactorFee, _lock, _promiseSignature);
     }
 
     // Accountant can update channel balance by himself. He can update into any amount size
@@ -384,8 +400,8 @@ contract AccountantImplementation is FundsRecovery {
     }
 
     // Withdraw part of stake. This will also decrease channel balance.
-    function decreaseStake(bytes32 _channelId, uint256 _amount, uint256 _nonce, bytes memory _signature) public {
-        address _signer = keccak256(abi.encodePacked(STAKE_RETURN_PREFIX, _channelId, _amount, _nonce)).recover(_signature);
+    function decreaseStake(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, uint256 _nonce, bytes memory _signature) public {
+        address _signer = keccak256(abi.encodePacked(STAKE_RETURN_PREFIX, _channelId, _amount, _transactorFee, _nonce)).recover(_signature);
         require(getChannelId(_signer) == _channelId, "have to be signed by channel party");
 
         require(isChannelOpened(_channelId), "channel has to be opened");
@@ -395,6 +411,7 @@ contract AccountantImplementation is FundsRecovery {
         _channel.lastUsedNonce = _nonce;
 
         require(_amount <= _channel.stake, "can't withdraw more than the current stake");
+        require(_amount >= _transactorFee, "amount should be bigger than transactor fee");
 
         uint256 _channelBalanceDiff = min(_channel.balance, _amount);
 
@@ -413,15 +430,37 @@ contract AccountantImplementation is FundsRecovery {
         uint256 _newStakeAmount = _channel.stake.sub(_amount);
         require(_newStakeAmount <= maxStake, "amount to lend can't be bigger than maximum allowed");
 
-        token.transfer(_channel.beneficiary, _amount);
+        // Pay transacor fee then withdraw the rest
+        if (_transactorFee > 0) {
+            token.transfer(msg.sender, _transactorFee);
+        }
+        token.transfer(_channel.beneficiary, _amount.sub(_transactorFee));
 
+        // Update channel state
         _channel.stake = _newStakeAmount;
         _channel.balance = _channel.balance.sub(_channelBalanceDiff);
+        _channel.stakeGoal = minStake;     // By withdrawing part of stake, user is "renewing" aggreement with hermes.
         lockedFunds = lockedFunds.sub(_channelBalanceDiff);
         totalStake = totalStake.sub(_amount);
 
         emit ChannelBalanceUpdated(_channelId, _channel.balance);
         emit NewStake(_channelId, _newStakeAmount);
+    }
+
+    function updateStakeGoal(bytes32 _channelId, uint256 _newStakeGoal, uint256 _nonce, bytes memory _signature) public {
+        require(isChannelOpened(_channelId), "channel have to be opened");
+        require(_newStakeGoal >= minStake, "stake goal can't be less than minimal stake");
+
+        Channel storage _channel = channels[_channelId];
+        require(_nonce > _channel.lastUsedNonce, "nonce have to be bigger than already used");
+
+        address _signer = keccak256(abi.encodePacked(STAKE_GOAL_UPDATE_PREFIX, _channelId, _newStakeGoal, _nonce)).recover(_signature);
+        require(getChannelId(_signer) == _channelId, "have to be signed by channel party");
+
+        _channel.lastUsedNonce = _nonce;
+        _channel.stakeGoal = _newStakeGoal;
+
+        emit StakeGoalUpdated(_channelId, _newStakeGoal);
     }
 
     /*
@@ -442,7 +481,7 @@ contract AccountantImplementation is FundsRecovery {
         uint256 _punishmentAmount = _punishmentUnits.mul(_punishmentPerUnit);
         punishment.amount = punishment.amount.add(_punishmentAmount);
 
-        uint256 _shouldHave = max(lockedFunds, totalStake).add(max(stake, punishment.amount));
+        uint256 _shouldHave = max(lockedFunds, totalStake).add(max(accountantStake, punishment.amount));
         uint256 _currentBalance = token.balanceOf(address(this));
         uint256 _missingFunds = (_currentBalance < _shouldHave) ? _shouldHave.sub(_currentBalance) : uint256(0);
 
@@ -482,7 +521,6 @@ contract AccountantImplementation is FundsRecovery {
         emit MaxStakeValueUpdated(_newMaxStake);
     }
 
-    // TODO: we should decide if accountant should be able to set own minimal stake.
     function setMinStake(uint256 _newMinStake) public onlyOperator {
         require(isAccountantActive(), "accountant has to be active");
         require(_newMinStake < maxStake, "min stake has to be smaller than max stake");
@@ -515,9 +553,9 @@ contract AccountantImplementation is FundsRecovery {
             token.transferFrom(msg.sender, address(this), _diff);
         }
 
-        stake = stake.add(_additionalStake);
+        accountantStake = accountantStake.add(_additionalStake);
 
-        emit AccountantStakeIncreased(stake);
+        emit AccountantStakeIncreased(accountantStake);
     }
 
     function isChannelOpened(bytes32 _channelId) public view returns (bool) {
@@ -544,7 +582,7 @@ contract AccountantImplementation is FundsRecovery {
 
     // Returns funds amount not locked in any channel, not staked and not lended from providers.
     function availableBalance() public view returns (uint256) {
-        uint256 _totalLockedAmount = max(lockedFunds, totalStake).add(max(stake, punishment.amount));
+        uint256 _totalLockedAmount = max(lockedFunds, totalStake).add(max(accountantStake, punishment.amount));
         if (_totalLockedAmount > token.balanceOf(address(this))) {
             return uint256(0);
         }
@@ -553,7 +591,7 @@ contract AccountantImplementation is FundsRecovery {
 
     // Funds which always have to be holded in accountant smart contract.
     function minimalExpectedBalance() public view returns (uint256) {
-        return max(stake, punishment.amount).add(lockedFunds);
+        return max(accountantStake, punishment.amount).add(lockedFunds);
     }
 
     function closeAccountant() public onlyOperator {

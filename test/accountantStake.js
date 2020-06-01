@@ -24,7 +24,7 @@ const Zero = new BN(0)
 const provider = wallet.generateAccount()
 const accountantOperator = wallet.generateAccount()
 
-contract('Accountant stake', ([txMaker, operatorAddress, ...beneficiaries]) => {
+contract('Hermes stake management', ([txMaker, operatorAddress, ...beneficiaries]) => {
     let token, accountant, registry, stake
     before(async () => {
         stake = OneToken
@@ -102,7 +102,7 @@ contract('Accountant stake', ([txMaker, operatorAddress, ...beneficiaries]) => {
         channelBalance.should.be.bignumber.equal(expectedChannelBalance)
     })
 
-    it('should rebalance channel only with available abalance and enable punishment mode', async () => {
+    it('should rebalance channel only with available balance and enable punishment mode', async () => {
         const channelId = generateChannelId(provider.address, accountant.address)
         const channel = await accountant.channels(channelId)
         const rebalanceAmount = channel.stake.sub(channel.balance)
@@ -124,7 +124,7 @@ contract('Accountant stake', ([txMaker, operatorAddress, ...beneficiaries]) => {
     })
 
     it('accountant stake should remain untouched', async () => {
-        const accountantStake = await accountant.getStake()
+        const accountantStake = await accountant.getAccountantStake()
         accountantStake.should.be.bignumber.equal(stake)
 
         const accountantBalance = await token.balanceOf(accountant.address)
