@@ -1,8 +1,9 @@
-pragma solidity >=0.5.12 <0.6.0;
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.6.0 <0.7.0;
 
-import { ECDSA } from "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
-import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
 
 interface AccountantContract {
@@ -42,8 +43,8 @@ contract ChannelImplementation is FundsRecovery {
     */
 
     // Fallback function - redirect ethers topup into DEX
-    function () external payable {
-        (bool success, ) = address(dex).call.value(msg.value)(msg.data);
+    receive() external payable {
+        (bool success, ) = address(dex).call{value: msg.value}(msg.data);
         require(success, "Tx was rejected by DEX");
     }
 

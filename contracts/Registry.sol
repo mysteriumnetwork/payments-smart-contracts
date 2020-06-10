@@ -1,9 +1,10 @@
-pragma solidity >=0.5.12 <0.6.0;
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.5.12 <0.7.0;
 
-import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import { ECDSA } from "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
-import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Config } from "./Config.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
 
@@ -57,7 +58,7 @@ contract Registry is Ownable, FundsRecovery {
     }
 
     // Reject any ethers send to this smart-contract
-    function () external payable {
+    receive() external payable {
         revert("Rejecting tx with ethers sent");
     }
 
@@ -172,12 +173,12 @@ contract Registry is Ownable, FundsRecovery {
         return _addr;
     }
 
-    bytes32 constant CHANNEL_IMPLEMENTATION = 0x2ef7e7c50e1b6a574193d0d32b7c0456cf12390a0872cf00be4797e71c3756f7;  // keccak256('channel implementation proxy')
+    bytes32 constant CHANNEL_IMPLEMENTATION = 0x48df65c92c1c0e8e19a219c69bfeb4cf7c1c123e0c266d555abb508d37c6d96e;  // keccak256('channel implementation')
     function getChannelImplementation() public view returns (address) {
         return config.getAddress(CHANNEL_IMPLEMENTATION);
     }
 
-    bytes32 constant ACCOUNTANT_IMPLEMENTATION = 0x52948fa93a94851571e57fddc2be83c51e0a64bb5e9ca55f4f90439b9802b575;  // keccak256('accountant implementation proxy')
+    bytes32 constant ACCOUNTANT_IMPLEMENTATION = 0xe6906d4b6048dd18329c27945d05f766dd19b003dc60f82fd4037c490ee55be0;  // keccak256('accountant implementation')
     function getAccountantImplementation() public view returns (address) {
         return config.getAddress(ACCOUNTANT_IMPLEMENTATION);
     }

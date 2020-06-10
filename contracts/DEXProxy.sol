@@ -1,4 +1,5 @@
-pragma solidity >=0.5.12 <0.6.0;
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.5.12 <0.7.0;
 
 
 contract DEXProxy {
@@ -25,13 +26,21 @@ contract DEXProxy {
     }
 
     // Proxying all calls into MystDEX implementation
-    function () external payable {
+    receive() external payable {
+        ___default();
+    }
+
+    fallback() external {
+        ___default();
+    }
+
+    function ___default() internal {
         address _implementation = ___Implementation();
         assembly {
             let ptr := mload(0x40)
-            calldatacopy(ptr, 0, calldatasize)
-            let success := delegatecall(sub(gas, 10000), _implementation, ptr, calldatasize, 0, 0)
-            let retSz := returndatasize
+            calldatacopy(ptr, 0, calldatasize())
+            let success := delegatecall(sub(gas(), 10000), _implementation, ptr, calldatasize(), 0, 0)
+            let retSz := returndatasize()
             returndatacopy(ptr, 0, retSz)
 
             switch success
@@ -71,7 +80,7 @@ contract DEXProxy {
 
     function __upgradeToAndCall(address _newImplementation, bytes memory _data) public payable _onlyProxyOwner {
         ___upgradeTo(_newImplementation);
-        (bool success, ) = address(this).call.value(msg.value)(_data);
+        (bool success, ) = address(this).call{value: msg.value}(_data);
         require(success, "Calling new target failed");
     }
 }

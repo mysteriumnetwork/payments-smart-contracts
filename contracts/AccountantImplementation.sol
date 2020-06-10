@@ -1,8 +1,9 @@
-pragma solidity >=0.5.12 <0.6.0;
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.5.12 <0.7.0;
 
-import { ECDSA } from "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
-import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
 
 interface IdentityRegistry {
@@ -513,7 +514,7 @@ contract AccountantImplementation is FundsRecovery {
     }
 
     // Setting new destination of funds recovery.
-    function setFundsDestination(address payable _newDestination) public onlyOperator {
+    function setFundsDestination(address payable _newDestination) public override onlyOperator {
         require(_newDestination != address(0));
         emit DestinationChanged(fundsDestination, _newDestination);
         fundsDestination = _newDestination;
