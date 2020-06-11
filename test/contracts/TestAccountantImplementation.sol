@@ -8,7 +8,7 @@ import { AccountantImplementation } from "../../contracts/AccountantImplementati
 contract TestAccountantImplementation is AccountantImplementation {
     uint256 constant TEST_DELAY_BLOCKS = 4;
 
-    function initialize(address _token, address _operator, uint16 _fee, uint256 _maxStake) public {
+    function initialize(address _token, address _operator, uint16 _fee, uint256 _maxStake) public override {
         super.initialize(_token, _operator, _fee, _maxStake);
         minStake = 25;
     }

@@ -19,7 +19,6 @@ const {
 
 const MystToken = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
-const HermesImplementation = artifacts.require("TestAccountantImplementation")
 const AccountantImplementation = artifacts.require("TestAccountantImplementation")
 
 const ChannelImplementationProxy = artifacts.require("ChannelImplementationProxy")

@@ -117,7 +117,7 @@ contract AccountantImplementation is FundsRecovery {
 
     // Because of proxy pattern this function is used insted of constructor.
     // Have to be called right after proxy deployment.
-    function initialize(address _token, address _operator, uint16 _fee, uint256 _maxStake) public {
+    function initialize(address _token, address _operator, uint16 _fee, uint256 _maxStake) public virtual {
         require(!isInitialized(), "have to be not initialized");
         require(_operator != address(0), "operator have to be set");
         require(_token != address(0), "token can't be deployd into zero address");

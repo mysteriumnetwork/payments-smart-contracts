@@ -344,10 +344,10 @@ function signStakeGoalUpdate(channelId, stakeGoal, channelNonce, identity) {
     ])
 
     // sign and verify the signature
-    const signature = signMessage(message, identity.privKey)
-    expect(verifySignature(message, signature, identity.pubKey)).to.be.true
+    const sigObj = signMessage(message, identity.privKey)
+    expect(verifySignature(message, sigObj.signature, identity.pubKey)).to.be.true
 
-    return signature
+    return sigObj.packedSig
 }
 
 // We're using signature as bytes array (`bytes memory`), so we have properly construct it.
