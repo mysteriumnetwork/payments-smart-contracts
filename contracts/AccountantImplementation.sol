@@ -488,16 +488,16 @@ contract AccountantImplementation is FundsRecovery {
         token.transfer(_beneficiary, _amount);
     }
 
-    function getUnitBlocks() internal pure returns (uint256) {
+    function getUnitBlocks() internal pure virtual returns (uint256) {
         return UNIT_BLOCKS;
     }
 
     // Returns blocknumber until which exit request should be locked
-    function getTimelock() internal view returns (uint256) {
+    function getTimelock() internal view virtual returns (uint256) {
         return block.number + DELAY_BLOCKS;
     }
 
-    function getEmergencyTimelock() internal view returns (uint256) {
+    function getEmergencyTimelock() internal view virtual returns (uint256) {
         return block.number + DELAY_BLOCKS * 100; // +/- 300 days
     }
 

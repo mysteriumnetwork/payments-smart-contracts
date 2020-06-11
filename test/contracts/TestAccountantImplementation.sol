@@ -1,27 +1,28 @@
-pragma solidity ^0.5.7;
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.6.0 <0.7.0;
 
 import { AccountantImplementation } from "../../contracts/AccountantImplementation.sol";
 
 
 // Helper functions to be used in tests
 contract TestAccountantImplementation is AccountantImplementation {
-    uint256 constant DELAY_BLOCKS = 4;
+    uint256 constant TEST_DELAY_BLOCKS = 4;
 
     // Constructor is needed only in tests where we don't use minimal Proxies and testing implementation directly
     constructor (address _token, address _operator, uint16 _fee, uint256 _maxLoan) public {
         initialize(_token, _operator, _fee, _maxLoan);
     }
 
-    function getTimelock() internal view returns (uint256) {
-        return block.number + DELAY_BLOCKS;
+    function getTimelock() internal view override returns (uint256) {
+        return block.number + TEST_DELAY_BLOCKS;
     }
 
-    function getEmergencyTimelock() internal view returns (uint256) {
-        return block.number + DELAY_BLOCKS;
+    function getEmergencyTimelock() internal view override returns (uint256) {
+        return block.number + TEST_DELAY_BLOCKS;
     }
 
-    function getUnitBlocks() internal pure returns (uint256) {
-        return DELAY_BLOCKS;
+    function getUnitBlocks() internal pure override returns (uint256) {
+        return TEST_DELAY_BLOCKS;
     }
 
     function getNow() public view returns (uint256) {

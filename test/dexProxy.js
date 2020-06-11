@@ -1,4 +1,4 @@
-const { BN } = require('openzeppelin-test-helpers');
+const { BN } = require('@openzeppelin/test-helpers');
 
 const DEXProxy = artifacts.require("DEXProxy")
 const ProxyTarget = artifacts.require("ProxyTarget")
@@ -40,14 +40,14 @@ contract('DEX Proxy', ([_, owner, ...otherAccounts]) => {
     it('should set new implementation', async () => {
         const newImplementation = await SecondProxyTarget.new()
         await proxy.___upgradeTo(newImplementation.address, {from: otherAccounts[0]})
-        
+
         const expectedName = await proxiedImplementation.name()
         expect(expectedName).to.be.equal('SecondTarget')
     })
 
     it('should fail when not owner is setting new implementation', async () => {
         await proxy.___upgradeTo(implementation.address).should.be.rejected
-        
+
         const expectedName = await proxiedImplementation.name()
         expect(expectedName).to.be.equal('SecondTarget')
     })

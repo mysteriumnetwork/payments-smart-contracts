@@ -2,8 +2,7 @@ const secp256k1 = require('secp256k1')
 const ethUtils = require('ethereumjs-util')
 const rlp = require('rlp')
 const { randomBytes } = require('crypto')
-const { BN } = require('openzeppelin-test-helpers')
-const leftPad = require('left-pad')
+const { BN } = require('@openzeppelin/test-helpers')
 const deployConfig = require('../../scripts/deployConfig').deploy
 
 const Config = artifacts.require("Config")
@@ -52,11 +51,13 @@ function toAddress(pubKey) {
 // Returns signature as 65 bytes Buffer in format of `r` (32 bytes), `s` (32 bytes), `v` (1 byte)
 function signMessage(message, privKey) {
     const messageHash = ethUtils.keccak(message)
-    const sigObj = secp256k1.sign(messageHash, privKey)
-    return Buffer.concat([
+    const sigObj = secp256k1.ecdsaSign(messageHash, privKey)
+    sigObj.packedSig = Buffer.concat([
         sigObj.signature,
-        Buffer.from((sigObj.recovery + 27).toString(16), 'hex')
+        Buffer.from((sigObj.recid + 27).toString(16), 'hex')
     ])
+
+    return sigObj
 
     // Alternative implementatino using ethereumjs-util
     // const { r, s, v } = ethUtils.ecsign(messageHash, privKey)
@@ -70,7 +71,7 @@ function verifySignature(message, signature, pubKey) {
     }
 
     const messageHash = ethUtils.keccak(message)
-    return secp256k1.verify(messageHash, signature.slice(0, 64), pubKey)
+    return secp256k1.ecdsaVerify(signature, messageHash, pubKey)
 }
 
 // Derive address of smart contract created by creator.
@@ -145,19 +146,19 @@ async function setupConfig(owner, channelProxy, accountantProxy) {
     await config.setOwner(owner)
 
     const channelSlot = '0x48df65c92c1c0e8e19a219c69bfeb4cf7c1c123e0c266d555abb508d37c6d96e'    // keccak256('channel implementation')
-    const channelImplAddressBytes = '0x' + leftPad((channelImplementation.slice(2)).toString(16), 64, 0)
+    const channelImplAddressBytes = '0x' + channelImplementation.slice(2).toString(16).padStart(64, 0)
     await config.addConfig(channelSlot, channelImplAddressBytes)
 
     const channelProxySlot = '0x2ef7e7c50e1b6a574193d0d32b7c0456cf12390a0872cf00be4797e71c3756f7' // keccak256('channel implementation proxy')
-    const channelProxyAddressBytes = '0x' + leftPad((channelProxy.slice(2)).toString(16), 64, 0)
+    const channelProxyAddressBytes = '0x' + channelProxy.slice(2).toString(16).padStart(64, 0)
     await config.addConfig(channelProxySlot, channelProxyAddressBytes)
 
     const accountantSlot = '0xe6906d4b6048dd18329c27945d05f766dd19b003dc60f82fd4037c490ee55be0' // keccak256('accountant implementation')
-    const AccImplAddressBytes = '0x' + leftPad((accountantImplementation.slice(2)).toString(16), 64, 0)
+    const AccImplAddressBytes = '0x' + accountantImplementation.slice(2).toString(16).padStart(64, 0)
     await config.addConfig(accountantSlot, AccImplAddressBytes)
 
     const accountantProxySlot = '0x52948fa93a94851571e57fddc2be83c51e0a64bb5e9ca55f4f90439b9802b575' // keccak256('accountant implementation proxy')
-    const accountantProxyAddressBytes = '0x' + leftPad((accountantProxy.slice(2)).toString(16), 64, 0)
+    const accountantProxyAddressBytes = '0x' + accountantProxy.slice(2).toString(16).padStart(64, 0)
     await config.addConfig(accountantProxySlot, accountantProxyAddressBytes)
 
     return config

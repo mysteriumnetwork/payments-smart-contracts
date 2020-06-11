@@ -3,7 +3,7 @@
     Smart-contract code can be found in `contracts/AccountantImplementation.sol`.
 */
 
-const { BN } = require('openzeppelin-test-helpers')
+const { BN } = require('@openzeppelin/test-helpers')
 const {
     generateChannelId,
     topUpTokens,

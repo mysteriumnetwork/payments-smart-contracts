@@ -1,6 +1,6 @@
 const EthereumTx = require('ethereumjs-tx')
-const { BN } = require('openzeppelin-test-helpers')
-const { 
+const { BN } = require('@openzeppelin/test-helpers')
+const {
     generatePrivateKey,
     privateToPublic,
     toAddress
@@ -35,7 +35,7 @@ async function sendTx(destination, payload, account) {
     await web3.eth.sendSignedTransaction('0x' + serializedTx.toString('hex'))
 
     // nonce have to be increased after each transation
-    state.nonce += 1 
+    state.nonce += 1
 }
 
 

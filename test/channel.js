@@ -3,8 +3,8 @@
     Smart-contract code can be found in `contracts/ChannelImplementation.sol`.
 */
 
-const { BN } = require('openzeppelin-test-helpers')
-const { 
+const { BN } = require('@openzeppelin/test-helpers')
+const {
     topUpTokens,
     topUpEthers
 } = require('./utils/index.js')
@@ -56,7 +56,7 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
         const channelState = Object.assign({}, await channel.accountant(), {channelId: channel.address})
         const amount = OneToken.mul(new BN(2)) // 2 full tokens
         const channelBalanceBefore = await token.balanceOf(channel.address)
-    
+
         const promise = generatePromise(amount, new BN(0), channelState, identity)
         await channel.settlePromise(promise.amount, promise.fee, promise.lock, promise.signature)
 

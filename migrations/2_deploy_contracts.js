@@ -1,4 +1,3 @@
-const leftPad = require('left-pad')
 const deployConfig = require('../scripts/deployConfig').deploy
 
 const Config = artifacts.require("Config")
@@ -43,11 +42,11 @@ async function setupConfig(configAddress, owner, channelImplementation, accounta
     await config.setOwner(owner)
 
     const channelSlot = '0x48df65c92c1c0e8e19a219c69bfeb4cf7c1c123e0c266d555abb508d37c6d96e' // keccak256('channel implementation')
-    const channelImplAddressBytes = '0x' + leftPad((channelImplementation.slice(2)).toString(16), 64, 0)
+    const channelImplAddressBytes = '0x' + channelImplementation.slice(2).toString(16).padStart(64, 0)
     await config.addConfig(channelSlot, channelImplAddressBytes)
 
     const accountantSlot = '0xe6906d4b6048dd18329c27945d05f766dd19b003dc60f82fd4037c490ee55be0' // keccak256('accountant implementation')
-    const AccImplAddressBytes = '0x' + leftPad((accountantImplementation.slice(2)).toString(16), 64, 0)
+    const AccImplAddressBytes = '0x' + accountantImplementation.slice(2).toString(16).padStart(64, 0)
     await config.addConfig(accountantSlot, AccImplAddressBytes)
 
     return config

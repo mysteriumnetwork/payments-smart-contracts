@@ -5,6 +5,7 @@ const artifacts = require('../build/contracts/Config.json')
 const bytecode = artifacts.bytecode
 const abi = artifacts.abi
 
+const zero = Buffer.from([0])
 
 // It creates raw transaction signed by address which private key we don't know.
 // This hack allows to always deploy given smartcontract's bytecode into same address in any network.
@@ -25,7 +26,7 @@ const generateTx = () => {
         sender: EthereumUtils.toChecksumAddress('0x' + tx.getSenderAddress().toString('hex')),
         rawTx: '0x' + tx.serialize().toString('hex'),
         contractAddr: EthereumUtils.toChecksumAddress(
-            '0x' + EthereumUtils.generateAddress('0x' + tx.getSenderAddress().toString('hex'), 0).toString('hex')),
+            '0x' + EthereumUtils.generateAddress(tx.getSenderAddress(), zero).toString('hex')),
     }
     return res
 }

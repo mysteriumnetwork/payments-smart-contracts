@@ -114,7 +114,7 @@ contract ChannelImplementation is FundsRecovery {
     }
 
     // Returns blocknumber until which exit request should be locked
-    function getTimelock() internal view returns (uint256) {
+    function getTimelock() internal view virtual returns (uint256) {
         return block.number + DELAY_BLOCKS;
     }
 

@@ -1,7 +1,7 @@
 require('chai')
     .use(require('chai-as-promised'))
     .should()
-const { BN } = require('openzeppelin-test-helpers')
+const { BN } = require('@openzeppelin/test-helpers')
 
 const genCreate2Address = require('./utils/index.js').genCreate2Address
 const topUpTokens = require('./utils/index.js').topUpTokens

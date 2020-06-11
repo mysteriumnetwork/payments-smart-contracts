@@ -1,7 +1,7 @@
 require('chai')
     .use(require('chai-as-promised'))
     .should()
-const { BN } = require('openzeppelin-test-helpers')
+const { BN } = require('@openzeppelin/test-helpers')
 const { topUpTokens, setupConfig } = require('./utils/index.js')
 const { signIdentityRegistration } = require('./utils/client.js')
 const wallet = require('./utils/wallet.js')

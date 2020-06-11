@@ -3,7 +3,7 @@
     Tested functions can be found in smart-contract code at `contracts/AccountantImplementation.sol`.
 */
 
-const { BN } = require('openzeppelin-test-helpers')
+const { BN } = require('@openzeppelin/test-helpers')
 const {
     generateChannelId,
     topUpTokens,
@@ -47,7 +47,7 @@ contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, 
 
         // Give tokens for txMaker so it could use them registration and lending stuff
         await topUpTokens(token, txMaker, OneToken)
-        await token.approve(registry.address, OneToken)  
+        await token.approve(registry.address, OneToken)
     })
 
     it("should register and initialize hermes hub", async () => {

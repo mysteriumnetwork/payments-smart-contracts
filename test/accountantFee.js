@@ -1,7 +1,7 @@
 require('chai')
     .use(require('chai-as-promised'))
     .should()
-const { BN } = require('openzeppelin-test-helpers')
+const { BN } = require('@openzeppelin/test-helpers')
 const { randomBytes } = require('crypto')
 const { topUpTokens, generateChannelId, keccak, setupConfig } = require('./utils/index.js')
 const {
