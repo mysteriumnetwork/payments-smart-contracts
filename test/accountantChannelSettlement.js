@@ -81,7 +81,7 @@ contract.only("Channel openinig via settlement tests", ([txMaker, beneficiaryA, 
         const balanceBefore = await token.balanceOf(consumerChannelAddress)
 
         const promise = generatePromise(amountToPay, Zero, channelState, operator, providerA.address)
-        await hermes.settlePromise(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature)
+        await hermes.settlePromise(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
 
         const balanceAfter = await token.balanceOf(consumerChannelAddress)
         const amountToSettle = amountToPay.sub(amountToPay.div(new BN(10))) // amountToPay - 10% which will be used as stake
@@ -90,7 +90,7 @@ contract.only("Channel openinig via settlement tests", ([txMaker, beneficiaryA, 
         expect(await hermes.isChannelOpened(channelId)).to.be.true
     })
 
-    it.skip("settling promises bigger than stake should be handled correctly", async () => {
+    it("settling promises bigger than stake should be handled correctly", async () => {
         const channelId = generateChannelId(providerA.address, hermes.address)
         const channel = await hermes.channels(channelId)
         const channelState = Object.assign({}, { channelId }, channel)
@@ -118,7 +118,7 @@ contract.only("Channel openinig via settlement tests", ([txMaker, beneficiaryA, 
         balanceAfter.should.be.bignumber.equal(balanceBefore.add(minStake.sub(stakeIncrease)))
     })
 
-    it.skip("should be possible use same promise multiple times untill whole amount is not settled", async () => {
+    it("should be possible use same promise multiple times untill whole amount is not settled", async () => {
         const channelId = generateChannelId(providerA.address, hermes.address)
         const consumerChannelAddress = await registry.getChannelAddress(providerA.address, hermes.address)  // User's topup channes is used as beneficiary when channel opening during settlement is used.
         const stakeIncrease = minStake.div(new BN(10))
@@ -137,7 +137,7 @@ contract.only("Channel openinig via settlement tests", ([txMaker, beneficiaryA, 
         await hermes.settlePromise(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature).should.be.rejected
     })
 
-    it.skip("should reach min stake and not take stake during settlement anymore", async () => {
+    it("should reach min stake and not take stake during settlement anymore", async () => {
         const channelId = generateChannelId(providerA.address, hermes.address)
         const channel = await hermes.channels(channelId)
         const channelState = Object.assign({}, { channelId }, channel)
@@ -165,7 +165,7 @@ contract.only("Channel openinig via settlement tests", ([txMaker, beneficiaryA, 
         balanceAfter.should.be.bignumber.equal(balanceBefore.add(minStake))
     })
 
-    it.skip("should be possible to settle into stake", async () => {
+    it("should be possible to settle into stake", async () => {
         const channelId = generateChannelId(providerA.address, hermes.address)
         const channel = await hermes.channels(channelId)
         const channelState = Object.assign({}, { channelId }, channel)
@@ -187,7 +187,7 @@ contract.only("Channel openinig via settlement tests", ([txMaker, beneficiaryA, 
         transactorBalanceAfter.should.be.bignumber.equal(transactorBalanceBefore.add(transactorFee))
     })
 
-    it.skip('should have different stake goals for new and old channel after minStake change', async () => {
+    it('should have different stake goals for new and old channel after minStake change', async () => {
         const initialMinStake = (await hermes.getStakeThresholds())[0]
         const newMinStake = new BN('400')
 
@@ -216,7 +216,7 @@ contract.only("Channel openinig via settlement tests", ([txMaker, beneficiaryA, 
         stakeGoalB.should.be.bignumber.equal(newMinStake)
     })
 
-    it.skip('should set new stake goal', async () => {
+    it('should set new stake goal', async () => {
         const channelId = generateChannelId(providerA.address, hermes.address)
         const channelState = Object.assign({}, { channelId }, await hermes.channels(channelId))
         const newStakeGoal = new BN('500')
@@ -231,7 +231,7 @@ contract.only("Channel openinig via settlement tests", ([txMaker, beneficiaryA, 
         stakeGoal.should.be.bignumber.equal(newStakeGoal)
     })
 
-    it.skip('should take 10% of stake again, until stake goal reached', async () => {
+    it('should take 10% of stake again, until stake goal reached', async () => {
         const channelId = generateChannelId(providerA.address, hermes.address)
         const channelState = Object.assign({}, { channelId }, await hermes.channels(channelId))
         const amountToPay = new BN('250')

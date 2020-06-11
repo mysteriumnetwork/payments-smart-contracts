@@ -47,13 +47,13 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
         const amount = OneToken.mul(new BN(8)) // 8 full tokens
         await topUpTokens(token, userAccount, amount)
 
-        await token.transfer(channel.address, amount, {from: userAccount})
+        await token.transfer(channel.address, amount, { from: userAccount })
         const channelTotalBalance = await token.balanceOf(channel.address)
         channelTotalBalance.should.be.bignumber.equal(amount)
     })
 
     it("should settle promise and send funds into beneficiary address", async () => {
-        const channelState = Object.assign({}, await channel.accountant(), {channelId: channel.address})
+        const channelState = Object.assign({}, await channel.accountant(), { channelId: channel.address })
         const amount = OneToken.mul(new BN(2)) // 2 full tokens
         const channelBalanceBefore = await token.balanceOf(channel.address)
 
@@ -68,7 +68,7 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
     })
 
     it("should send given fee for transaction maker", async () => {
-        const channelState = Object.assign({}, await channel.accountant(), {channelId: channel.address})
+        const channelState = Object.assign({}, await channel.accountant(), { channelId: channel.address })
         const amount = OneToken.mul(new BN(2)) // 2 full tokens
         const fee = OneToken.div(new BN(10)) // 0.1 tokens
         const channelBalanceBefore = await token.balanceOf(channel.address)
@@ -89,7 +89,7 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
 
     it("should not settle promise signed by wrong identity", async () => {
         const fakeIdentity = wallet.generateAccount()
-        const channelState = Object.assign({}, await channel.accountant(), {channelId: channel.address})
+        const channelState = Object.assign({}, await channel.accountant(), { channelId: channel.address })
         const amount = OneToken.mul(new BN(2)) // 2 full tokens
         const channelBalanceBefore = await token.balanceOf(channel.address)
 
@@ -109,9 +109,9 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
     })
 
     it("self signed promise should be rejected", async () => {
-        const channelState = Object.assign({}, await channel.accountant(), {channelId: channel.address})
+        const channelState = Object.assign({}, await channel.accountant(), { channelId: channel.address })
 
-        const promise = generatePromise(OneToken, new BN(0), channelState, accountant)
+        const promise = generatePromise(OneToken, new BN(0), channelState, accountant, identityHash)
 
         await wallet.sendTx(channel.address, constructPayload(promise), accountant).should.be.rejected
     })
@@ -123,19 +123,19 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
     let firstExitRequest
     it("should successfully request exit channel", async () => {
         const beneficiary = otherAccounts[1]
-        const {validUntil, signature} = await signExitRequest(channel, beneficiary, identity)
+        const { validUntil, signature } = await signExitRequest(channel, beneficiary, identity)
         await channel.requestExit(beneficiary, validUntil, signature)
 
         const exitRequest = await channel.exitRequest()
         expect(exitRequest.beneficiary).to.be.equal(beneficiary)
 
         // This will be needed in later requests
-        firstExitRequest = {beneficiary, validUntil, signature}
+        firstExitRequest = { beneficiary, validUntil, signature }
     })
 
     it("should fail requesting exit channel, when previous request is still active", async () => {
         const beneficiary = otherAccounts[2] // different beneficiary
-        const {validUntil, signature} = await signExitRequest(channel, beneficiary, identity)
+        const { validUntil, signature } = await signExitRequest(channel, beneficiary, identity)
         await channel.requestExit(beneficiary, validUntil, signature).should.be.rejected
 
         const exitRequest = await channel.exitRequest()
@@ -151,7 +151,7 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
     })
 
     it("during exit waiting period, receiving party should be able to settle latest promise", async () => {
-        const channelState = Object.assign({}, await channel.accountant(), {channelId: channel.address})
+        const channelState = Object.assign({}, await channel.accountant(), { channelId: channel.address })
         const channelBalanceBefore = await token.balanceOf(channel.address)
         const accountantBalanceBefore = await token.balanceOf(channelState.contractAddress)
 
@@ -188,7 +188,7 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
     })
 
     it("should fail requesting exit with already used signature", async () => {
-        const {beneficiary, validUntil, signature} = firstExitRequest
+        const { beneficiary, validUntil, signature } = firstExitRequest
         await channel.requestExit(beneficiary, validUntil, signature).should.be.rejected
 
         const exitRequest = await channel.exitRequest()
@@ -196,7 +196,7 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
     })
 
     it("should be possible to request new exit", async () => {
-        const {beneficiary, validUntil, signature} = await signExitRequest(channel, otherAccounts[0], identity)
+        const { beneficiary, validUntil, signature } = await signExitRequest(channel, otherAccounts[0], identity)
         await channel.requestExit(beneficiary, validUntil, signature)
 
         const exitRequest = await channel.exitRequest()

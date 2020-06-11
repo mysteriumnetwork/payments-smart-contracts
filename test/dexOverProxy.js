@@ -8,7 +8,7 @@ const OneEther = web3.utils.toWei(new BN(1), 'ether')
 
 contract('DEX over Proxy', ([_, owner, ...otherAccounts]) => {
     let token, dex, proxy, proxiedImplementation
-    before (async () => {
+    before(async () => {
         token = await MystToken.new()
         dex = await MystDex.new()
         proxy = await DEXProxy.new(dex.address, owner)
@@ -22,7 +22,7 @@ contract('DEX over Proxy', ([_, owner, ...otherAccounts]) => {
         balance.should.be.bignumber.equal(tokensToMint)
     })
 
-    it('should always work', () => {})
+    it('should always work', () => { })
 
     it('tx should fail when DEX is not initialised', async () => {
         await proxiedDEX.sendTransaction({
@@ -67,7 +67,7 @@ contract('DEX over Proxy', ([_, owner, ...otherAccounts]) => {
         const newRate = web3.utils.toWei(new BN(2), 'finney')
 
         // Owner should be able to set new rate
-        await proxiedDEX.setRate(Number(newRate), {from: owner}).should.be.fulfilled
+        await proxiedDEX.setRate(Number(newRate), { from: owner }).should.be.fulfilled
 
         // Ethers should be exchanged into tokens using new rate
         const userAccount = otherAccounts[1]

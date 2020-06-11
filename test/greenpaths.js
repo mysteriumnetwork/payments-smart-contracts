@@ -22,7 +22,7 @@ const wallet = require('./utils/wallet.js')
 const MystToken = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
 const Registry = artifacts.require("Registry")
-const AccountantImplementation = artifacts.require("AccountantImplementation")
+const AccountantImplementation = artifacts.require("TestAccountantImplementation")
 const AccountantImplementationProxy = artifacts.require("AccountantImplementationProxy")
 const ChannelImplementationProxy = artifacts.require("ChannelImplementationProxy")
 
@@ -101,7 +101,7 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
         const signature = signIdentityRegistration(registry.address, accountant.address, channelStake, Zero, beneficiaries[4], identities[4])
         await registry.registerIdentity(accountant.address, channelStake, Zero, beneficiaries[4], signature)
         expect(await registry.isRegistered(providerIdentity)).to.be.true
-        expect(await accountant.isOpened(expectedChannelId)).to.be.true
+        expect(await accountant.isChannelOpened(expectedChannelId)).to.be.true
 
         // Channel stake have to be transfered to accountant
         const accountantTokenBalance = await token.balanceOf(accountant.address)
@@ -170,7 +170,7 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
         beneficiaryBalance.should.be.bignumber.equal('1161')
 
         const channel = await accountant.channels(generateChannelId(provider.identity.address, accountant.address))
-        channel.balance.should.be.bignumber.equal(channel.loan)
+        channel.balance.should.be.bignumber.equal(channel.stake)
     })
 
 })

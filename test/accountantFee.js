@@ -71,7 +71,7 @@ contract('Accountant fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
         const signature = signIdentityRegistration(registry.address, accountant.address, channelStake, Zero, beneficiaries[1], provider)
         await registry.registerIdentity(accountant.address, channelStake, Zero, beneficiaries[1], signature)
         expect(await registry.isRegistered(provider.address)).to.be.true
-        expect(await accountant.isOpened(expectedChannelId)).to.be.true
+        expect(await accountant.isChannelOpened(expectedChannelId)).to.be.true
 
         // Channel stake have to be transfered to accountant
         const accountantTokenBalance = await token.balanceOf(accountant.address)
@@ -99,7 +99,7 @@ contract('Accountant fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
         const initialChannelBalance = (await accountant.channels(channelId)).balance
         const expectedChannelBalance = initialChannelBalance.sub(amount)
 
-        await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, R, promise.signature)
+        await accountant.settlePromise(provider.address, promise.amount, promise.fee, R, promise.signature)
 
         const channelBalance = (await accountant.channels(channelId)).balance
         channelBalance.should.be.bignumber.equal(expectedChannelBalance)

@@ -66,7 +66,7 @@ contract('Accountant punishment', ([txMaker, operatorAddress, ...beneficiaries])
         const signature = signIdentityRegistration(registry.address, accountant.address, channelStake, Zero, beneficiaries[0], provider)
         await registry.registerIdentity(accountant.address, channelStake, Zero, beneficiaries[0], signature)
         expect(await registry.isRegistered(provider.address)).to.be.true
-        expect(await accountant.isOpened(expectedChannelId)).to.be.true
+        expect(await accountant.isChannelOpened(expectedChannelId)).to.be.true
 
         // Channel stake have to be transfered to accountant
         const accountantTokenBalance = await token.balanceOf(accountant.address)
@@ -93,7 +93,7 @@ contract('Accountant punishment', ([txMaker, operatorAddress, ...beneficiaries])
         const initialChannelBalance = (await accountant.channels(channelId)).balance
         const expectedChannelBalance = initialChannelBalance.sub(amount)
 
-        await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, R, promise.signature)
+        await accountant.settlePromise(provider.address, promise.amount, promise.fee, R, promise.signature)
 
         const channelBalance = (await accountant.channels(channelId)).balance
         channelBalance.should.be.bignumber.equal(expectedChannelBalance)
@@ -102,8 +102,8 @@ contract('Accountant punishment', ([txMaker, operatorAddress, ...beneficiaries])
     it('should rebalance channel only with available balance and enable punishment mode', async () => {
         const channelId = generateChannelId(provider.address, accountant.address)
         const channel = await accountant.channels(channelId)
-        const rebalanceAmount = channel.loan.sub(channel.balance)
-        const initialStake = await accountant.getStake()
+        const rebalanceAmount = channel.stake.sub(channel.balance)
+        const initialStake = await accountant.getAccountantStake()
 
         // Make accountant available balance to be half of needed
         await topUpTokens(token, accountant.address, rebalanceAmount / 2)
@@ -112,7 +112,7 @@ contract('Accountant punishment', ([txMaker, operatorAddress, ...beneficiaries])
         await accountant.rebalanceChannel(channelId)
 
         // Stake should remain untouched
-        const accountantStake = await accountant.getStake()
+        const accountantStake = await accountant.getAccountantStake()
         expect(accountantStake.toNumber()).to.be.equal(initialStake.toNumber())
 
         // There should be zero available balance
@@ -144,36 +144,36 @@ contract('Accountant punishment', ([txMaker, operatorAddress, ...beneficiaries])
         await registry.registerIdentity(accountant.address, Zero, Zero, beneficiaries[1], signature).should.be.rejected
     })
 
-    it('should still allow to increase channel loan', async () => {
-        const amountToLend = new BN('1500')
+    it('should still allow to increase channel stake', async () => {
+        const amountToStake = new BN('1500')
         const channelId = generateChannelId(provider.address, accountant.address)
-        const initialChannelLoan = (await accountant.channels(channelId)).loan
+        const initialChannelStake = (await accountant.channels(channelId)).stake
 
         // txMaker should have enought tokens
-        await topUpTokens(token, txMaker, amountToLend)
-        await token.approve(accountant.address, amountToLend)
+        await topUpTokens(token, txMaker, amountToStake)
+        await token.approve(accountant.address, amountToStake)
 
-        // Should increase channel loan
-        await accountant.increaseLoan(channelId, amountToLend)
+        // Should increase channel stake
+        await accountant.increaseStake(channelId, amountToStake)
 
         const channel = await accountant.channels(channelId)
-        channel.loan.should.be.bignumber.equal(initialChannelLoan.add(amountToLend))
-        channel.balance.should.be.bignumber.equal(initialChannelLoan.add(amountToLend))
+        channel.stake.should.be.bignumber.equal(initialChannelStake.add(amountToStake))
+        channel.balance.should.be.bignumber.equal(initialChannelStake.add(amountToStake))
     })
 
-    it('provider should be able to get his loan back (at least part of it)', async () => {
+    it('provider should be able to get his stake back (at least part of it)', async () => {
         const channelId = generateChannelId(provider.address, accountant.address)
-        const channelLoanAmount = (await accountant.channels(channelId)).loan
+        const channelStakeAmount = (await accountant.channels(channelId)).stake
         const initialBeneficiaryBalance = await token.balanceOf(beneficiaries[0])
 
         const nonce = new BN(1)
-        const signature = signChannelLoanReturnRequest(channelId, channelLoanAmount, nonce, provider)
-        await accountant.decreaseLoan(channelId, channelLoanAmount, nonce, signature)
+        const signature = signChannelLoanReturnRequest(channelId, channelStakeAmount, Zero, nonce, provider)
+        await accountant.decreaseStake(channelId, channelStakeAmount, Zero, nonce, signature)
 
         const channel = await accountant.channels(channelId)
         const beneficiaryBalance = await token.balanceOf(beneficiaries[0])
         initialBeneficiaryBalance.should.be.bignumber.lessThan(beneficiaryBalance)
-        channel.loan.should.be.bignumber.lessThan(channelLoanAmount)
+        channel.stake.should.be.bignumber.lessThan(channelStakeAmount)
     })
 
     it('accountant operator should not be able to update channel balance', async () => {
@@ -225,7 +225,7 @@ contract('Accountant punishment', ([txMaker, operatorAddress, ...beneficiaries])
         const channelId = generateChannelId(provider.address, accountant.address)
         await accountant.rebalanceChannel(channelId)
         let channel = await accountant.channels(channelId)
-        channel.balance.should.be.bignumber.equal(channel.loan)
+        channel.balance.should.be.bignumber.equal(channel.stake)
 
         // Operator should be able to update channel balance
         const newBalance = new BN(70000)
@@ -253,7 +253,7 @@ contract('Accountant punishment', ([txMaker, operatorAddress, ...beneficiaries])
         const promise = createPromise(channelId, amount, Zero, hashlock, accountantOperator)
 
         // Settle promise
-        await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, R, promise.signature)
+        await accountant.settlePromise(provider.address, promise.amount, promise.fee, R, promise.signature)
         const channelBalance = (await accountant.channels(channelId)).balance
         channelBalance.should.be.bignumber.equal(Zero)
 

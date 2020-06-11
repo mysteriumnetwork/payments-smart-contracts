@@ -291,7 +291,8 @@ contract('Accountant funds recovery', ([_, txMaker, account, fundsDestination, .
         await topUpTokens(token, implementationAddress, tokensToMint)
 
         // Deploy Accountant smart contract
-        accountantImplementation = await TestAccountantImplementation.new(nativeToken.address, account, 0, OneToken, { from: txMaker })
+        accountantImplementation = await TestAccountantImplementation.new({ from: txMaker })
+        await accountantImplementation.initialize(nativeToken.address, account, 0, OneToken)
         expect(accountantImplementation.address.toLowerCase()).to.be.equal(implementationAddress.toLowerCase())
 
         // Set funds destination

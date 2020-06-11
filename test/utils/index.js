@@ -7,7 +7,7 @@ const deployConfig = require('../../scripts/deployConfig').deploy
 
 const Config = artifacts.require("Config")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
-const AccountantImplementation = artifacts.require("AccountantImplementation")
+const AccountantImplementation = artifacts.require("TestAccountantImplementation")
 
 // CREATE2 address is calculated this way:
 // keccak("0xff++msg.sender++salt++keccak(byteCode)")

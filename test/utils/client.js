@@ -90,7 +90,7 @@ async function createAccountantService(accountant, operator, token) {
     }
     this.getOutgoingChannel = async (receiver) => {
         const channelId = await accountant.getChannelId(receiver)
-        expect(await accountant.isOpened(channelId)).to.be.true
+        expect(await accountant.isChannelOpened(channelId)).to.be.true
 
         if (!state.channels[channelId]) {
             state.channels[channelId] = merge({}, DEFAULT_CHANNEL_STATE, await accountant.channels(channelId))
@@ -203,20 +203,20 @@ async function exchangePromise(state, operator, exchangeMessage, payerPubKey, re
     outgoingChannelState.promised = promiseAmount
 
     // Issue new payment promise for `amount` value
-    return createPromise(outgoingChannelId, promiseAmount, new BN(0), promise.hashlock, operator)
+    return createPromise(outgoingChannelId, promiseAmount, new BN(0), promise.hashlock, operator, receiver)
 }
 
-function generatePromise(amountToPay, fee, channelState, operator) {
+function generatePromise(amountToPay, fee, channelState, operator, receiver) {
     const amount = channelState.settled.add(amountToPay).add(fee) // we're signing always increasing amount to settle
     const R = randomBytes(32)
     const hashlock = keccak(R)
     return Object.assign({},
-        createPromise(channelState.channelId, amount, fee, hashlock, operator),
+        createPromise(channelState.channelId, amount, fee, hashlock, operator, receiver),
         { lock: R }
     )
 }
 
-function createPromise(channelId, amount, fee, hashlock, operator) {
+function createPromise(channelId, amount, fee, hashlock, operator, receiver) {
     const message = Buffer.concat([
         toBytes32Buffer(channelId, 'address'),  // channelId = channel address
         toBytes32Buffer(amount),   // total promised amount in this channel
@@ -227,8 +227,8 @@ function createPromise(channelId, amount, fee, hashlock, operator) {
     // sign and verify the signature
     const sigObj = signMessage(message, operator.privKey)
     expect(verifySignature(message, sigObj.signature, operator.pubKey)).to.be.true
-    console.log('::: ', sigObj.packedSig)
-    return { channelId, amount, fee, hashlock, hash: keccak(message), signature: sigObj.packedSig }
+
+    return { identity: receiver, channelId, amount, fee, hashlock, hash: keccak(message), signature: sigObj.packedSig }
 }
 
 function validatePromise(promise, pubKey) {
@@ -249,7 +249,7 @@ async function settlePromise(state, accountant, promise) {
     }
 
     const invoice = state.invoices[promise.hashlock]
-    await accountant.settlePromise(promise.channelId, promise.amount, promise.fee, invoice.R, promise.signature)
+    await accountant.settlePromise(promise.identity, promise.amount, promise.fee, invoice.R, promise.signature)
 }
 
 async function settleAndRebalance(state, accountant, promise) {
@@ -258,7 +258,7 @@ async function settleAndRebalance(state, accountant, promise) {
     }
 
     const invoice = state.invoices[promise.hashlock]
-    await accountant.settleAndRebalance(promise.channelId, promise.amount, promise.fee, invoice.R, promise.signature)
+    await accountant.settleAndRebalance(promise.identity, promise.amount, promise.fee, invoice.R, promise.signature)
 }
 
 async function signExitRequest(channel, beneficiary, operator) {
@@ -300,12 +300,13 @@ function signChannelBeneficiaryChange(channelId, newBeneficiary, channelNonce, i
     return sigObj.packedSig
 }
 
-function signChannelLoanReturnRequest(channelId, amount, channelNonce, identity) {
-    const LOAN_RETURN_PREFIX = "Load return request"
+function signChannelLoanReturnRequest(channelId, amount, fee, channelNonce, identity) {
+    const LOAN_RETURN_PREFIX = "Stake return request"
     const message = Buffer.concat([
         Buffer.from(LOAN_RETURN_PREFIX),
         Buffer.from(channelId.slice(2), 'hex'),
         toBytes32Buffer(amount),
+        toBytes32Buffer(fee),
         toBytes32Buffer(channelNonce)
     ])
 
@@ -316,11 +317,11 @@ function signChannelLoanReturnRequest(channelId, amount, channelNonce, identity)
     return sigObj.packedSig
 }
 
-function signIdentityRegistration(registryAddress, accountantId, loan, fee, beneficiary, identity) {
+function signIdentityRegistration(registryAddress, accountantId, stake, fee, beneficiary, identity) {
     const message = Buffer.concat([
         Buffer.from(registryAddress.slice(2), 'hex'),
         Buffer.from(accountantId.slice(2), 'hex'),
-        toBytes32Buffer(loan),
+        toBytes32Buffer(stake),
         toBytes32Buffer(fee),
         Buffer.from(beneficiary.slice(2), 'hex')
     ])
@@ -330,6 +331,23 @@ function signIdentityRegistration(registryAddress, accountantId, loan, fee, bene
     expect(verifySignature(message, sigObj.signature, identity.pubKey)).to.be.true
 
     return sigObj.packedSig
+}
+
+function signStakeGoalUpdate(channelId, stakeGoal, channelNonce, identity) {
+    const STAKE_GOAL_UPDATE_PREFIX = "Stake goal update request"
+
+    const message = Buffer.concat([
+        Buffer.from(STAKE_GOAL_UPDATE_PREFIX),
+        Buffer.from(channelId.slice(2), 'hex'),
+        toBytes32Buffer(stakeGoal),
+        toBytes32Buffer(channelNonce)
+    ])
+
+    // sign and verify the signature
+    const signature = signMessage(message, identity.privKey)
+    expect(verifySignature(message, signature, identity.pubKey)).to.be.true
+
+    return signature
 }
 
 // We're using signature as bytes array (`bytes memory`), so we have properly construct it.
@@ -367,5 +385,6 @@ module.exports = {
     signChannelLoanReturnRequest,
     signExitRequest,
     signIdentityRegistration,
+    signStakeGoalUpdate,
     validatePromise
 }
