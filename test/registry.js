@@ -5,13 +5,12 @@ const { BN } = require('@openzeppelin/test-helpers')
 
 const genCreate2Address = require('./utils/index.js').genCreate2Address
 const topUpTokens = require('./utils/index.js').topUpTokens
-const setupConfig = require('./utils/index.js').setupConfig
 const signIdentityRegistration = require('./utils/client.js').signIdentityRegistration
 const generateAccount = require('./utils/wallet.js').generateAccount
 
 const Registry = artifacts.require("Registry")
-const ChannelImplementationProxy = artifacts.require("ChannelImplementationProxy")
-const AccountantImplementationProxy = artifacts.require("AccountantImplementationProxy")
+const ChannelImplementation = artifacts.require("ChannelImplementation")
+const AccountantImplementation = artifacts.require("AccountantImplementation")
 const MystToken = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
 
@@ -26,14 +25,13 @@ function generateIdentities(amount) {
 const identities = generateIdentities(3)   // Generates array of identities
 
 contract('Registry', ([txMaker, minter, accountantOperator, fundsDestination, ...otherAccounts]) => {
-    let token, channelImplementation, accountantId, dex, registry
+    let token, channelImplementation, accountantImplementation, accountantId, dex, registry
     before(async () => {
         token = await MystToken.new()
         dex = await MystDex.new()
-        const accountantImplementation = await AccountantImplementationProxy.new()
-        channelImplementation = await ChannelImplementationProxy.new()
-        const config = await setupConfig(txMaker, channelImplementation.address, accountantImplementation.address)
-        registry = await Registry.new(token.address, dex.address, config.address, 0, 0)
+        accountantImplementation = await AccountantImplementation.new()
+        channelImplementation = await ChannelImplementation.new()
+        registry = await Registry.new(token.address, dex.address, 0, 0, channelImplementation.address, accountantImplementation.address)
 
         // Topup some tokens into txMaker address so it could register accountant
         await topUpTokens(token, txMaker, 10)

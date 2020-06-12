@@ -48,8 +48,7 @@ contract('Full path (in channel using cheque) test for funds recovery', ([txMake
         const dex = await MystDex.new()
         const channelImplementation = await ChannelImplementation.new()
         const accountantImplementation = await AccountantImplementation.new()
-        const config = await setupConfig(txMaker, channelImplementation.address, accountantImplementation.address)
-        registry = await Registry.new(nativeToken.address, dex.address, config.address, 0, 0)
+        registry = await Registry.new(nativeToken.address, dex.address, 0, 0, channelImplementation.address, accountantImplementation.address)
 
         accountantId = await registry.getAccountantAddress(accountantOperator)
         expectedAddress = await genCreate2Address(identityHash, accountantId, registry, channelImplementation.address)

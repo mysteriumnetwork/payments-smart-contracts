@@ -7,14 +7,12 @@ const { BN } = require('@openzeppelin/test-helpers')
 const {
     topUpTokens,
     topUpEthers,
-    generateChannelId,
-    setupConfig
+    generateChannelId
 } = require('./utils/index.js')
 const {
     createAccountantService,
     createConsumer,
     createProvider,
-    signChannelOpening,
     signIdentityRegistration
 } = require('./utils/client.js')
 const wallet = require('./utils/wallet.js')
@@ -23,8 +21,7 @@ const MystToken = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
 const Registry = artifacts.require("Registry")
 const AccountantImplementation = artifacts.require("TestAccountantImplementation")
-const AccountantImplementationProxy = artifacts.require("AccountantImplementationProxy")
-const ChannelImplementationProxy = artifacts.require("ChannelImplementationProxy")
+const ChannelImplementation = artifacts.require("ChannelImplementation")
 
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const OneEther = web3.utils.toWei(new BN(1), 'ether')
@@ -52,10 +49,9 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
     before(async () => {
         token = await MystToken.new()
         const dex = await MystDex.new()
-        const accountantImplementation = await AccountantImplementationProxy.new()
-        const channelImplementation = await ChannelImplementationProxy.new()
-        const config = await setupConfig(txMaker, channelImplementation.address, accountantImplementation.address)
-        registry = await Registry.new(token.address, dex.address, config.address, 0, 1)
+        const accountantImplementation = await AccountantImplementation.new()
+        const channelImplementation = await ChannelImplementation.new()
+        registry = await Registry.new(token.address, dex.address, 0, 1, channelImplementation.address, accountantImplementation.address)
 
         // Give some ethers for gas for operator
         await topUpEthers(txMaker, operator.address, OneEther)

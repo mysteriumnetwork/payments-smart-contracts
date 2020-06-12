@@ -11,6 +11,7 @@ contract TestFundsRecovery is FundsRecovery {
     // Constructor is needed only in tests
     constructor (address _token) public {
         token = IERC20(_token);
+        transferOwnership(msg.sender);
     }
 
 }

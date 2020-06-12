@@ -7,8 +7,7 @@ const { BN } = require('@openzeppelin/test-helpers')
 const {
     generateChannelId,
     topUpTokens,
-    topUpEthers,
-    setupConfig
+    topUpEthers
 } = require('./utils/index.js')
 const wallet = require('./utils/wallet.js')
 const {
@@ -21,7 +20,7 @@ const MystToken = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
 const AccountantImplementation = artifacts.require("TestAccountantImplementation")
 
-const ChannelImplementationProxy = artifacts.require("ChannelImplementationProxy")
+const ChannelImplementation = artifacts.require("ChannelImplementation")
 const Registry = artifacts.require("Registry")
 
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
@@ -34,15 +33,14 @@ const providerB = wallet.generateAccount()
 
 const minStake = new BN(25)
 
-contract.only("Channel openinig via settlement tests", ([txMaker, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
+contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
     let token, hermes, registry, promise
     before(async () => {
         token = await MystToken.new()
         const dex = await MystDex.new()
         const hermesImplementation = await AccountantImplementation.new(token.address, operator.address, 0, OneToken)
-        const channelImplementation = await ChannelImplementationProxy.new()
-        const config = await setupConfig(txMaker, channelImplementation.address, hermesImplementation.address)
-        registry = await Registry.new(token.address, dex.address, config.address, 0, 100)
+        const channelImplementation = await ChannelImplementation.new()
+        registry = await Registry.new(token.address, dex.address, 0, 100, channelImplementation.address, hermesImplementation.address)
 
         // Give some ethers for gas for operator
         await topUpEthers(txMaker, operator.address, OneEther)

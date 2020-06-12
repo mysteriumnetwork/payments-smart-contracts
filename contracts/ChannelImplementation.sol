@@ -65,6 +65,7 @@ contract ChannelImplementation is FundsRecovery {
         }
 
         operator = _identityHash;
+        transferOwnership(operator);
         accountant = Accountant(AccountantContract(_accountantId).getOperator(), _accountantId, 0);
 
         emit ChannelInitialised(_identityHash, _accountantId);

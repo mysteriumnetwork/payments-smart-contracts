@@ -4,7 +4,7 @@
 
 const assert = require('assert')
 const merge = require('lodash').merge
-const { BN } = require('@openzeppelin/test-helpers')
+const BN = require('bn.js');
 const { randomBytes } = require('crypto')
 const {
     signMessage,
@@ -225,10 +225,10 @@ function createPromise(channelId, amount, fee, hashlock, operator, receiver) {
     ])
 
     // sign and verify the signature
-    const sigObj = signMessage(message, operator.privKey)
-    expect(verifySignature(message, sigObj.signature, operator.pubKey)).to.be.true
+    const signature = signMessage(message, operator.privKey)
+    expect(verifySignature(message, signature, operator.pubKey)).to.be.true
 
-    return { identity: receiver, channelId, amount, fee, hashlock, hash: keccak(message), signature: sigObj.packedSig }
+    return { channelId, amount, fee, hashlock, hash: keccak(message), signature, identity: receiver }
 }
 
 function validatePromise(promise, pubKey) {
@@ -263,9 +263,8 @@ async function settleAndRebalance(state, accountant, promise) {
 
 async function signExitRequest(channel, beneficiary, operator) {
     const EXIT_PREFIX = "Exit request:"
-    // const DELAY_BLOCKS = (await channel.DELAY_BLOCKS()).toNumber()
     const lastBlockNumber = (await web3.eth.getBlock('latest')).number
-    const validUntil = lastBlockNumber + 4//DELAY_BLOCKS
+    const validUntil = lastBlockNumber + 4 //DELAY_BLOCKS
 
     const message = Buffer.concat([
         Buffer.from(EXIT_PREFIX),
@@ -294,10 +293,10 @@ function signChannelBeneficiaryChange(channelId, newBeneficiary, channelNonce, i
     ])
 
     // sign and verify the signature
-    const sigObj = signMessage(message, identity.privKey)
-    expect(verifySignature(message, sigObj.signature, identity.pubKey)).to.be.true
+    const signature = signMessage(message, identity.privKey)
+    expect(verifySignature(message, signature, identity.pubKey)).to.be.true
 
-    return sigObj.packedSig
+    return signature
 }
 
 function signChannelLoanReturnRequest(channelId, amount, fee, channelNonce, identity) {
@@ -311,10 +310,10 @@ function signChannelLoanReturnRequest(channelId, amount, fee, channelNonce, iden
     ])
 
     // sign and verify the signature
-    const sigObj = signMessage(message, identity.privKey)
-    expect(verifySignature(message, sigObj.signature, identity.pubKey)).to.be.true
+    const signature = signMessage(message, identity.privKey)
+    expect(verifySignature(message, signature, identity.pubKey)).to.be.true
 
-    return sigObj.packedSig
+    return signature
 }
 
 function signIdentityRegistration(registryAddress, accountantId, stake, fee, beneficiary, identity) {
@@ -327,10 +326,10 @@ function signIdentityRegistration(registryAddress, accountantId, stake, fee, ben
     ])
 
     // sign and verify the signature
-    const sigObj = signMessage(message, identity.privKey)
-    expect(verifySignature(message, sigObj.signature, identity.pubKey)).to.be.true
+    const signature = signMessage(message, identity.privKey)
+    expect(verifySignature(message, signature, identity.pubKey)).to.be.true
 
-    return sigObj.packedSig
+    return signature
 }
 
 function signStakeGoalUpdate(channelId, stakeGoal, channelNonce, identity) {
@@ -344,10 +343,10 @@ function signStakeGoalUpdate(channelId, stakeGoal, channelNonce, identity) {
     ])
 
     // sign and verify the signature
-    const sigObj = signMessage(message, identity.privKey)
-    expect(verifySignature(message, sigObj.signature, identity.pubKey)).to.be.true
+    const signature = signMessage(message, identity.privKey)
+    expect(verifySignature(message, signature, identity.pubKey)).to.be.true
 
-    return sigObj.packedSig
+    return signature
 }
 
 // We're using signature as bytes array (`bytes memory`), so we have properly construct it.

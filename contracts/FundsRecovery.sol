@@ -2,7 +2,7 @@
 pragma solidity >=0.5.12 <0.7.0;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { Ownable } from "./Ownable.sol";
 
 contract FundsRecovery is Ownable {
     address payable internal fundsDestination;

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.5.12 <0.7.0;
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -20,16 +19,17 @@ interface HermesContract {
     function getStatus() external view returns (Status);
 }
 
-contract Registry is Ownable, FundsRecovery {
+contract Registry is FundsRecovery {
     using ECDSA for bytes32;
     using SafeMath for uint256;
 
     string constant REGISTER_PREFIX="Register prefix:";
 
     address public dex;
-    Config public config;
     uint256 public registrationFee;
     uint256 public minimalAccountantStake;
+    address internal channelImplementationAddress;
+    address internal hermesImplementationAddress;
 
     struct Accountant {
         address operator;
@@ -43,7 +43,7 @@ contract Registry is Ownable, FundsRecovery {
     event RegisteredAccountant(address indexed accountantId, address accountantOperator);
     event ConsumerChannelCreated(address indexed identityHash, address indexed accountantId, address channelAddress);
 
-    constructor (address _tokenAddress, address _dexAddress, address _configAddress, uint256 _regFee, uint256 _minimalAccountantStake) public {
+    constructor (address _tokenAddress, address _dexAddress, uint256 _regFee, uint256 _minimalAccountantStake, address _channelImplementation, address _hermesImplementation) public {
         registrationFee = _regFee;
         minimalAccountantStake = _minimalAccountantStake;
 
@@ -53,8 +53,8 @@ contract Registry is Ownable, FundsRecovery {
         require(_dexAddress != address(0));
         dex = _dexAddress;
 
-        require(_configAddress != address(0));
-        config = Config(_configAddress);
+        channelImplementationAddress = _channelImplementation;
+        hermesImplementationAddress = _hermesImplementation;
     }
 
     // Reject any ethers send to this smart-contract
@@ -172,14 +172,12 @@ contract Registry is Ownable, FundsRecovery {
         return _addr;
     }
 
-    bytes32 constant CHANNEL_IMPLEMENTATION = 0x48df65c92c1c0e8e19a219c69bfeb4cf7c1c123e0c266d555abb508d37c6d96e;  // keccak256('channel implementation')
     function getChannelImplementation() public view returns (address) {
-        return config.getAddress(CHANNEL_IMPLEMENTATION);
+        return channelImplementationAddress;
     }
 
-    bytes32 constant ACCOUNTANT_IMPLEMENTATION = 0xe6906d4b6048dd18329c27945d05f766dd19b003dc60f82fd4037c490ee55be0;  // keccak256('accountant implementation')
     function getAccountantImplementation() public view returns (address) {
-        return config.getAddress(ACCOUNTANT_IMPLEMENTATION);
+        return hermesImplementationAddress;
     }
 
     // ------------------------------------------------------------------------

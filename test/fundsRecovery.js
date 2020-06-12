@@ -2,8 +2,7 @@ const { BN } = require('@openzeppelin/test-helpers')
 const {
     deriveContractAddress,
     topUpEthers,
-    topUpTokens,
-    setupConfig
+    topUpTokens
 } = require('./utils/index.js')
 
 const Registry = artifacts.require("Registry")
@@ -140,7 +139,8 @@ contract('Dex funds recovery', ([_, txMaker, fundsDestination, ...otherAccounts]
         expect(proxiedDEX.address.toLowerCase()).to.be.equal(proxyAddress.toLowerCase())
 
         // Initialise proxiedDex
-        await proxiedDEX.initialise(txMaker, token.address, 1)
+        const nativeToken = await Token.new()
+        await proxiedDEX.initialise(txMaker, nativeToken.address, 1)
 
         // Set funds destination
         await proxiedDEX.setFundsDestination(fundsDestination, { from: txMaker })
@@ -191,8 +191,7 @@ contract('Registry funds recovery', ([_, txMaker, identity, account, fundsDestin
 
         // Deploy registry smart contract
         const nativeToken = await Token.new() // Native token is used as main unit of value in channels. We're recovering any other tokens but not this.
-        const config = await setupConfig(_, channelImplementation.address, accountantImplementation.address)
-        registry = await Registry.new(nativeToken.address, dex.address, config.address, 0, 0, { from: txMaker })
+        registry = await Registry.new(nativeToken.address, dex.address, 0, 0, channelImplementation.address, accountantImplementation.address, { from: txMaker })
         expect(registry.address.toLowerCase()).to.be.equal(registryAddress.toLowerCase())
 
         // Set funds destination
@@ -241,7 +240,7 @@ contract('Channel implementation funds recovery', ([_, txMaker, identity, fundsD
 
         // Deploy IdentityImplementation smart contract
         const accountantImplementation = await AccountantImplementation.new()
-        channelImplementation = await ChannelImplementation.new(nativeToken.address, identity, accountantImplementation.address, Zero, { from: txMaker })
+        channelImplementation = await ChannelImplementation.new(nativeToken.address, txMaker, accountantImplementation.address, Zero, { from: txMaker })
         expect(channelImplementation.address.toLowerCase()).to.be.equal(implementationAddress.toLowerCase())
 
         // Set funds destination

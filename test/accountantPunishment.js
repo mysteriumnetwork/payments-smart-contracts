@@ -4,10 +4,9 @@ require('chai')
 const { BN } = require('@openzeppelin/test-helpers')
 const { randomBytes } = require('crypto')
 
-const { topUpTokens, generateChannelId, keccak, setupConfig } = require('./utils/index.js')
+const { topUpTokens, generateChannelId, keccak } = require('./utils/index.js')
 const {
     signIdentityRegistration,
-    signChannelBalanceUpdate,
     signChannelLoanReturnRequest,
     createPromise
 } = require('./utils/client.js')
@@ -18,7 +17,7 @@ const MystToken = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
 const Registry = artifacts.require("Registry")
 const AccountantImplementation = artifacts.require("TestAccountantImplementation")
-const ChannelImplementationProxy = artifacts.require("ChannelImplementationProxy")
+const ChannelImplementation = artifacts.require("ChannelImplementation")
 
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const Zero = new BN(0)
@@ -35,9 +34,8 @@ contract('Accountant punishment', ([txMaker, operatorAddress, ...beneficiaries])
         token = await MystToken.new()
         const dex = await MystDex.new()
         const accountantImplementation = await AccountantImplementation.new(token.address, accountantOperator.address, 0, OneToken)
-        const channelImplementation = await ChannelImplementationProxy.new()
-        const config = await setupConfig(txMaker, channelImplementation.address, accountantImplementation.address)
-        registry = await Registry.new(token.address, dex.address, config.address, Zero, stake)
+        const channelImplementation = await ChannelImplementation.new()
+        registry = await Registry.new(token.address, dex.address, Zero, stake, channelImplementation.address, accountantImplementation.address)
 
         // Topup some tokens into txMaker address so it could register accountant
         await topUpTokens(token, txMaker, OneToken)

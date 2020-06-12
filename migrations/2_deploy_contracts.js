@@ -23,17 +23,13 @@ module.exports = async function (deployer, network, accounts) {
         await deployer.deploy(Registry, tokenAddress, dexProxyAddress, configAddress, 0, 0)
     } else {
         // Deploy config
-        const configAddress = await deployConfig(web3, accounts[0])
-        console.log('    Config address: ', configAddress)
-
         await deployer.deploy(SafeMathLib)
         await deployer.link(SafeMathLib, [MystToken])
         await deployer.deploy(MystToken)
         await deployer.deploy(DEXImplementation)
         await deployer.deploy(ChannelImplementation)
         await deployer.deploy(AccountantImplementation)
-        await setupConfig(configAddress, accounts[0], ChannelImplementation.address, AccountantImplementation.address)
-        await deployer.deploy(Registry, MystToken.address, DEXImplementation.address, configAddress, 0, 0)
+        await deployer.deploy(Registry, MystToken.address, DEXImplementation.address, 0, 0, ChannelImplementation.address, AccountantImplementation.address)
     }
 };
 

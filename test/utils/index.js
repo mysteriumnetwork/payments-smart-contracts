@@ -2,7 +2,7 @@ const secp256k1 = require('secp256k1')
 const ethUtils = require('ethereumjs-util')
 const rlp = require('rlp')
 const { randomBytes } = require('crypto')
-const { BN } = require('@openzeppelin/test-helpers')
+const BN = require('bn.js')
 const deployConfig = require('../../scripts/deployConfig').deploy
 
 const Config = artifacts.require("Config")
@@ -52,12 +52,10 @@ function toAddress(pubKey) {
 function signMessage(message, privKey) {
     const messageHash = ethUtils.keccak(message)
     const sigObj = secp256k1.ecdsaSign(messageHash, privKey)
-    sigObj.packedSig = Buffer.concat([
+    return Buffer.concat([
         sigObj.signature,
         Buffer.from((sigObj.recid + 27).toString(16), 'hex')
     ])
-
-    return sigObj
 
     // Alternative implementatino using ethereumjs-util
     // const { r, s, v } = ethUtils.ecsign(messageHash, privKey)
@@ -68,6 +66,10 @@ function verifySignature(message, signature, pubKey) {
     if (pubKey.length >= 64 && pubKey[0].toString(16) !== '04') {
         // pubkey = Buffer.from(`04${pubKey.toString('hex')}`, 'hex')
         pubKey = Buffer.concat([Buffer.from('04', 'hex'), pubKey])
+    }
+
+    if (signature.constructor.name !== 'Uint8Array') {
+        signature = new Uint8Array(signature.slice(0, 64))
     }
 
     const messageHash = ethUtils.keccak(message)
@@ -125,7 +127,7 @@ function toBuffer(item) {
 
     switch (typeof item) {
         case 'object':
-            if (item instanceof BN)
+            if (item.constructor.name === 'BN')
                 return toBytes32Buffer(item)
             else
                 throw "Unknown type of given item"
