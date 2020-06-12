@@ -1,4 +1,5 @@
-pragma solidity >=0.5.12 <0.6.0;
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.5.12 <0.7.0;
 
 import { SafeMathLib } from "./libs/SafeMathLib.sol";
 
@@ -7,14 +8,14 @@ import { SafeMathLib } from "./libs/SafeMathLib.sol";
  * ERC20 interface
  * see https://github.com/ethereum/EIPs/issues/20
  */
-contract ERC20 {
+abstract contract ERC20 {
   uint public totalSupply;
-  function balanceOf(address who) public view returns (uint);
-  function allowance(address owner, address spender) public view returns (uint);
+  function balanceOf(address who) public view virtual returns (uint);
+  function allowance(address owner, address spender) public view virtual returns (uint);
 
-  function transfer(address to, uint value) public returns (bool ok);
-  function transferFrom(address from, address to, uint value) public returns (bool ok);
-  function approve(address spender, uint value) public returns (bool ok);
+  function transfer(address to, uint value) public virtual returns (bool ok);
+  function transferFrom(address from, address to, uint value) public virtual returns (bool ok);
+  function approve(address spender, uint value) public virtual returns (bool ok);
 
   event Transfer(address indexed from, address indexed to, uint value);
   event Approval(address indexed owner, address indexed spender, uint value);
@@ -98,7 +99,7 @@ contract Ownable {
  * Upgrade agent transfers tokens to a new contract.
  * Upgrade agent itself can be the token contract, or just a middle man contract doing the heavy lifting.
  */
-contract UpgradeAgent {
+abstract contract UpgradeAgent {
     uint public originalSupply;
 
     /** Interface marker */
@@ -106,7 +107,7 @@ contract UpgradeAgent {
       return true;
     }
 
-    function upgradeFrom(address _from, uint256 _value) public;
+    function upgradeFrom(address _from, uint256 _value) public virtual;
 }
 
 // Standard ERC20 token to represent MYST token in testnet and local environment.
@@ -162,14 +163,14 @@ contract MystToken is ERC20, Ownable, SafeMath {
         mintAgents[msg.sender] = true;
     }
 
-    function transfer(address _to, uint _value) onlyPayloadSize(2 * 32) public returns (bool success) {
+    function transfer(address _to, uint _value) onlyPayloadSize(2 * 32) public override returns (bool success) {
         balances[msg.sender] = safeSub(balances[msg.sender], _value);
         balances[_to] = safeAdd(balances[_to], _value);
         emit Transfer(msg.sender, _to, _value);
         return true;
     }
 
-    function transferFrom(address _from, address _to, uint _value) public returns (bool success) {
+    function transferFrom(address _from, address _to, uint _value) public override returns (bool success) {
         uint _allowance = allowed[_from][msg.sender];
 
         // Check is not needed because safeSub(_allowance, _value) will already throw if this condition is not met
@@ -182,11 +183,11 @@ contract MystToken is ERC20, Ownable, SafeMath {
         return true;
     }
 
-    function balanceOf(address _owner) public view returns (uint balance) {
+    function balanceOf(address _owner) public view override returns (uint balance) {
         return balances[_owner];
     }
 
-    function approve(address _spender, uint _value) public returns (bool success) {
+    function approve(address _spender, uint _value) public override returns (bool success) {
 
         // To change the approve amount you first have to reduce the addresses`
         //  allowance to zero by calling `approve(_spender, 0)` if it is not
@@ -199,7 +200,7 @@ contract MystToken is ERC20, Ownable, SafeMath {
         return true;
     }
 
-    function allowance(address _owner, address _spender) public view returns (uint remaining) {
+    function allowance(address _owner, address _spender) public view override returns (uint remaining) {
         return allowed[_owner][_spender];
     }
 

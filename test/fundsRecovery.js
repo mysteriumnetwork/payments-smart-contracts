@@ -1,15 +1,14 @@
-const { BN } = require('openzeppelin-test-helpers')
+const { BN } = require('@openzeppelin/test-helpers')
 const {
     deriveContractAddress,
     topUpEthers,
-    topUpTokens,
-    setupConfig
+    topUpTokens
 } = require('./utils/index.js')
 
 const Registry = artifacts.require("Registry")
 const ChannelImplementation = artifacts.require("TestChannelImplementation")
-const AccountantImplementation = artifacts.require("AccountantImplementation")
-const TestAccountantImplementation = artifacts.require("TestAccountantImplementation")
+const HermesImplementation = artifacts.require("HermesImplementation")
+const TestHermesImplementation = artifacts.require("TestHermesImplementation")
 const Token = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
 const DEXProxy = artifacts.require("DEXProxy")
@@ -140,7 +139,8 @@ contract('Dex funds recovery', ([_, txMaker, fundsDestination, ...otherAccounts]
         expect(proxiedDEX.address.toLowerCase()).to.be.equal(proxyAddress.toLowerCase())
 
         // Initialise proxiedDex
-        await proxiedDEX.initialise(txMaker, token.address, 1)
+        const nativeToken = await Token.new()
+        await proxiedDEX.initialise(txMaker, nativeToken.address, 1)
 
         // Set funds destination
         await proxiedDEX.setFundsDestination(fundsDestination, { from: txMaker })
@@ -167,12 +167,12 @@ contract('Dex funds recovery', ([_, txMaker, fundsDestination, ...otherAccounts]
 })
 
 contract('Registry funds recovery', ([_, txMaker, identity, account, fundsDestination, ...otherAccounts]) => {
-    let token, channelImplementation, accountantImplementation, dex, registry, topupAmount, tokensAmount
+    let token, channelImplementation, hermesImplementation, dex, registry, topupAmount, tokensAmount
     before(async () => {
         token = await Token.new()
         dex = await MystDex.new()
-        accountantImplementation = await AccountantImplementation.new()
-        channelImplementation = await ChannelImplementation.new(token.address, identity, accountantImplementation.address, Zero)
+        hermesImplementation = await HermesImplementation.new()
+        channelImplementation = await ChannelImplementation.new(token.address, identity, hermesImplementation.address, Zero)
     })
 
     it('should topup some ethers and tokens into future registry address', async () => {
@@ -191,8 +191,7 @@ contract('Registry funds recovery', ([_, txMaker, identity, account, fundsDestin
 
         // Deploy registry smart contract
         const nativeToken = await Token.new() // Native token is used as main unit of value in channels. We're recovering any other tokens but not this.
-        const config = await setupConfig(_, channelImplementation.address, accountantImplementation.address)
-        registry = await Registry.new(nativeToken.address, dex.address, config.address, 0, 0, { from: txMaker })
+        registry = await Registry.new(nativeToken.address, dex.address, 0, 0, channelImplementation.address, hermesImplementation.address, { from: txMaker })
         expect(registry.address.toLowerCase()).to.be.equal(registryAddress.toLowerCase())
 
         // Set funds destination
@@ -240,8 +239,8 @@ contract('Channel implementation funds recovery', ([_, txMaker, identity, fundsD
         balance.should.be.bignumber.equal(tokensToMint)
 
         // Deploy IdentityImplementation smart contract
-        const accountantImplementation = await AccountantImplementation.new()
-        channelImplementation = await ChannelImplementation.new(nativeToken.address, identity, accountantImplementation.address, Zero, { from: txMaker })
+        const hermesImplementation = await HermesImplementation.new()
+        channelImplementation = await ChannelImplementation.new(nativeToken.address, txMaker, hermesImplementation.address, Zero, { from: txMaker })
         expect(channelImplementation.address.toLowerCase()).to.be.equal(implementationAddress.toLowerCase())
 
         // Set funds destination
@@ -272,14 +271,14 @@ contract('Channel implementation funds recovery', ([_, txMaker, identity, fundsD
     })
 })
 
-contract('Accountant funds recovery', ([_, txMaker, account, fundsDestination, ...otherAccounts]) => {
-    let token, nativeToken, accountantImplementation, topupAmount, tokensToMint
+contract('Hermes funds recovery', ([_, txMaker, account, fundsDestination, ...otherAccounts]) => {
+    let token, nativeToken, hermesImplementation, topupAmount, tokensToMint
     before(async () => {
         token = await Token.new()
         nativeToken = await Token.new()
     })
 
-    it('should topup some ethers and tokens into future accountant smart contract address', async () => {
+    it('should topup some ethers and tokens into future hermes smart contract address', async () => {
         const nonce = await web3.eth.getTransactionCount(txMaker)
         const implementationAddress = deriveContractAddress(txMaker, nonce)
 
@@ -290,35 +289,35 @@ contract('Accountant funds recovery', ([_, txMaker, account, fundsDestination, .
         tokensToMint = web3.utils.toWei(new BN(5), 'ether')
         await topUpTokens(token, implementationAddress, tokensToMint)
 
-        // Deploy Accountant smart contract
-        accountantImplementation = await TestAccountantImplementation.new({ from: txMaker })
-        await accountantImplementation.initialize(nativeToken.address, account, 0, OneToken)
-        expect(accountantImplementation.address.toLowerCase()).to.be.equal(implementationAddress.toLowerCase())
+        // Deploy Hermes smart contract
+        hermesImplementation = await TestHermesImplementation.new({ from: txMaker })
+        await hermesImplementation.initialize(nativeToken.address, account, 0, OneToken)
+        expect(hermesImplementation.address.toLowerCase()).to.be.equal(implementationAddress.toLowerCase())
 
         // Set funds destination
-        await accountantImplementation.setFundsDestination(fundsDestination, { from: account })
+        await hermesImplementation.setFundsDestination(fundsDestination, { from: account })
     })
 
-    it('should recover ethers sent to accountant contract before its deployment', async () => {
+    it('should recover ethers sent to hermes contract before its deployment', async () => {
         const initialBalance = await web3.eth.getBalance(fundsDestination)
 
-        await accountantImplementation.claimEthers().should.be.fulfilled
+        await hermesImplementation.claimEthers().should.be.fulfilled
 
         const expectedBalance = Number(initialBalance) + topupAmount
         expect(await web3.eth.getBalance(fundsDestination)).to.be.equal(expectedBalance.toString())
     })
 
-    it('should recover any tokens send to accountant smart contract', async () => {
+    it('should recover any tokens send to hermes smart contract', async () => {
         const initialBalance = await token.balanceOf(fundsDestination)
 
-        await accountantImplementation.claimTokens(token.address).should.be.fulfilled
+        await hermesImplementation.claimTokens(token.address).should.be.fulfilled
 
         const expectedBalance = initialBalance.add(tokensToMint)
         expect((await token.balanceOf(fundsDestination)).toString()).to.be.equal(expectedBalance.toString())
     })
 
     it('native tokens should be not possible to claim', async () => {
-        await topUpTokens(nativeToken, accountantImplementation.address, OneToken)
-        await accountantImplementation.claimTokens(nativeToken.address).should.be.rejected
+        await topUpTokens(nativeToken, hermesImplementation.address, OneToken)
+        await hermesImplementation.claimTokens(nativeToken.address).should.be.rejected
     })
 })

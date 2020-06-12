@@ -1,7 +1,8 @@
-pragma solidity >=0.5.12 <0.6.0;
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.5.12 <0.7.0;
 
-import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
-import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { Ownable } from "./Ownable.sol";
 
 contract FundsRecovery is Ownable {
     address payable internal fundsDestination;
@@ -12,7 +13,7 @@ contract FundsRecovery is Ownable {
     /**
      * Setting new destination of funds recovery.
      */
-    function setFundsDestination(address payable _newDestination) public onlyOwner {
+    function setFundsDestination(address payable _newDestination) public virtual onlyOwner {
         require(_newDestination != address(0));
         emit DestinationChanged(fundsDestination, _newDestination);
         fundsDestination = _newDestination;

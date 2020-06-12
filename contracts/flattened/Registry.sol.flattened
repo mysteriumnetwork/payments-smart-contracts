@@ -1,85 +1,9 @@
 
-// File: openzeppelin-solidity/contracts/ownership/Ownable.sol
+// File: @openzeppelin/contracts/cryptography/ECDSA.sol
 
-pragma solidity ^0.5.0;
+// SPDX-License-Identifier: MIT
 
-/**
- * @dev Contract module which provides a basic access control mechanism, where
- * there is an account (an owner) that can be granted exclusive access to
- * specific functions.
- *
- * This module is used through inheritance. It will make available the modifier
- * `onlyOwner`, which can be aplied to your functions to restrict their use to
- * the owner.
- */
-contract Ownable {
-    address private _owner;
-
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-
-    /**
-     * @dev Initializes the contract setting the deployer as the initial owner.
-     */
-    constructor () internal {
-        _owner = msg.sender;
-        emit OwnershipTransferred(address(0), _owner);
-    }
-
-    /**
-     * @dev Returns the address of the current owner.
-     */
-    function owner() public view returns (address) {
-        return _owner;
-    }
-
-    /**
-     * @dev Throws if called by any account other than the owner.
-     */
-    modifier onlyOwner() {
-        require(isOwner(), "Ownable: caller is not the owner");
-        _;
-    }
-
-    /**
-     * @dev Returns true if the caller is the current owner.
-     */
-    function isOwner() public view returns (bool) {
-        return msg.sender == _owner;
-    }
-
-    /**
-     * @dev Leaves the contract without owner. It will not be possible to call
-     * `onlyOwner` functions anymore. Can only be called by the current owner.
-     *
-     * > Note: Renouncing ownership will leave the contract without an owner,
-     * thereby removing any functionality that is only available to the owner.
-     */
-    function renounceOwnership() public onlyOwner {
-        emit OwnershipTransferred(_owner, address(0));
-        _owner = address(0);
-    }
-
-    /**
-     * @dev Transfers ownership of the contract to a new account (`newOwner`).
-     * Can only be called by the current owner.
-     */
-    function transferOwnership(address newOwner) public onlyOwner {
-        _transferOwnership(newOwner);
-    }
-
-    /**
-     * @dev Transfers ownership of the contract to a new account (`newOwner`).
-     */
-    function _transferOwnership(address newOwner) internal {
-        require(newOwner != address(0), "Ownable: new owner is the zero address");
-        emit OwnershipTransferred(_owner, newOwner);
-        _owner = newOwner;
-    }
-}
-
-// File: openzeppelin-solidity/contracts/cryptography/ECDSA.sol
-
-pragma solidity ^0.5.0;
+pragma solidity ^0.6.0;
 
 /**
  * @dev Elliptic Curve Digital Signature Algorithm (ECDSA) operations.
@@ -96,20 +20,16 @@ library ECDSA {
      * this function rejects them by requiring the `s` value to be in the lower
      * half order, and the `v` value to be either 27 or 28.
      *
-     * (.note) This call _does not revert_ if the signature is invalid, or
-     * if the signer is otherwise unable to be retrieved. In those scenarios,
-     * the zero address is returned.
-     *
-     * (.warning) `hash` _must_ be the result of a hash operation for the
+     * IMPORTANT: `hash` _must_ be the result of a hash operation for the
      * verification to be secure: it is possible to craft signatures that
      * recover to arbitrary addresses for non-hashed data. A safe way to ensure
-     * this is by receiving a hash of the original message (which may otherwise)
-     * be too long), and then calling `toEthSignedMessageHash` on it.
+     * this is by receiving a hash of the original message (which may otherwise
+     * be too long), and then calling {toEthSignedMessageHash} on it.
      */
     function recover(bytes32 hash, bytes memory signature) internal pure returns (address) {
         // Check the signature length
         if (signature.length != 65) {
-            return (address(0));
+            revert("ECDSA: invalid signature length");
         }
 
         // Divide the signature in r, s and v variables
@@ -136,24 +56,27 @@ library ECDSA {
         // vice versa. If your library also generates signatures with 0/1 for v instead 27/28, add 27 to v to accept
         // these malleable signatures as well.
         if (uint256(s) > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0) {
-            return address(0);
+            revert("ECDSA: invalid signature 's' value");
         }
 
         if (v != 27 && v != 28) {
-            return address(0);
+            revert("ECDSA: invalid signature 'v' value");
         }
 
         // If the signature is valid (and not malleable), return the signer address
-        return ecrecover(hash, v, r, s);
+        address signer = ecrecover(hash, v, r, s);
+        require(signer != address(0), "ECDSA: invalid signature");
+
+        return signer;
     }
 
     /**
      * @dev Returns an Ethereum Signed Message, created from a `hash`. This
      * replicates the behavior of the
-     * [`eth_sign`](https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_sign)
+     * https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_sign[`eth_sign`]
      * JSON-RPC method.
      *
-     * See `recover`.
+     * See {recover}.
      */
     function toEthSignedMessageHash(bytes32 hash) internal pure returns (bytes32) {
         // 32 is the length in bytes of hash,
@@ -162,9 +85,11 @@ library ECDSA {
     }
 }
 
-// File: openzeppelin-solidity/contracts/math/SafeMath.sol
+// File: @openzeppelin/contracts/math/SafeMath.sol
 
-pragma solidity ^0.5.0;
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.6.0;
 
 /**
  * @dev Wrappers over Solidity's arithmetic operations with added overflow
@@ -206,7 +131,20 @@ library SafeMath {
      * - Subtraction cannot overflow.
      */
     function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        require(b <= a, "SafeMath: subtraction overflow");
+        return sub(a, b, "SafeMath: subtraction overflow");
+    }
+
+    /**
+     * @dev Returns the subtraction of two unsigned integers, reverting with custom message on
+     * overflow (when the result is negative).
+     *
+     * Counterpart to Solidity's `-` operator.
+     *
+     * Requirements:
+     * - Subtraction cannot overflow.
+     */
+    function sub(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
+        require(b <= a, errorMessage);
         uint256 c = a - b;
 
         return c;
@@ -224,7 +162,7 @@ library SafeMath {
     function mul(uint256 a, uint256 b) internal pure returns (uint256) {
         // Gas optimization: this is cheaper than requiring 'a' not being zero, but the
         // benefit is lost if 'b' is also tested.
-        // See: https://github.com/OpenZeppelin/openzeppelin-solidity/pull/522
+        // See: https://github.com/OpenZeppelin/openzeppelin-contracts/pull/522
         if (a == 0) {
             return 0;
         }
@@ -247,8 +185,23 @@ library SafeMath {
      * - The divisor cannot be zero.
      */
     function div(uint256 a, uint256 b) internal pure returns (uint256) {
+        return div(a, b, "SafeMath: division by zero");
+    }
+
+    /**
+     * @dev Returns the integer division of two unsigned integers. Reverts with custom message on
+     * division by zero. The result is rounded towards zero.
+     *
+     * Counterpart to Solidity's `/` operator. Note: this function uses a
+     * `revert` opcode (which leaves remaining gas untouched) while Solidity
+     * uses an invalid opcode to revert (consuming all remaining gas).
+     *
+     * Requirements:
+     * - The divisor cannot be zero.
+     */
+    function div(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
         // Solidity only automatically asserts when dividing by 0
-        require(b > 0, "SafeMath: division by zero");
+        require(b > 0, errorMessage);
         uint256 c = a / b;
         // assert(a == b * c + a % b); // There is no case in which this doesn't hold
 
@@ -267,18 +220,34 @@ library SafeMath {
      * - The divisor cannot be zero.
      */
     function mod(uint256 a, uint256 b) internal pure returns (uint256) {
-        require(b != 0, "SafeMath: modulo by zero");
+        return mod(a, b, "SafeMath: modulo by zero");
+    }
+
+    /**
+     * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),
+     * Reverts with custom message when dividing by zero.
+     *
+     * Counterpart to Solidity's `%` operator. This function uses a `revert`
+     * opcode (which leaves remaining gas untouched) while Solidity uses an
+     * invalid opcode to revert (consuming all remaining gas).
+     *
+     * Requirements:
+     * - The divisor cannot be zero.
+     */
+    function mod(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
+        require(b != 0, errorMessage);
         return a % b;
     }
 }
 
-// File: openzeppelin-solidity/contracts/token/ERC20/IERC20.sol
+// File: @openzeppelin/contracts/token/ERC20/IERC20.sol
 
-pragma solidity ^0.5.0;
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.6.0;
 
 /**
- * @dev Interface of the ERC20 standard as defined in the EIP. Does not include
- * the optional functions; to access them see `ERC20Detailed`.
+ * @dev Interface of the ERC20 standard as defined in the EIP.
  */
 interface IERC20 {
     /**
@@ -296,16 +265,16 @@ interface IERC20 {
      *
      * Returns a boolean value indicating whether the operation succeeded.
      *
-     * Emits a `Transfer` event.
+     * Emits a {Transfer} event.
      */
     function transfer(address recipient, uint256 amount) external returns (bool);
 
     /**
      * @dev Returns the remaining number of tokens that `spender` will be
-     * allowed to spend on behalf of `owner` through `transferFrom`. This is
+     * allowed to spend on behalf of `owner` through {transferFrom}. This is
      * zero by default.
      *
-     * This value changes when `approve` or `transferFrom` are called.
+     * This value changes when {approve} or {transferFrom} are called.
      */
     function allowance(address owner, address spender) external view returns (uint256);
 
@@ -314,14 +283,14 @@ interface IERC20 {
      *
      * Returns a boolean value indicating whether the operation succeeded.
      *
-     * > Beware that changing an allowance with this method brings the risk
+     * IMPORTANT: Beware that changing an allowance with this method brings the risk
      * that someone may use both the old and the new allowance by unfortunate
      * transaction ordering. One possible solution to mitigate this race
      * condition is to first reduce the spender's allowance to 0 and set the
      * desired value afterwards:
      * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
      *
-     * Emits an `Approval` event.
+     * Emits an {Approval} event.
      */
     function approve(address spender, uint256 amount) external returns (bool);
 
@@ -332,7 +301,7 @@ interface IERC20 {
      *
      * Returns a boolean value indicating whether the operation succeeded.
      *
-     * Emits a `Transfer` event.
+     * Emits a {Transfer} event.
      */
     function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
 
@@ -346,59 +315,46 @@ interface IERC20 {
 
     /**
      * @dev Emitted when the allowance of a `spender` for an `owner` is set by
-     * a call to `approve`. `value` is the new allowance.
+     * a call to {approve}. `value` is the new allowance.
      */
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
-// File: contracts/Config.sol
+// File: contracts/Ownable.sol
 
-pragma solidity >=0.5.12 <0.6.0;
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.6.0 <0.7.0;
 
-/*
-    Stores config data of forwarder so it will be same for all proxies.
-*/
-contract Config {
-    address public owner;
+contract Ownable {
+    address private _owner;
 
-    function getConfig(bytes32 slot) public view returns (bytes32 res) {
-        assembly {
-            res := sload(slot)
-        }
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    function owner() public view returns (address) {
+        return _owner;
     }
 
-    function getAddress(bytes32 slot) public view returns(address res)  {
-        assembly {
-            res := sload(slot)
-        }
+    modifier onlyOwner() {
+        require(_owner == msg.sender || _owner == address(0x0), "Ownable: caller is not the owner");
+        _;
     }
 
-    function getUint(bytes32 slot) public view returns(uint256 res) {
-        assembly {
-            res := sload(slot)
-        }
+    function renounceOwnership() public virtual onlyOwner {
+        emit OwnershipTransferred(_owner, address(0));
+        _owner = address(0);
     }
 
-    function addConfig(bytes32 slot, bytes32 value) public {
-        require (msg.sender == owner);
-        require (slot != 0x0);  // Don't allow to set owner using addConfig function to avoid not intendet behaviour.
-        assembly {
-            sstore(slot, value)
-        }
-    }
-
-    /* Function allows to set new owner.
-       During first call (when owner is not yet set) anyone can set it. Later only current owner can set new one.
-     */
-    function setOwner(address _owner) public {
-        require (msg.sender == owner || owner == address(0x0));
-        owner = _owner;
+    function transferOwnership(address newOwner) public virtual onlyOwner {
+        require(newOwner != address(0), "Ownable: new owner is the zero address");
+        emit OwnershipTransferred(_owner, newOwner);
+        _owner = newOwner;
     }
 }
 
 // File: contracts/FundsRecovery.sol
 
-pragma solidity >=0.5.12 <0.6.0;
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.5.12 <0.7.0;
 
 
 
@@ -411,7 +367,7 @@ contract FundsRecovery is Ownable {
     /**
      * Setting new destination of funds recovery.
      */
-    function setFundsDestination(address payable _newDestination) public onlyOwner {
+    function setFundsDestination(address payable _newDestination) public virtual onlyOwner {
         require(_newDestination != address(0));
         emit DestinationChanged(fundsDestination, _newDestination);
         fundsDestination = _newDestination;
@@ -446,52 +402,52 @@ contract FundsRecovery is Ownable {
 
 // File: contracts/Registry.sol
 
-pragma solidity >=0.5.12 <0.6.0;
-
-
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.5.12 <0.7.0;
 
 
 
 
 
 interface Channel {
-    function initialize(address _token, address _dex, address _identityHash, address _accountantId, uint256 _fee) external;
+    function initialize(address _token, address _dex, address _identityHash, address _hermesId, uint256 _fee) external;
 }
 
-interface AccountantContract {
+interface HermesContract {
     enum Status { Active, Paused, Punishment, Closed }
-    function initialize(address _token, address _operator, uint16 _accountantFee, uint256 _maxLoan) external;
+    function initialize(address _token, address _operator, uint16 _hermesFee, uint256 _maxStake) external;
     function openChannel(address _party, address _beneficiary, uint256 _amountToLend) external;
     function getStake() external view returns (uint256);
     function getStatus() external view returns (Status);
 }
 
-contract Registry is Ownable, FundsRecovery {
+contract Registry is FundsRecovery {
     using ECDSA for bytes32;
     using SafeMath for uint256;
 
     string constant REGISTER_PREFIX="Register prefix:";
 
     address public dex;
-    Config public config;
     uint256 public registrationFee;
-    uint256 public minimalAccountantStake;
+    uint256 public minimalHermesStake;
+    address internal channelImplementationAddress;
+    address internal hermesImplementationAddress;
 
-    struct Accountant {
+    struct Hermes {
         address operator;
         function() external view returns(uint256) stake;
     }
-    mapping(address => Accountant) public accountants;
+    mapping(address => Hermes) public hermeses;
 
     mapping(address => bool) private identities;
 
-    event RegisteredIdentity(address indexed identityHash, address indexed accountantId);
-    event RegisteredAccountant(address indexed accountantId, address accountantOperator);
-    event ConsumerChannelCreated(address indexed identityHash, address indexed accountantId, address channelAddress);
+    event RegisteredIdentity(address indexed identityHash, address indexed hermesId);
+    event RegisteredHermes(address indexed hermesId, address hermesOperator);
+    event ConsumerChannelCreated(address indexed identityHash, address indexed hermesId, address channelAddress);
 
-    constructor (address _tokenAddress, address _dexAddress, address _configAddress, uint256 _regFee, uint256 _minimalAccountantStake) public {
+    constructor (address _tokenAddress, address _dexAddress, uint256 _regFee, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation) public {
         registrationFee = _regFee;
-        minimalAccountantStake = _minimalAccountantStake;
+        minimalHermesStake = _minimalHermesStake;
 
         require(_tokenAddress != address(0));
         token = IERC20(_tokenAddress);
@@ -499,86 +455,85 @@ contract Registry is Ownable, FundsRecovery {
         require(_dexAddress != address(0));
         dex = _dexAddress;
 
-        require(_configAddress != address(0));
-        config = Config(_configAddress);
+        channelImplementationAddress = _channelImplementation;
+        hermesImplementationAddress = _hermesImplementation;
     }
 
     // Reject any ethers send to this smart-contract
-    function () external payable {
+    receive() external payable {
         revert("Rejecting tx with ethers sent");
     }
 
-    // Register identity and open spending and incomming channels with given accountant
-    // _loanAmount - it's amount of tokens lended to accountant to guarantee incomming channel's balance.
-    function registerIdentity(address _accountantId, uint256 _loanAmount, uint256 _transactorFee, address _beneficiary, bytes memory _signature) public {
-        require(isActiveAccountant(_accountantId), "provided accountant have to be active");
+    // Register identity and open spending and incomming channels with given hermes
+    // _stakeAmount - it's amount of tokens staked into hermes to guarantee incomming channel's balance.
+    function registerIdentity(address _hermesId, uint256 _stakeAmount, uint256 _transactorFee, address _beneficiary, bytes memory _signature) public {
+        require(isActiveHermes(_hermesId), "provided has have to be active");
 
         // Check if given signature is valid
-        address _identityHash = keccak256(abi.encodePacked(address(this), _accountantId, _loanAmount, _transactorFee, _beneficiary)).recover(_signature);
+        address _identityHash = keccak256(abi.encodePacked(address(this), _hermesId, _stakeAmount, _transactorFee, _beneficiary)).recover(_signature);
         require(_identityHash != address(0), "wrong signature");
 
-        // Tokens amount to get from channel to cover tx fee, registration fee and provider's loan/stake
-        uint256 _totalFee = registrationFee.add(_loanAmount).add(_transactorFee);
-        require(_totalFee <= token.balanceOf(getChannelAddress(_identityHash, _accountantId)), "not enought funds in channel to cover fees");
+        // Tokens amount to get from channel to cover tx fee, registration fee and provider's stake
+        uint256 _totalFee = registrationFee.add(_stakeAmount).add(_transactorFee);
+        require(_totalFee <= token.balanceOf(getChannelAddress(_identityHash, _hermesId)), "not enought funds in channel to cover fees");
 
         // Deploy channel contract for given identity (mini proxy which is pointing to implementation)
-        bytes32 _salt = keccak256(abi.encodePacked(_identityHash, _accountantId));
+        bytes32 _salt = keccak256(abi.encodePacked(_identityHash, _hermesId));
         bytes memory _code = getProxyCode(getChannelImplementation());
         Channel _channel = Channel(deployMiniProxy(uint256(_salt), _code));
-        _channel.initialize(address(token), dex, _identityHash, _accountantId, _totalFee);
+        _channel.initialize(address(token), dex, _identityHash, _hermesId, _totalFee);
 
-        // Opening incomming (provider's) channel
-        if (_loanAmount > 0) {
-            require(token.approve(_accountantId, _loanAmount), "accountant should get approval to transfer tokens");
+        // Opening incoming (provider's) channel
+        if (_stakeAmount > 0 && _beneficiary != address(0)) {
+            require(token.approve(_hermesId, _stakeAmount), "hermes should get approval to transfer tokens");
+            HermesContract(_hermesId).openChannel(_identityHash, _beneficiary, _stakeAmount);
         }
-        require(_beneficiary != address(0), "beneficiary can't be zero address");
-        AccountantContract(_accountantId).openChannel(_identityHash, _beneficiary, _loanAmount);
 
         // Pay fee for transaction maker
         if (_transactorFee > 0) {
             token.transfer(msg.sender, _transactorFee);
         }
 
-        emit ConsumerChannelCreated(_identityHash, _accountantId, address(_channel));
+        emit ConsumerChannelCreated(_identityHash, _hermesId, address(_channel));
 
         // Mark identity as registered if this is first registration attempt / first channel opened
         if (!isRegistered(_identityHash)) {
             identities[_identityHash] = true;
-            emit RegisteredIdentity(_identityHash, _accountantId);
+            emit RegisteredIdentity(_identityHash, _hermesId);
         }
     }
 
-    function registerAccountant(address _accountantOperator, uint256 _stakeAmount, uint16 _accountantFee, uint256 _maxLoan) public {
-        require(_accountantOperator != address(0), "operator can't be zero address");
-        require(_stakeAmount >= minimalAccountantStake, "accountant have to stake at least minimal stake amount");
+    function registerHermes(address _hermesOperator, uint256 _stakeAmount, uint16 _hermesFee, uint256 _maxStake) public {
+        require(_hermesOperator != address(0), "operator can't be zero address");
+        require(_stakeAmount >= minimalHermesStake, "hermes have to stake at least minimal stake amount");
 
-        address _accountantId = getAccountantAddress(_accountantOperator);
-        require(!isAccountant(_accountantId), "accountant already registered");
+        address _hermesId = getHermesAddress(_hermesOperator);
+        require(!isHermes(_hermesId), "hermes already registered");
 
-        // Deploy accountant contract (mini proxy which is pointing to implementation)
-        AccountantContract _accountant = AccountantContract(deployMiniProxy(uint256(_accountantOperator), getAccountantProxyCode()));
+        // Deploy hermes contract (mini proxy which is pointing to implementation)
+        HermesContract _hermes = HermesContract(deployMiniProxy(uint256(_hermesOperator), getProxyCode(getHermesImplementation())));
 
-        // Transfer stake into accountant smart contract
-        token.transferFrom(msg.sender, address(_accountant), _stakeAmount);
+        // Transfer stake into hermes smart contract
+        token.transferFrom(msg.sender, address(_hermes), _stakeAmount);
 
-        // Initialise accountant
-        _accountant.initialize(address(token), _accountantOperator, _accountantFee, _maxLoan);
+        // Initialise hermes
+        _hermes.initialize(address(token), _hermesOperator, _hermesFee, _maxStake);
 
-        // Save info about newly created accountant
-        accountants[address(_accountant)] = Accountant(_accountantOperator, _accountant.getStake);
+        // Save info about newly created hermes
+        hermeses[address(_hermes)] = Hermes(_hermesOperator, _hermes.getStake);
 
-        emit RegisteredAccountant(address(_accountant), _accountantOperator);
+        emit RegisteredHermes(address(_hermes), _hermesOperator);
     }
 
-    function getChannelAddress(address _identityHash, address _accountantId) public view returns (address) {
+    function getChannelAddress(address _identity, address _hermesId) public view returns (address) {
         bytes32 _code = keccak256(getProxyCode(getChannelImplementation()));
-        bytes32 _salt = keccak256(abi.encodePacked(_identityHash, _accountantId));
+        bytes32 _salt = keccak256(abi.encodePacked(_identity, _hermesId));
         return getCreate2Address(_salt, _code);
     }
 
-    function getAccountantAddress(address _accountantOperator) public view returns (address) {
-        bytes32 _code = keccak256(getAccountantProxyCode());
-        return getCreate2Address(bytes32(uint256(_accountantOperator)), _code);
+    function getHermesAddress(address _hermesOperator) public view returns (address) {
+        bytes32 _code = keccak256(getProxyCode(getHermesImplementation()));
+        return getCreate2Address(bytes32(uint256(_hermesOperator)), _code);
     }
 
     // ------------ UTILS ------------
@@ -606,17 +561,6 @@ contract Registry is Ownable, FundsRecovery {
         return _code;
     }
 
-    function getAccountantProxyCode() public view returns (bytes memory) {
-        bytes memory _code = hex"608060405234801561001057600080fd5b5060f48061001f6000396000f3fe608060408190526321f8a72160e01b81527fe6906d4b6048dd18329c27945d05f766dd19b003dc60f82fd4037c490ee55be060845260009073bebebebebebebebebebebebebebebebebebebebe906321f8a7219060a49060209060248186803b158015606a57600080fd5b505afa158015607d573d6000803e3d6000fd5b505050506040513d6020811015609257600080fd5b505160405190915036600082376000803683856127105a03f43d806000843e81801560bb578184f35b8184fdfea265627a7a7231582008c888d95644063ac32180d65e286ddc65dfec16e8772e3980e2e180b4c9644164736f6c634300050f0032";
-
-        bytes20 _targetBytes = bytes20(address(config));
-        for (uint8 i = 0; i < 20; i++) {
-            _code[88 + i] = _targetBytes[i];
-        }
-
-        return _code;
-    }
-
     function deployMiniProxy(uint256 _salt, bytes memory _code) internal returns (address payable) {
         address payable _addr;
 
@@ -630,9 +574,12 @@ contract Registry is Ownable, FundsRecovery {
         return _addr;
     }
 
-    bytes32 constant CHANNEL_IMPLEMENTATION = 0x2ef7e7c50e1b6a574193d0d32b7c0456cf12390a0872cf00be4797e71c3756f7;  // keccak256('channel implementation proxy')
     function getChannelImplementation() public view returns (address) {
-        return config.getAddress(CHANNEL_IMPLEMENTATION);
+        return channelImplementationAddress;
+    }
+
+    function getHermesImplementation() public view returns (address) {
+        return hermesImplementationAddress;
     }
 
     // ------------------------------------------------------------------------
@@ -641,9 +588,9 @@ contract Registry is Ownable, FundsRecovery {
         return identities[_identityHash];
     }
 
-    function isAccountant(address _accountantId) public view returns (bool) {
-        address accountantOperator = accountants[_accountantId].operator;
-        address _addr = getAccountantAddress(accountantOperator);
+    function isHermes(address _hermesId) public view returns (bool) {
+        address hermesOperator = hermeses[_hermesId].operator;
+        address _addr = getHermesAddress(hermesOperator);
         uint _codeLength;
 
         assembly {
@@ -653,10 +600,10 @@ contract Registry is Ownable, FundsRecovery {
         return _codeLength != 0;
     }
 
-    function isActiveAccountant(address _accountantId) internal view returns (bool) {
-        // If stake is 0, then it's either incactive or unregistered accountant
-        AccountantContract.Status status = AccountantContract(_accountantId).getStatus();
-        return status == AccountantContract.Status.Active;
+    function isActiveHermes(address _hermesId) internal view returns (bool) {
+        // If stake is 0, then it's either incactive or unregistered hermes
+        HermesContract.Status status = HermesContract(_hermesId).getStatus();
+        return status == HermesContract.Status.Active;
     }
 
     function changeRegistrationFee(uint256 _newFee) public onlyOwner {

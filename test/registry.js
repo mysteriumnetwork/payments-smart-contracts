@@ -1,17 +1,16 @@
 require('chai')
     .use(require('chai-as-promised'))
     .should()
-const { BN } = require('openzeppelin-test-helpers')
+const { BN } = require('@openzeppelin/test-helpers')
 
 const genCreate2Address = require('./utils/index.js').genCreate2Address
 const topUpTokens = require('./utils/index.js').topUpTokens
-const setupConfig = require('./utils/index.js').setupConfig
 const signIdentityRegistration = require('./utils/client.js').signIdentityRegistration
 const generateAccount = require('./utils/wallet.js').generateAccount
 
 const Registry = artifacts.require("Registry")
-const ChannelImplementationProxy = artifacts.require("ChannelImplementationProxy")
-const AccountantImplementationProxy = artifacts.require("AccountantImplementationProxy")
+const ChannelImplementation = artifacts.require("ChannelImplementation")
+const HermesImplementation = artifacts.require("HermesImplementation")
 const MystToken = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
 
@@ -25,17 +24,16 @@ function generateIdentities(amount) {
 
 const identities = generateIdentities(3)   // Generates array of identities
 
-contract('Registry', ([txMaker, minter, accountantOperator, fundsDestination, ...otherAccounts]) => {
-    let token, channelImplementation, accountantId, dex, registry
+contract('Registry', ([txMaker, minter, hermesOperator, fundsDestination, ...otherAccounts]) => {
+    let token, channelImplementation, hermesImplementation, hermesId, dex, registry
     before(async () => {
         token = await MystToken.new()
         dex = await MystDex.new()
-        const accountantImplementation = await AccountantImplementationProxy.new()
-        channelImplementation = await ChannelImplementationProxy.new()
-        const config = await setupConfig(txMaker, channelImplementation.address, accountantImplementation.address)
-        registry = await Registry.new(token.address, dex.address, config.address, 0, 0)
+        hermesImplementation = await HermesImplementation.new()
+        channelImplementation = await ChannelImplementation.new()
+        registry = await Registry.new(token.address, dex.address, 0, 0, channelImplementation.address, hermesImplementation.address)
 
-        // Topup some tokens into txMaker address so it could register accountant
+        // Topup some tokens into txMaker address so it could register hermes
         await topUpTokens(token, txMaker, 10)
         await token.approve(registry.address, 10)
     })
@@ -45,34 +43,34 @@ contract('Registry', ([txMaker, minter, accountantOperator, fundsDestination, ..
         expect(Number(registrationFee)).to.be.equal(0)
     })
 
-    it('should register accountant', async () => {
-        await registry.registerAccountant(accountantOperator, 10, 0, OneToken)
-        accountantId = await registry.getAccountantAddress(accountantOperator)
-        expect(await registry.isAccountant(accountantId)).to.be.true
+    it('should register hermes', async () => {
+        await registry.registerHermes(hermesOperator, 10, 0, OneToken)
+        hermesId = await registry.getHermesAddress(hermesOperator)
+        expect(await registry.isHermes(hermesId)).to.be.true
     })
 
     it('should register identity having 0 balance', async () => {
         const identity = identities[0]
         const identityHash = identity.address
-        const signature = signIdentityRegistration(registry.address, accountantId, Zero, Zero, fundsDestination, identity)
+        const signature = signIdentityRegistration(registry.address, hermesId, Zero, Zero, fundsDestination, identity)
 
         expect(await registry.isRegistered(identityHash)).to.be.false
-        await registry.registerIdentity(accountantId, Zero, Zero, fundsDestination, signature)
+        await registry.registerIdentity(hermesId, Zero, Zero, fundsDestination, signature)
         expect(await registry.isRegistered(identityHash)).to.be.true
     })
 
     it('registry should have proper channel address calculations', async () => {
         const identityHash = identities[0].address
         expect(
-            await genCreate2Address(identityHash, accountantId, registry, channelImplementation.address)
+            await genCreate2Address(identityHash, hermesId, registry, channelImplementation.address)
         ).to.be.equal(
-            (await registry.getChannelAddress(identityHash, accountantId)).toLowerCase()
+            (await registry.getChannelAddress(identityHash, hermesId)).toLowerCase()
         )
     })
 
     it('identity contract should be deployed into predefined address and be EIP1167 proxy', async () => {
         const identityHash = identities[0].address
-        const channelAddress = await genCreate2Address(identityHash, accountantId, registry, channelImplementation.address)
+        const channelAddress = await genCreate2Address(identityHash, hermesId, registry, channelImplementation.address)
         const byteCode = await web3.eth.getCode(channelAddress)
 
         // We're expecting EIP1167 minimal proxy pointing into identity implementation address
@@ -105,18 +103,18 @@ contract('Registry', ([txMaker, minter, accountantOperator, fundsDestination, ..
     it('should fail registering identity having 0 balance', async () => {
         const secondIdentity = identities[1]
         const secondIdentityHash = secondIdentity.address
-        const channelAddress = await genCreate2Address(secondIdentityHash, accountantId, registry, channelImplementation.address)
+        const channelAddress = await genCreate2Address(secondIdentityHash, hermesId, registry, channelImplementation.address)
         expect(Number(await token.balanceOf(channelAddress))).to.be.equal(0)
 
-        const signature = signIdentityRegistration(registry.address, accountantId, Zero, Zero, fundsDestination, secondIdentity)
-        await registry.registerIdentity(accountantId, Zero, Zero, fundsDestination, signature).should.be.rejected
+        const signature = signIdentityRegistration(registry.address, hermesId, Zero, Zero, fundsDestination, secondIdentity)
+        await registry.registerIdentity(hermesId, Zero, Zero, fundsDestination, signature).should.be.rejected
         expect(await registry.isRegistered(secondIdentityHash)).to.be.false
     })
 
     it('should register identity which has coins', async () => {
         const secondIdentity = identities[1]
         const secondIdentityHash = secondIdentity.address
-        const channelAddress = await genCreate2Address(secondIdentityHash, accountantId, registry, channelImplementation.address)
+        const channelAddress = await genCreate2Address(secondIdentityHash, hermesId, registry, channelImplementation.address)
         const registratinoFee = 100
         const balanceBefore = Number(await token.balanceOf(registry.address))
 
@@ -126,8 +124,8 @@ contract('Registry', ([txMaker, minter, accountantOperator, fundsDestination, ..
         expect(Number(await token.balanceOf(channelAddress))).to.be.equal(topUpAmount)
 
         // Register identity
-        const signature = signIdentityRegistration(registry.address, accountantId, Zero, Zero, fundsDestination, secondIdentity)
-        await registry.registerIdentity(accountantId, Zero, Zero, fundsDestination, signature)
+        const signature = signIdentityRegistration(registry.address, hermesId, Zero, Zero, fundsDestination, secondIdentity)
+        await registry.registerIdentity(hermesId, Zero, Zero, fundsDestination, signature)
         expect(await registry.isRegistered(secondIdentityHash)).to.be.true
 
         // Registry should own some tokens
@@ -137,7 +135,7 @@ contract('Registry', ([txMaker, minter, accountantOperator, fundsDestination, ..
     it("should send transaction fee for txMaker", async () => {
         const thirdIdentity = identities[2]
         const thirdIdentityHash = thirdIdentity.address
-        const channelAddress = await genCreate2Address(thirdIdentityHash, accountantId, registry, channelImplementation.address)
+        const channelAddress = await genCreate2Address(thirdIdentityHash, hermesId, registry, channelImplementation.address)
         const transactionFee = new BN(5)
         const balanceBefore = await token.balanceOf(txMaker)
 
@@ -147,8 +145,8 @@ contract('Registry', ([txMaker, minter, accountantOperator, fundsDestination, ..
         expect(Number(await token.balanceOf(channelAddress))).to.be.equal(topUpAmount)
 
         // Register identity
-        const signature = signIdentityRegistration(registry.address, accountantId, Zero, transactionFee, fundsDestination, thirdIdentity)
-        await registry.registerIdentity(accountantId, Zero, transactionFee, fundsDestination, signature)
+        const signature = signIdentityRegistration(registry.address, hermesId, Zero, transactionFee, fundsDestination, thirdIdentity)
+        await registry.registerIdentity(hermesId, Zero, transactionFee, fundsDestination, signature)
         expect(await registry.isRegistered(thirdIdentityHash)).to.be.true
 
         // txMaker should own some tokens

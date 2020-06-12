@@ -1,4 +1,4 @@
-const { BN } = require('openzeppelin-test-helpers');
+const { BN } = require('@openzeppelin/test-helpers');
 
 const MystToken = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
