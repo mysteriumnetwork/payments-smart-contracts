@@ -1,6 +1,6 @@
 /*
     This test is testing channel creating via settlement. It also tests partial stake increase.
-    Tested functions can be found in smart-contract code at `contracts/AccountantImplementation.sol`.
+    Tested functions can be found in smart-contract code at `contracts/HermesImplementation.sol`.
 */
 
 const { BN } = require('@openzeppelin/test-helpers')
@@ -18,7 +18,7 @@ const {
 
 const MystToken = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
-const AccountantImplementation = artifacts.require("TestAccountantImplementation")
+const HermesImplementation = artifacts.require("TestHermesImplementation")
 
 const ChannelImplementation = artifacts.require("ChannelImplementation")
 const Registry = artifacts.require("Registry")
@@ -27,7 +27,7 @@ const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const OneEther = web3.utils.toWei(new BN(1), 'ether')
 const Zero = new BN(0)
 
-const operator = wallet.generateAccount(Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8c26933e5d9f0cda92f3c3', 'hex'))  // Generate accountant operator wallet
+const operator = wallet.generateAccount(Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8c26933e5d9f0cda92f3c3', 'hex'))  // Generate hermes operator wallet
 const providerA = wallet.generateAccount()
 const providerB = wallet.generateAccount()
 
@@ -38,7 +38,7 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
     before(async () => {
         token = await MystToken.new()
         const dex = await MystDex.new()
-        const hermesImplementation = await AccountantImplementation.new(token.address, operator.address, 0, OneToken)
+        const hermesImplementation = await HermesImplementation.new(token.address, operator.address, 0, OneToken)
         const channelImplementation = await ChannelImplementation.new()
         registry = await Registry.new(token.address, dex.address, 0, 100, channelImplementation.address, hermesImplementation.address)
 
@@ -51,12 +51,12 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
     })
 
     it("should register and initialize hermes hub", async () => {
-        await registry.registerAccountant(operator.address, 1000, Zero, OneToken)
-        const hermesId = await registry.getAccountantAddress(operator.address)
-        expect(await registry.isAccountant(hermesId)).to.be.true
+        await registry.registerHermes(operator.address, 1000, Zero, OneToken)
+        const hermesId = await registry.getHermesAddress(operator.address)
+        expect(await registry.isHermes(hermesId)).to.be.true
 
         // Initialise hermes object
-        hermes = await AccountantImplementation.at(hermesId)
+        hermes = await HermesImplementation.at(hermesId)
 
         // Topup some balance for hermes
         await topUpTokens(token, hermes.address, new BN(100000))

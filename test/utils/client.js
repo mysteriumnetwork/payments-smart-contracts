@@ -29,8 +29,8 @@ const DEFAULT_CHANNEL_STATE = {
     }
 }
 
-async function createConsumer(registry, identity, accountantId) {
-    const channelId = await registry.getChannelAddress(identity.address, accountantId)
+async function createConsumer(registry, identity, hermesId) {
+    const channelId = await registry.getChannelAddress(identity.address, hermesId)
     const state = { channels: {} }
 
     return {
@@ -41,7 +41,7 @@ async function createConsumer(registry, identity, accountantId) {
     }
 }
 
-function createProvider(identity, accountant) {
+function createProvider(identity, hermes) {
     const state = {
         invoices: {
             // "invoiceId": {
@@ -64,18 +64,18 @@ function createProvider(identity, accountant) {
         generateInvoice: generateInvoice.bind(null, state),
         validateExchangeMessage: validateExchangeMessage.bind(null, state, identity.address),
         savePromise: promise => state.promises.push(promise),
-        settlePromise: settlePromise.bind(null, state, accountant),
-        settleAndRebalance: settleAndRebalance.bind(null, state, accountant),
+        settlePromise: settlePromise.bind(null, state, hermes),
+        settleAndRebalance: settleAndRebalance.bind(null, state, hermes),
         getBiggestPromise: () => state.promises.reduce((promise, acc) => promise.amount.gt(acc) ? acc : promise, state.promises[0])
     }
 }
 
-async function createAccountantService(accountant, operator, token) {
+async function createHermesService(hermes, operator, token) {
     const state = { channels: {} }
     this.getChannelState = async (channelId, agreementId) => {
         if (!state.channels[channelId]) {
             const channel = await ChannelImplementation.at(channelId)
-            state.channels[channelId] = Object.assign({}, await channel.accountant(), {
+            state.channels[channelId] = Object.assign({}, await channel.hermes(), {
                 balance: await token.balanceOf(channelId),
                 promised: new BN(0),
                 agreements: { [agreementId]: new BN(0) }
@@ -89,11 +89,11 @@ async function createAccountantService(accountant, operator, token) {
         return state.channels[channelId]
     }
     this.getOutgoingChannel = async (receiver) => {
-        const channelId = await accountant.getChannelId(receiver)
-        expect(await accountant.isChannelOpened(channelId)).to.be.true
+        const channelId = await hermes.getChannelId(receiver)
+        expect(await hermes.isChannelOpened(channelId)).to.be.true
 
         if (!state.channels[channelId]) {
-            state.channels[channelId] = merge({}, DEFAULT_CHANNEL_STATE, await accountant.channels(channelId))
+            state.channels[channelId] = merge({}, DEFAULT_CHANNEL_STATE, await hermes.channels(channelId))
         }
 
         return { outgoingChannelId: channelId, outgoingChannelState: state.channels[channelId] }
@@ -242,23 +242,23 @@ function validatePromise(promise, pubKey) {
     expect(verifySignature(message, promise.signature, pubKey)).to.be.true
 }
 
-async function settlePromise(state, accountant, promise) {
+async function settlePromise(state, hermes, promise) {
     // If promise is not given, we're going to use biggest of them
     if (!promise) {
         promise = state.promises.sort((a, b) => b.amount.sub(a.amount).toNumber())[0]
     }
 
     const invoice = state.invoices[promise.hashlock]
-    await accountant.settlePromise(promise.identity, promise.amount, promise.fee, invoice.R, promise.signature)
+    await hermes.settlePromise(promise.identity, promise.amount, promise.fee, invoice.R, promise.signature)
 }
 
-async function settleAndRebalance(state, accountant, promise) {
+async function settleAndRebalance(state, hermes, promise) {
     if (!promise) {
         promise = state.promises.sort((a, b) => b.amount.sub(a.amount).toNumber())[0]
     }
 
     const invoice = state.invoices[promise.hashlock]
-    await accountant.settleAndRebalance(promise.identity, promise.amount, promise.fee, invoice.R, promise.signature)
+    await hermes.settleAndRebalance(promise.identity, promise.amount, promise.fee, invoice.R, promise.signature)
 }
 
 async function signExitRequest(channel, beneficiary, operator) {
@@ -316,10 +316,10 @@ function signChannelLoanReturnRequest(channelId, amount, fee, channelNonce, iden
     return signature
 }
 
-function signIdentityRegistration(registryAddress, accountantId, stake, fee, beneficiary, identity) {
+function signIdentityRegistration(registryAddress, hermesId, stake, fee, beneficiary, identity) {
     const message = Buffer.concat([
         Buffer.from(registryAddress.slice(2), 'hex'),
-        Buffer.from(accountantId.slice(2), 'hex'),
+        Buffer.from(hermesId.slice(2), 'hex'),
         toBytes32Buffer(stake),
         toBytes32Buffer(fee),
         Buffer.from(beneficiary.slice(2), 'hex')
@@ -375,7 +375,7 @@ function constructPayload(obj) {
 
 module.exports = {
     constructPayload,
-    createAccountantService,
+    createHermesService,
     createConsumer,
     createProvider,
     createPromise,

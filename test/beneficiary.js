@@ -1,6 +1,6 @@
 /*
     This test is testing seting new beneficiary in provider channel.
-    Tested functions can be found in smart-contract code at `contracts/AccountantImplementation.sol`.
+    Tested functions can be found in smart-contract code at `contracts/HermesImplementation.sol`.
 */
 
 const { BN } = require('@openzeppelin/test-helpers')
@@ -19,7 +19,7 @@ const {
 const MystToken = artifacts.require("MystToken")
 const MystDex = artifacts.require("MystDEX")
 const Registry = artifacts.require("Registry")
-const AccountantImplementation = artifacts.require("TestAccountantImplementation")
+const HermesImplementation = artifacts.require("TestHermesImplementation")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
 
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
@@ -27,7 +27,7 @@ const OneEther = web3.utils.toWei(new BN(1), 'ether')
 const Zero = new BN(0)
 
 // const operatorPrivKey = Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8c26933e5d9f0cda92f3c3', 'hex')
-const operator = wallet.generateAccount(Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8c26933e5d9f0cda92f3c3', 'hex'))  // Generate accountant operator wallet
+const operator = wallet.generateAccount(Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8c26933e5d9f0cda92f3c3', 'hex'))  // Generate hermes operator wallet
 const provider = wallet.generateAccount()
 
 contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
@@ -35,9 +35,9 @@ contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, 
     before(async () => {
         token = await MystToken.new()
         const dex = await MystDex.new()
-        const accountantImplementation = await AccountantImplementation.new(token.address, operator.address, 0, OneToken)
+        const hermesImplementation = await HermesImplementation.new(token.address, operator.address, 0, OneToken)
         const channelImplementation = await ChannelImplementation.new()
-        registry = await Registry.new(token.address, dex.address, 0, 1, channelImplementation.address, accountantImplementation.address)
+        registry = await Registry.new(token.address, dex.address, 0, 1, channelImplementation.address, hermesImplementation.address)
 
         // Give some ethers for gas for operator
         await topUpEthers(txMaker, operator.address, OneEther)
@@ -48,12 +48,12 @@ contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, 
     })
 
     it("should register and initialize hermes hub", async () => {
-        await registry.registerAccountant(operator.address, 10, 0, OneToken)
-        const hermesId = await registry.getAccountantAddress(operator.address)
-        expect(await registry.isAccountant(hermesId)).to.be.true
+        await registry.registerHermes(operator.address, 10, 0, OneToken)
+        const hermesId = await registry.getHermesAddress(operator.address)
+        expect(await registry.isHermes(hermesId)).to.be.true
 
         // Initialise hermes object
-        hermes = await AccountantImplementation.at(hermesId)
+        hermes = await HermesImplementation.at(hermesId)
 
         // Topup some balance for hermes
         topUpTokens(token, hermes.address, new BN(100000))

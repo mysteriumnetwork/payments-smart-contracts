@@ -13,7 +13,7 @@ const { generatePromise, signExitRequest, constructPayload } = require('./utils/
 
 const MystToken = artifacts.require("MystToken")
 const TestChannelImplementation = artifacts.require("TestChannelImplementation")
-const TestAccountantImplementation = artifacts.require("TestAccountantImplementation")
+const TestHermesImplementation = artifacts.require("TestHermesImplementation")
 
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const OneEther = web3.utils.toWei(new BN(1), 'ether')
@@ -22,20 +22,20 @@ const Zero = new BN(0)
 contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) => {
     const identity = wallet.generateAccount()     // Generate identity
     const identityHash = identity.address         // identity hash = keccak(publicKey)[:20]
-    const accountant = wallet.generateAccount()   // Generate accountant operator wallet
+    const hermes = wallet.generateAccount()   // Generate hermes operator wallet
     let token, channel
     before(async () => {
         token = await MystToken.new()
-        accountantImplementation = await TestAccountantImplementation.new(token.address, accountant.address, 0, OneToken)
-        channel = await TestChannelImplementation.new(token.address, identityHash, accountantImplementation.address, Zero)
+        hermesImplementation = await TestHermesImplementation.new(token.address, hermes.address, 0, OneToken)
+        channel = await TestChannelImplementation.new(token.address, identityHash, hermesImplementation.address, Zero)
 
-        // Give some ethers for gas for accountant
-        topUpEthers(txMaker, accountant.address, OneEther)
+        // Give some ethers for gas for hermes
+        topUpEthers(txMaker, hermes.address, OneEther)
     })
 
     it("already initialized channel should reject initialization request", async () => {
         expect(await channel.isInitialized()).to.be.true
-        await channel.initialize(token.address, otherAccounts[3], identityHash, accountant.address).should.be.rejected
+        await channel.initialize(token.address, otherAccounts[3], identityHash, hermes.address).should.be.rejected
     })
 
     /**
@@ -53,7 +53,7 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
     })
 
     it("should settle promise and send funds into beneficiary address", async () => {
-        const channelState = Object.assign({}, await channel.accountant(), { channelId: channel.address })
+        const channelState = Object.assign({}, await channel.hermes(), { channelId: channel.address })
         const amount = OneToken.mul(new BN(2)) // 2 full tokens
         const channelBalanceBefore = await token.balanceOf(channel.address)
 
@@ -63,16 +63,16 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
         const channelBalanceAfter = await token.balanceOf(channel.address)
         channelBalanceAfter.should.be.bignumber.equal(channelBalanceBefore.sub(amount))
 
-        const accountantTotalBalance = await token.balanceOf(channelState.contractAddress)
-        accountantTotalBalance.should.be.bignumber.equal(promise.amount)
+        const hermesTotalBalance = await token.balanceOf(channelState.contractAddress)
+        hermesTotalBalance.should.be.bignumber.equal(promise.amount)
     })
 
     it("should send given fee for transaction maker", async () => {
-        const channelState = Object.assign({}, await channel.accountant(), { channelId: channel.address })
+        const channelState = Object.assign({}, await channel.hermes(), { channelId: channel.address })
         const amount = OneToken.mul(new BN(2)) // 2 full tokens
         const fee = OneToken.div(new BN(10)) // 0.1 tokens
         const channelBalanceBefore = await token.balanceOf(channel.address)
-        const accountantBalanceBefore = await token.balanceOf(channelState.contractAddress)
+        const hermesBalanceBefore = await token.balanceOf(channelState.contractAddress)
 
         const promise = generatePromise(amount, fee, channelState, identity)
         await channel.settlePromise(promise.amount, promise.fee, promise.lock, promise.signature)
@@ -80,8 +80,8 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
         const channelBalanceAfter = await token.balanceOf(channel.address)
         channelBalanceAfter.should.be.bignumber.equal(channelBalanceBefore.sub(amount).sub(fee))
 
-        const accountantBalanceAfter = await token.balanceOf(channelState.contractAddress)
-        accountantBalanceAfter.should.be.bignumber.equal(accountantBalanceBefore.add(amount))
+        const hermesBalanceAfter = await token.balanceOf(channelState.contractAddress)
+        hermesBalanceAfter.should.be.bignumber.equal(hermesBalanceBefore.add(amount))
 
         const txMakerBalance = await token.balanceOf(txMaker)
         txMakerBalance.should.be.bignumber.equal(fee)
@@ -89,7 +89,7 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
 
     it("should not settle promise signed by wrong identity", async () => {
         const fakeIdentity = wallet.generateAccount()
-        const channelState = Object.assign({}, await channel.accountant(), { channelId: channel.address })
+        const channelState = Object.assign({}, await channel.hermes(), { channelId: channel.address })
         const amount = OneToken.mul(new BN(2)) // 2 full tokens
         const channelBalanceBefore = await token.balanceOf(channel.address)
 
@@ -109,11 +109,11 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
     })
 
     it("self signed promise should be rejected", async () => {
-        const channelState = Object.assign({}, await channel.accountant(), { channelId: channel.address })
+        const channelState = Object.assign({}, await channel.hermes(), { channelId: channel.address })
 
-        const promise = generatePromise(OneToken, new BN(0), channelState, accountant, identityHash)
+        const promise = generatePromise(OneToken, new BN(0), channelState, hermes, identityHash)
 
-        await wallet.sendTx(channel.address, constructPayload(promise), accountant).should.be.rejected
+        await wallet.sendTx(channel.address, constructPayload(promise), hermes).should.be.rejected
     })
 
     /**
@@ -151,9 +151,9 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
     })
 
     it("during exit waiting period, receiving party should be able to settle latest promise", async () => {
-        const channelState = Object.assign({}, await channel.accountant(), { channelId: channel.address })
+        const channelState = Object.assign({}, await channel.hermes(), { channelId: channel.address })
         const channelBalanceBefore = await token.balanceOf(channel.address)
-        const accountantBalanceBefore = await token.balanceOf(channelState.contractAddress)
+        const hermesBalanceBefore = await token.balanceOf(channelState.contractAddress)
 
         const promise = generatePromise(OneToken, new BN(0), channelState, identity)
         await channel.settlePromise(promise.amount, promise.fee, promise.lock, promise.signature)
@@ -161,8 +161,8 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
         const channelBalanceAfter = await token.balanceOf(channel.address)
         channelBalanceAfter.should.be.bignumber.equal(channelBalanceBefore.sub(OneToken))
 
-        const accountantBalanceAfter = await token.balanceOf(channelState.contractAddress)
-        accountantBalanceAfter.should.be.bignumber.equal(accountantBalanceBefore.add(OneToken))
+        const hermesBalanceAfter = await token.balanceOf(channelState.contractAddress)
+        hermesBalanceAfter.should.be.bignumber.equal(hermesBalanceBefore.add(OneToken))
     })
 
     it("should finalise exit request and send tokens into beneficiary address", async () => {

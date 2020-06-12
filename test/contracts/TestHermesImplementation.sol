@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.6.0 <0.7.0;
 
-import { AccountantImplementation } from "../../contracts/AccountantImplementation.sol";
+import { HermesImplementation } from "../../contracts/HermesImplementation.sol";
 
 
 // Helper functions to be used in tests
-contract TestAccountantImplementation is AccountantImplementation {
+contract TestHermesImplementation is HermesImplementation {
     uint256 constant TEST_DELAY_BLOCKS = 4;
 
     function initialize(address _token, address _operator, uint16 _fee, uint256 _maxStake) public override {

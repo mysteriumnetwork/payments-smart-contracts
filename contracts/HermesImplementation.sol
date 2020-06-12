@@ -8,12 +8,12 @@ import { FundsRecovery } from "./FundsRecovery.sol";
 
 interface IdentityRegistry {
     function isRegistered(address _identity) external view returns (bool);
-    function minimalAccountantStake() external view returns (uint256);
+    function minimalHermesStake() external view returns (uint256);
     function getChannelAddress(address _identity, address _hermesId) external view returns (address);
 }
 
-// Uni-directional settle based accountant
-contract AccountantImplementation is FundsRecovery {
+// Uni-directional settle based hermes
+contract HermesImplementation is FundsRecovery {
     using ECDSA for bytes32;
     using SafeMath for uint256;
 
@@ -28,18 +28,18 @@ contract AccountantImplementation is FundsRecovery {
     uint256 internal totalStake;               // total amount staked by providers
     uint256 internal minStake;                 // minimal possible provider's stake (channel opening during promise settlement will use it)
     uint256 internal maxStake;                 // maximal allowed provider's stake
-    uint256 internal accountantStake;          // accountant stake is used to prove accountant's sustainability
+    uint256 internal hermesStake;              // hermes stake is used to prove hermes' sustainability
     uint256 internal closingTimelock;          // blocknumber after which getting stake back will become possible
 
-    enum Status { Active, Paused, Punishment, Closed } // accountant states
+    enum Status { Active, Paused, Punishment, Closed } // hermes states
     Status internal status;
 
-    struct AccountantFee {
+    struct HermesFee {
         uint16 value;                      // subprocent amount. e.g. 2.5% = 250
         uint64 validFrom;                  // block from which fee is valid
     }
-    AccountantFee public lastFee;          // default fee to look for
-    AccountantFee public previousFee;      // previous fee is used if last fee is still not active
+    HermesFee public lastFee;          // default fee to look for
+    HermesFee public previousFee;      // previous fee is used if last fee is still not active
 
     struct Channel {
         address beneficiary;        // address where funds will be send
@@ -70,15 +70,15 @@ contract AccountantImplementation is FundsRecovery {
         return address(registry);
     }
 
-    function getAccountantStake() public view returns (uint256) {
-        return accountantStake;
+    function getHermesStake() public view returns (uint256) {
+        return hermesStake;
     }
 
     function getStakeThresholds() public view returns (uint256, uint256) {
         return (minStake, maxStake);
     }
 
-    // Returns accountant state
+    // Returns hermes state
     // Active - all operations are allowed.
     // Paused - no new channel openings.
     // Punishment - don't allow to open new channels, rebalance and withdraw funds.
@@ -96,15 +96,15 @@ contract AccountantImplementation is FundsRecovery {
     event StakeGoalUpdated(bytes32 indexed channelId, uint256 newStakeGoal);
     event PromiseSettled(bytes32 indexed channelId, address beneficiary, uint256 amount, uint256 totalSettled);
     event ChannelBeneficiaryChanged(bytes32 channelId, address newBeneficiary);
-    event AccountantFeeUpdated(uint16 newFee, uint64 validFromBlock);
-    event AccountantClosed(uint256 blockNumber);
+    event HermesFeeUpdated(uint16 newFee, uint64 validFromBlock);
+    event HermesClosed(uint256 blockNumber);
     event ChannelOpeningPaused();
     event ChannelOpeningActivated();
     event FundsWithdrawned(uint256 amount, address beneficiary);
-    event AccountantStakeIncreased(uint256 newStake);
-    event AccountantPunishmentActivated(uint256 activationBlock);
-    event AccountantPunishmentDeactivated();
-    event NewAccountantOperator(address newOperator);
+    event HermesStakeIncreased(uint256 newStake);
+    event HermesPunishmentActivated(uint256 activationBlock);
+    event HermesPunishmentDeactivated();
+    event NewHermesOperator(address newOperator);
 
     modifier onlyOperator() {
         require(msg.sender == operator, "only operator can call this function");
@@ -126,10 +126,10 @@ contract AccountantImplementation is FundsRecovery {
         token = IERC20(_token);
         registry = IdentityRegistry(msg.sender);
         operator = _operator;
-        lastFee = AccountantFee(_fee, uint64(block.number));
+        lastFee = HermesFee(_fee, uint64(block.number));
         minStake = 100000000; // 1 token
         maxStake = _maxStake;
-        accountantStake = token.balanceOf(address(this));
+        hermesStake = token.balanceOf(address(this));
     }
 
     function isInitialized() public view returns (bool) {
@@ -190,11 +190,11 @@ contract AccountantImplementation is FundsRecovery {
         // Increase already paid amount.
         _channel.settled = _channel.settled.add(_unpaidAmount);
 
-        // Calculate accountant fee.
-        uint256 _accountantFee = calculateAccountantFee(_unpaidAmount);
+        // Calculate hermes fee.
+        uint256 _hermesFee = calculateHermesFee(_unpaidAmount);
 
         // Update channel balance and increase stake if min stake not reached yet.
-        uint256 _amountToSettle = _unpaidAmount.sub(_transactorFee).sub(_accountantFee);
+        uint256 _amountToSettle = _unpaidAmount.sub(_transactorFee).sub(_hermesFee);
         if (_channel.stake < _channel.stakeGoal) {
             // Calculate stake increase duties by adding 10% of _amountToSettle there, but new stake can't increase maxStake.
             uint256 _stakeIncrease = min(_amountToSettle / 10, maxStake.sub(_channel.stake));
@@ -261,10 +261,10 @@ contract AccountantImplementation is FundsRecovery {
         _settlePromise(_channelId, _amount, _transactorFee, _lock, _promiseSignature);
     }
 
-    // Accountant can update channel balance by himself. He can update into any amount size
+    // Hermes can update channel balance by himself. He can update into any amount size
     // but not less that provider's stake amount.
     function updateChannelBalance(bytes32 _channelId, uint256 _newBalance) public onlyOperator {
-        require(isAccountantActive(), "accountant has to be active");
+        require(isHermesActive(), "hermes has to be active");
         require(isChannelOpened(_channelId), "channel has to be opened");
         require(_newBalance >= channels[_channelId].stake, "balance can't be less than stake amount");
 
@@ -300,7 +300,7 @@ contract AccountantImplementation is FundsRecovery {
 
     // Possibility to increase channel balance without operator's signature (up to staked amount)
     function rebalanceChannel(bytes32 _channelId) public {
-        require(isAccountantActive(), "accountant have to be active");
+        require(isHermesActive(), "hermes have to be active");
 
         Channel storage _channel = channels[_channelId];
         require(_channel.stake > _channel.balance, "new balance should be bigger than current");
@@ -314,7 +314,7 @@ contract AccountantImplementation is FundsRecovery {
             status = Status.Punishment;
             punishment.activationBlock = block.number;
             _increaseAmount = _minimalExpectedBalance.sub(_currentBalance);
-            emit AccountantPunishmentActivated(block.number);
+            emit HermesPunishmentActivated(block.number);
         }
 
         lockedFunds = lockedFunds.add(_increaseAmount);
@@ -323,10 +323,10 @@ contract AccountantImplementation is FundsRecovery {
         emit ChannelBalanceUpdated(_channelId, _channel.balance);
     }
 
-    // Accountant's available funds withdrawal. Can be done only if chanel is not closed and not in punishment mode.
-    // Accountant can't withdraw stake, locked in channel funds and funds lended to him.
+    // Hermes's available funds withdrawal. Can be done only if chanel is not closed and not in punishment mode.
+    // Hermes can't withdraw stake, locked in channel funds and funds lended to him.
     function withdraw(address _beneficiary, uint256 _amount) public onlyOperator {
-        require(isAccountantActive(), "accountant have to be active");
+        require(isHermesActive(), "hermes have to be active");
         require(availableBalance() >= _amount, "should be enough funds available to withdraw");
 
         token.transfer(_beneficiary, _amount);
@@ -390,7 +390,7 @@ contract AccountantImplementation is FundsRecovery {
     // Anyone can increase channel's capacity by staking more into hermes
     function increaseStake(bytes32 _channelId, uint256 _amount) public {
         require(isChannelOpened(_channelId), "channel has to be opened");
-        require(getStatus() != Status.Closed, "accountant should be not closed");
+        require(getStatus() != Status.Closed, "hermes should be not closed");
 
         _increaseStake(_channelId, _amount, false);
 
@@ -420,10 +420,10 @@ contract AccountantImplementation is FundsRecovery {
         uint256 _minimalExpectedBalance = minimalExpectedBalance().sub(_channelBalanceDiff);
         uint256 _currentBalance = token.balanceOf(address(this));
         if (_amount > _currentBalance || _currentBalance.sub(_amount) < _minimalExpectedBalance) {
-            if (isAccountantActive()) {
+            if (isHermesActive()) {
                 status = Status.Punishment;
                 punishment.activationBlock = block.number;
-                emit AccountantPunishmentActivated(block.number);
+                emit HermesPunishmentActivated(block.number);
             }
             _amount = _currentBalance.sub(_minimalExpectedBalance);
         }
@@ -469,7 +469,7 @@ contract AccountantImplementation is FundsRecovery {
     */
 
     function resolveEmergency() public {
-        require(getStatus() == Status.Punishment, "accountant should be in punishment status");
+        require(getStatus() == Status.Punishment, "hermes should be in punishment status");
 
         // 0.04% of total channels amount per unit
         uint256 _punishmentPerUnit = round(lockedFunds.mul(4), 100).div(100);
@@ -482,7 +482,7 @@ contract AccountantImplementation is FundsRecovery {
         uint256 _punishmentAmount = _punishmentUnits.mul(_punishmentPerUnit);
         punishment.amount = punishment.amount.add(_punishmentAmount);
 
-        uint256 _shouldHave = max(lockedFunds, totalStake).add(max(accountantStake, punishment.amount));
+        uint256 _shouldHave = max(lockedFunds, totalStake).add(max(hermesStake, punishment.amount));
         uint256 _currentBalance = token.balanceOf(address(this));
         uint256 _missingFunds = (_currentBalance < _shouldHave) ? _shouldHave.sub(_currentBalance) : uint256(0);
 
@@ -492,7 +492,7 @@ contract AccountantImplementation is FundsRecovery {
         // Disable punishment mode
         status = Status.Active;
 
-        emit AccountantPunishmentDeactivated();
+        emit HermesPunishmentDeactivated();
     }
 
     function setBeneficiary(bytes32 _channelId, address _newBeneficiary, uint256 _nonce, bytes memory _signature) public {
@@ -510,27 +510,27 @@ contract AccountantImplementation is FundsRecovery {
         emit ChannelBeneficiaryChanged(_channelId, _newBeneficiary);
     }
 
-    function setAccountantOperator(address _newOperator) public onlyOperator {
+    function setHermesOperator(address _newOperator) public onlyOperator {
         require(_newOperator != address(0), "can't be zero address");
         operator = _newOperator;
-        emit NewAccountantOperator(_newOperator);
+        emit NewHermesOperator(_newOperator);
     }
 
     function setMaxStake(uint256 _newMaxStake) public onlyOperator {
-        require(isAccountantActive(), "accountant has to be active");
+        require(isHermesActive(), "hermes has to be active");
         maxStake = _newMaxStake;
         emit MaxStakeValueUpdated(_newMaxStake);
     }
 
     function setMinStake(uint256 _newMinStake) public onlyOperator {
-        require(isAccountantActive(), "accountant has to be active");
+        require(isHermesActive(), "hermes has to be active");
         require(_newMinStake < maxStake, "min stake has to be smaller than max stake");
         minStake = _newMinStake;
         emit MinStakeValueUpdated(_newMinStake);
     }
 
-    function setAccountantFee(uint16 _newFee) public onlyOperator {
-        require(getStatus() != Status.Closed, "accountant should be not closed");
+    function setHermesFee(uint16 _newFee) public onlyOperator {
+        require(getStatus() != Status.Closed, "hermes should be not closed");
         require(_newFee <= 5000, "fee can't be bigger that 50%");
         require(block.number >= lastFee.validFrom, "can't update inactive fee");
 
@@ -538,72 +538,72 @@ contract AccountantImplementation is FundsRecovery {
         uint64 _validFrom = uint64(getTimelock());
 
         previousFee = lastFee;
-        lastFee = AccountantFee(_newFee, _validFrom);
+        lastFee = HermesFee(_newFee, _validFrom);
 
-        emit AccountantFeeUpdated(_newFee, _validFrom);
+        emit HermesFeeUpdated(_newFee, _validFrom);
     }
 
-    function calculateAccountantFee(uint256 _amount) public view returns (uint256) {
-        AccountantFee memory _activeFee = (block.number >= lastFee.validFrom) ? lastFee : previousFee;
+    function calculateHermesFee(uint256 _amount) public view returns (uint256) {
+        HermesFee memory _activeFee = (block.number >= lastFee.validFrom) ? lastFee : previousFee;
         return round((_amount * uint256(_activeFee.value) / 100), 100) / 100;
     }
 
-    function increaseAccountantStake(uint256 _additionalStake) public onlyOperator {
+    function increaseHermesStake(uint256 _additionalStake) public onlyOperator {
         if (availableBalance() < _additionalStake) {
             uint256 _diff = _additionalStake.sub(availableBalance());
             token.transferFrom(msg.sender, address(this), _diff);
         }
 
-        accountantStake = accountantStake.add(_additionalStake);
+        hermesStake = hermesStake.add(_additionalStake);
 
-        emit AccountantStakeIncreased(accountantStake);
+        emit HermesStakeIncreased(hermesStake);
     }
 
     function isChannelOpened(bytes32 _channelId) public view returns (bool) {
         return channels[_channelId].beneficiary != address(0);
     }
 
-    // If Accountant is not closed and is not in punishment mode, he is active.
-    function isAccountantActive() public view returns (bool) {
+    // If Hermes is not closed and is not in punishment mode, he is active.
+    function isHermesActive() public view returns (bool) {
         Status _status = getStatus();
         return _status != Status.Punishment && _status != Status.Closed;
     }
 
     function pauseChannelOpening() public onlyOperator {
-        require(getStatus() == Status.Active, "accountant have to be in active state");
+        require(getStatus() == Status.Active, "hermes have to be in active state");
         status = Status.Paused;
         emit ChannelOpeningPaused();
     }
 
     function activateChannelOpening() public onlyOperator {
-        require(getStatus() == Status.Paused, "accountant have to be in paused state");
+        require(getStatus() == Status.Paused, "hermes have to be in paused state");
         status = Status.Active;
         emit ChannelOpeningActivated();
     }
 
     // Returns funds amount not locked in any channel, not staked and not lended from providers.
     function availableBalance() public view returns (uint256) {
-        uint256 _totalLockedAmount = max(lockedFunds, totalStake).add(max(accountantStake, punishment.amount));
+        uint256 _totalLockedAmount = max(lockedFunds, totalStake).add(max(hermesStake, punishment.amount));
         if (_totalLockedAmount > token.balanceOf(address(this))) {
             return uint256(0);
         }
         return token.balanceOf(address(this)).sub(_totalLockedAmount);
     }
 
-    // Funds which always have to be holded in accountant smart contract.
+    // Funds which always have to be holded in hermes smart contract.
     function minimalExpectedBalance() public view returns (uint256) {
-        return max(accountantStake, punishment.amount).add(lockedFunds);
+        return max(hermesStake, punishment.amount).add(lockedFunds);
     }
 
-    function closeAccountant() public onlyOperator {
-        require(isAccountantActive(), "accountant should be active");
+    function closeHermes() public onlyOperator {
+        require(isHermesActive(), "hermes should be active");
         status = Status.Closed;
         closingTimelock = getEmergencyTimelock();
-        emit AccountantClosed(block.number);
+        emit HermesClosed(block.number);
     }
 
     function getStakeBack(address _beneficiary) public onlyOperator {
-        require(getStatus() == Status.Closed, "accountant have to be closed");
+        require(getStatus() == Status.Closed, "hermes have to be closed");
         require(block.number > closingTimelock, "timelock period have be already passed");
 
         uint256 _amount = token.balanceOf(address(this)).sub(punishment.amount);

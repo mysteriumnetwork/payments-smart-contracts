@@ -3,17 +3,12 @@ const ethUtils = require('ethereumjs-util')
 const rlp = require('rlp')
 const { randomBytes } = require('crypto')
 const BN = require('bn.js')
-const deployConfig = require('../../scripts/deployConfig').deploy
-
-const Config = artifacts.require("Config")
-const ChannelImplementation = artifacts.require("ChannelImplementation")
-const AccountantImplementation = artifacts.require("TestAccountantImplementation")
 
 // CREATE2 address is calculated this way:
 // keccak("0xff++msg.sender++salt++keccak(byteCode)")
-async function genCreate2Address(identityHash, accountantId, registry, implementationAddress) {
+async function genCreate2Address(identityHash, hermesId, registry, implementationAddress) {
     const byteCode = (await registry.getProxyCode(implementationAddress))
-    const salt = web3.utils.keccak256('0x' + [identityHash.replace(/0x/, ''), accountantId.replace(/0x/, '')].join('').toLowerCase())
+    const salt = web3.utils.keccak256('0x' + [identityHash.replace(/0x/, ''), hermesId.replace(/0x/, '')].join('').toLowerCase())
     return `0x${web3.utils.keccak256(`0x${[
         'ff',
         registry.address.replace(/0x/, ''),
@@ -22,11 +17,11 @@ async function genCreate2Address(identityHash, accountantId, registry, implement
     ].join('')}`).slice(-40)}`.toLowerCase()
 }
 
-// Generates provider's channelId in accountant smart contract
-function generateChannelId(party, accountantId) {
+// Generates provider's channelId in hermes smart contract
+function generateChannelId(party, hermesId) {
     return `0x${ethUtils.keccak(Buffer.concat([
         Buffer.from(party.slice(2), 'hex'),
-        Buffer.from(accountantId.slice(2), 'hex')]
+        Buffer.from(hermesId.slice(2), 'hex')]
     )).toString('hex')}`
 }
 
@@ -138,34 +133,6 @@ function toBuffer(item) {
     }
 }
 
-async function setupConfig(owner, channelProxy, accountantProxy) {
-    const channelImplementation = (await ChannelImplementation.new()).address
-    const accountantImplementation = (await AccountantImplementation.new()).address
-
-    const configAddress = await deployConfig(web3, owner)
-    const config = await Config.at(configAddress)
-
-    await config.setOwner(owner)
-
-    const channelSlot = '0x48df65c92c1c0e8e19a219c69bfeb4cf7c1c123e0c266d555abb508d37c6d96e'    // keccak256('channel implementation')
-    const channelImplAddressBytes = '0x' + channelImplementation.slice(2).toString(16).padStart(64, 0)
-    await config.addConfig(channelSlot, channelImplAddressBytes)
-
-    const channelProxySlot = '0x2ef7e7c50e1b6a574193d0d32b7c0456cf12390a0872cf00be4797e71c3756f7' // keccak256('channel implementation proxy')
-    const channelProxyAddressBytes = '0x' + channelProxy.slice(2).toString(16).padStart(64, 0)
-    await config.addConfig(channelProxySlot, channelProxyAddressBytes)
-
-    const accountantSlot = '0xe6906d4b6048dd18329c27945d05f766dd19b003dc60f82fd4037c490ee55be0' // keccak256('accountant implementation')
-    const AccImplAddressBytes = '0x' + accountantImplementation.slice(2).toString(16).padStart(64, 0)
-    await config.addConfig(accountantSlot, AccImplAddressBytes)
-
-    const accountantProxySlot = '0x52948fa93a94851571e57fddc2be83c51e0a64bb5e9ca55f4f90439b9802b575' // keccak256('accountant implementation proxy')
-    const accountantProxyAddressBytes = '0x' + accountantProxy.slice(2).toString(16).padStart(64, 0)
-    await config.addConfig(accountantProxySlot, accountantProxyAddressBytes)
-
-    return config
-}
-
 module.exports = {
     genCreate2Address,
     generateChannelId,
@@ -182,6 +149,5 @@ module.exports = {
     setLengthLeft: ethUtils.setLengthLeft,
     to16BitsBuffer,
     toBytes32Buffer,
-    toBuffer,
-    setupConfig
+    toBuffer
 }

@@ -4,16 +4,15 @@ pragma solidity >=0.5.12 <0.7.0;
 import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Config } from "./Config.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
 
 interface Channel {
-    function initialize(address _token, address _dex, address _identityHash, address _accountantId, uint256 _fee) external;
+    function initialize(address _token, address _dex, address _identityHash, address _hermesId, uint256 _fee) external;
 }
 
 interface HermesContract {
     enum Status { Active, Paused, Punishment, Closed }
-    function initialize(address _token, address _operator, uint16 _accountantFee, uint256 _maxStake) external;
+    function initialize(address _token, address _operator, uint16 _hermesFee, uint256 _maxStake) external;
     function openChannel(address _party, address _beneficiary, uint256 _amountToLend) external;
     function getStake() external view returns (uint256);
     function getStatus() external view returns (Status);
@@ -27,25 +26,25 @@ contract Registry is FundsRecovery {
 
     address public dex;
     uint256 public registrationFee;
-    uint256 public minimalAccountantStake;
+    uint256 public minimalHermesStake;
     address internal channelImplementationAddress;
     address internal hermesImplementationAddress;
 
-    struct Accountant {
+    struct Hermes {
         address operator;
         function() external view returns(uint256) stake;
     }
-    mapping(address => Accountant) public accountants;
+    mapping(address => Hermes) public hermeses;
 
     mapping(address => bool) private identities;
 
-    event RegisteredIdentity(address indexed identityHash, address indexed accountantId);
-    event RegisteredAccountant(address indexed accountantId, address accountantOperator);
-    event ConsumerChannelCreated(address indexed identityHash, address indexed accountantId, address channelAddress);
+    event RegisteredIdentity(address indexed identityHash, address indexed hermesId);
+    event RegisteredHermes(address indexed hermesId, address hermesOperator);
+    event ConsumerChannelCreated(address indexed identityHash, address indexed hermesId, address channelAddress);
 
-    constructor (address _tokenAddress, address _dexAddress, uint256 _regFee, uint256 _minimalAccountantStake, address _channelImplementation, address _hermesImplementation) public {
+    constructor (address _tokenAddress, address _dexAddress, uint256 _regFee, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation) public {
         registrationFee = _regFee;
-        minimalAccountantStake = _minimalAccountantStake;
+        minimalHermesStake = _minimalHermesStake;
 
         require(_tokenAddress != address(0));
         token = IERC20(_tokenAddress);
@@ -62,10 +61,10 @@ contract Registry is FundsRecovery {
         revert("Rejecting tx with ethers sent");
     }
 
-    // Register identity and open spending and incomming channels with given accountant
+    // Register identity and open spending and incomming channels with given hermes
     // _stakeAmount - it's amount of tokens staked into hermes to guarantee incomming channel's balance.
     function registerIdentity(address _hermesId, uint256 _stakeAmount, uint256 _transactorFee, address _beneficiary, bytes memory _signature) public {
-        require(isActiveAccountant(_hermesId), "provided has have to be active");
+        require(isActiveHermes(_hermesId), "provided has have to be active");
 
         // Check if given signature is valid
         address _identityHash = keccak256(abi.encodePacked(address(this), _hermesId, _stakeAmount, _transactorFee, _beneficiary)).recover(_signature);
@@ -101,26 +100,26 @@ contract Registry is FundsRecovery {
         }
     }
 
-    function registerAccountant(address _accountantOperator, uint256 _stakeAmount, uint16 _accountantFee, uint256 _maxStake) public {
-        require(_accountantOperator != address(0), "operator can't be zero address");
-        require(_stakeAmount >= minimalAccountantStake, "accountant have to stake at least minimal stake amount");
+    function registerHermes(address _hermesOperator, uint256 _stakeAmount, uint16 _hermesFee, uint256 _maxStake) public {
+        require(_hermesOperator != address(0), "operator can't be zero address");
+        require(_stakeAmount >= minimalHermesStake, "hermes have to stake at least minimal stake amount");
 
-        address _accountantId = getAccountantAddress(_accountantOperator);
-        require(!isAccountant(_accountantId), "accountant already registered");
+        address _hermesId = getHermesAddress(_hermesOperator);
+        require(!isHermes(_hermesId), "hermes already registered");
 
-        // Deploy accountant contract (mini proxy which is pointing to implementation)
-        HermesContract _accountant = HermesContract(deployMiniProxy(uint256(_accountantOperator), getProxyCode(getAccountantImplementation())));
+        // Deploy hermes contract (mini proxy which is pointing to implementation)
+        HermesContract _hermes = HermesContract(deployMiniProxy(uint256(_hermesOperator), getProxyCode(getHermesImplementation())));
 
-        // Transfer stake into accountant smart contract
-        token.transferFrom(msg.sender, address(_accountant), _stakeAmount);
+        // Transfer stake into hermes smart contract
+        token.transferFrom(msg.sender, address(_hermes), _stakeAmount);
 
-        // Initialise accountant
-        _accountant.initialize(address(token), _accountantOperator, _accountantFee, _maxStake);
+        // Initialise hermes
+        _hermes.initialize(address(token), _hermesOperator, _hermesFee, _maxStake);
 
-        // Save info about newly created accountant
-        accountants[address(_accountant)] = Accountant(_accountantOperator, _accountant.getStake);
+        // Save info about newly created hermes
+        hermeses[address(_hermes)] = Hermes(_hermesOperator, _hermes.getStake);
 
-        emit RegisteredAccountant(address(_accountant), _accountantOperator);
+        emit RegisteredHermes(address(_hermes), _hermesOperator);
     }
 
     function getChannelAddress(address _identity, address _hermesId) public view returns (address) {
@@ -129,9 +128,9 @@ contract Registry is FundsRecovery {
         return getCreate2Address(_salt, _code);
     }
 
-    function getAccountantAddress(address _accountantOperator) public view returns (address) {
-        bytes32 _code = keccak256(getProxyCode(getAccountantImplementation()));
-        return getCreate2Address(bytes32(uint256(_accountantOperator)), _code);
+    function getHermesAddress(address _hermesOperator) public view returns (address) {
+        bytes32 _code = keccak256(getProxyCode(getHermesImplementation()));
+        return getCreate2Address(bytes32(uint256(_hermesOperator)), _code);
     }
 
     // ------------ UTILS ------------
@@ -176,7 +175,7 @@ contract Registry is FundsRecovery {
         return channelImplementationAddress;
     }
 
-    function getAccountantImplementation() public view returns (address) {
+    function getHermesImplementation() public view returns (address) {
         return hermesImplementationAddress;
     }
 
@@ -186,9 +185,9 @@ contract Registry is FundsRecovery {
         return identities[_identityHash];
     }
 
-    function isAccountant(address _accountantId) public view returns (bool) {
-        address accountantOperator = accountants[_accountantId].operator;
-        address _addr = getAccountantAddress(accountantOperator);
+    function isHermes(address _hermesId) public view returns (bool) {
+        address hermesOperator = hermeses[_hermesId].operator;
+        address _addr = getHermesAddress(hermesOperator);
         uint _codeLength;
 
         assembly {
@@ -198,9 +197,9 @@ contract Registry is FundsRecovery {
         return _codeLength != 0;
     }
 
-    function isActiveAccountant(address _accountantId) internal view returns (bool) {
-        // If stake is 0, then it's either incactive or unregistered accountant
-        HermesContract.Status status = HermesContract(_accountantId).getStatus();
+    function isActiveHermes(address _hermesId) internal view returns (bool) {
+        // If stake is 0, then it's either incactive or unregistered hermes
+        HermesContract.Status status = HermesContract(_hermesId).getStatus();
         return status == HermesContract.Status.Active;
     }
 

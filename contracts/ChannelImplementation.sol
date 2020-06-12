@@ -6,7 +6,7 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
 
-interface AccountantContract {
+interface HermesContract {
     function getOperator() external view returns (address);
 }
 
@@ -22,19 +22,19 @@ contract ChannelImplementation is FundsRecovery {
         address beneficiary;       // address where funds will be send after finalizing exit request
     }
 
-    struct Accountant {
+    struct Hermes {
         address operator;          // signing address
-        address contractAddress;   // accountant smart contract address, funds will be send there
-        uint256 settled;           // total amount already settled by accountant
+        address contractAddress;   // hermes smart contract address, funds will be send there
+        uint256 settled;           // total amount already settled by hermes
     }
 
     ExitRequest public exitRequest;
-    Accountant public accountant;
+    Hermes public hermes;
     address public operator;          // channel operator = sha3(IdentityPublicKey)[:20]
     address public dex;
 
     event PromiseSettled(address beneficiary, uint256 amount, uint256 totalSettled);
-    event ChannelInitialised(address operator, address accountant);
+    event ChannelInitialised(address operator, address hermes);
     event ExitRequested(uint256 timelock);
     event FinalizeExit(uint256 amount);
 
@@ -50,10 +50,10 @@ contract ChannelImplementation is FundsRecovery {
 
     // Because of proxy pattern this function is used insted of constructor.
     // Have to be called right after proxy deployment.
-    function initialize(address _token, address _dex, address _identityHash, address _accountantId, uint256 _fee) public {
+    function initialize(address _token, address _dex, address _identityHash, address _hermesId, uint256 _fee) public {
         require(!isInitialized(), "Is already initialized");
         require(_identityHash != address(0), "Identity can't be zero");
-        require(_accountantId != address(0), "AccountantID can't be zero");
+        require(_hermesId != address(0), "HermesID can't be zero");
         require(_token != address(0), "Token can't be deployd into zero address");
 
         token = IERC20(_token);
@@ -66,9 +66,9 @@ contract ChannelImplementation is FundsRecovery {
 
         operator = _identityHash;
         transferOwnership(operator);
-        accountant = Accountant(AccountantContract(_accountantId).getOperator(), _accountantId, 0);
+        hermes = Hermes(HermesContract(_hermesId).getOperator(), _hermesId, 0);
 
-        emit ChannelInitialised(_identityHash, _accountantId);
+        emit ChannelInitialised(_identityHash, _hermesId);
     }
 
     function isInitialized() public view returns (bool) {
@@ -89,7 +89,7 @@ contract ChannelImplementation is FundsRecovery {
         require(_signer == operator, "have to be signed by channel operator");
 
         // Calculate amount of tokens to be claimed.
-        uint256 _unpaidAmount = _amount.sub(accountant.settled);
+        uint256 _unpaidAmount = _amount.sub(hermes.settled);
         require(_unpaidAmount > 0, "amount to settle should be greater that already settled");
 
         // If signer has less tokens than asked to transfer, we can transfer as much as he has already
@@ -101,17 +101,17 @@ contract ChannelImplementation is FundsRecovery {
         }
 
         // Increase already paid amount
-        accountant.settled = accountant.settled.add(_unpaidAmount);
+        hermes.settled = hermes.settled.add(_unpaidAmount);
 
         // Send tokens
-        token.transfer(accountant.contractAddress, _unpaidAmount.sub(_transactorFee));
+        token.transfer(hermes.contractAddress, _unpaidAmount.sub(_transactorFee));
 
         // Pay fee to transaction maker
         if (_transactorFee > 0) {
             token.transfer(msg.sender, _transactorFee);
         }
 
-        emit PromiseSettled(accountant.contractAddress, _unpaidAmount, accountant.settled);
+        emit PromiseSettled(hermes.contractAddress, _unpaidAmount, hermes.settled);
     }
 
     // Returns blocknumber until which exit request should be locked
