@@ -64,7 +64,7 @@ contract('Full path (in channel using cheque) test for funds recovery', ([txMake
     })
 
     it('should register hermes', async () => {
-        await registry.registerHermes(hermesOperator, 10, 0, OneEther)
+        await registry.registerHermes(hermesOperator, 10, 0, 25, OneEther)
         expect(await registry.isHermes(hermesId)).to.be.true
     })
 

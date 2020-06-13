@@ -117,17 +117,18 @@ contract HermesImplementation is FundsRecovery {
 
     // Because of proxy pattern this function is used insted of constructor.
     // Have to be called right after proxy deployment.
-    function initialize(address _token, address _operator, uint16 _fee, uint256 _maxStake) public virtual {
+    function initialize(address _token, address _operator, uint16 _fee, uint256 _minStake, uint256 _maxStake) public virtual {
         require(!isInitialized(), "have to be not initialized");
         require(_operator != address(0), "operator have to be set");
         require(_token != address(0), "token can't be deployd into zero address");
         require(_fee <= 5000, "fee can't be bigger than 50%");
+        require(_maxStake > _minStake, "maxStake have to be bigger than minStake");
 
         token = IERC20(_token);
         registry = IdentityRegistry(msg.sender);
         operator = _operator;
         lastFee = HermesFee(_fee, uint64(block.number));
-        minStake = 100000000; // 1 token
+        minStake = _minStake;
         maxStake = _maxStake;
         hermesStake = token.balanceOf(address(this));
     }
@@ -518,13 +519,14 @@ contract HermesImplementation is FundsRecovery {
 
     function setMaxStake(uint256 _newMaxStake) public onlyOperator {
         require(isHermesActive(), "hermes has to be active");
+        require(_newMaxStake > minStake, "maxStake has to be bigger than minStake");
         maxStake = _newMaxStake;
         emit MaxStakeValueUpdated(_newMaxStake);
     }
 
     function setMinStake(uint256 _newMinStake) public onlyOperator {
         require(isHermesActive(), "hermes has to be active");
-        require(_newMinStake < maxStake, "min stake has to be smaller than max stake");
+        require(_newMinStake < maxStake, "minStake has to be smaller than maxStake");
         minStake = _newMinStake;
         emit MinStakeValueUpdated(_newMinStake);
     }

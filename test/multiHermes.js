@@ -41,7 +41,7 @@ contract('Multi hermeses', ([txMaker, ...beneficiaries]) => {
     it('should register hermeses', async () => {
         hermeses = []
         for (const operator of operators) {
-            await registry.registerHermes(operator.address, 10, 0, OneToken)
+            await registry.registerHermes(operator.address, 10, 0, 25, OneToken)
             const id = await registry.getHermesAddress(operator.address)
             hermeses.push({ id, operator })
             expect(await registry.isHermes(id)).to.be.true

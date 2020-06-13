@@ -12,7 +12,7 @@ interface Channel {
 
 interface HermesContract {
     enum Status { Active, Paused, Punishment, Closed }
-    function initialize(address _token, address _operator, uint16 _hermesFee, uint256 _maxStake) external;
+    function initialize(address _token, address _operator, uint16 _hermesFee, uint256 _minStake, uint256 _maxStake) external;
     function openChannel(address _party, address _beneficiary, uint256 _amountToLend) external;
     function getStake() external view returns (uint256);
     function getStatus() external view returns (Status);
@@ -100,7 +100,7 @@ contract Registry is FundsRecovery {
         }
     }
 
-    function registerHermes(address _hermesOperator, uint256 _stakeAmount, uint16 _hermesFee, uint256 _maxStake) public {
+    function registerHermes(address _hermesOperator, uint256 _stakeAmount, uint16 _hermesFee, uint256 _minStake, uint256 _maxStake) public {
         require(_hermesOperator != address(0), "operator can't be zero address");
         require(_stakeAmount >= minimalHermesStake, "hermes have to stake at least minimal stake amount");
 
@@ -114,7 +114,7 @@ contract Registry is FundsRecovery {
         token.transferFrom(msg.sender, address(_hermes), _stakeAmount);
 
         // Initialise hermes
-        _hermes.initialize(address(token), _hermesOperator, _hermesFee, _maxStake);
+        _hermes.initialize(address(token), _hermesOperator, _hermesFee, _minStake, _maxStake);
 
         // Save info about newly created hermes
         hermeses[address(_hermes)] = Hermes(_hermesOperator, _hermes.getStake);

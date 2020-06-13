@@ -48,7 +48,7 @@ contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, 
     })
 
     it("should register and initialize hermes hub", async () => {
-        await registry.registerHermes(operator.address, 10, 0, OneToken)
+        await registry.registerHermes(operator.address, 10, 0, 25, OneToken)
         const hermesId = await registry.getHermesAddress(operator.address)
         expect(await registry.isHermes(hermesId)).to.be.true
 
