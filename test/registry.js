@@ -44,7 +44,7 @@ contract('Registry', ([txMaker, minter, hermesOperator, fundsDestination, ...oth
     })
 
     it('should register hermes', async () => {
-        await registry.registerHermes(hermesOperator, 10, 0, OneToken)
+        await registry.registerHermes(hermesOperator, 10, 0, 25, OneToken)
         hermesId = await registry.getHermesAddress(hermesOperator)
         expect(await registry.isHermes(hermesId)).to.be.true
     })

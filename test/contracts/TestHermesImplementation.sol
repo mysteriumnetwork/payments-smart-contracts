@@ -8,11 +8,6 @@ import { HermesImplementation } from "../../contracts/HermesImplementation.sol";
 contract TestHermesImplementation is HermesImplementation {
     uint256 constant TEST_DELAY_BLOCKS = 4;
 
-    function initialize(address _token, address _operator, uint16 _fee, uint256 _maxStake) public override {
-        super.initialize(_token, _operator, _fee, _maxStake);
-        minStake = 25;
-    }
-
     function getTimelock() internal view override returns (uint256) {
         return block.number + TEST_DELAY_BLOCKS;
     }

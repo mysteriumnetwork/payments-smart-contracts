@@ -41,7 +41,7 @@ contract('Hermes closing', ([txMaker, operatorAddress, ...beneficiaries]) => {
     })
 
     it('should register hermes', async () => {
-        await registry.registerHermes(hermesOperator.address, stake, Zero, OneToken)
+        await registry.registerHermes(hermesOperator.address, stake, Zero, 25, OneToken)
         const hermesId = await registry.getHermesAddress(hermesOperator.address)
         hermes = await HermesImplementation.at(hermesId)
         expect(await registry.isHermes(hermes.address)).to.be.true

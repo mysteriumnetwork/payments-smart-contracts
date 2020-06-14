@@ -40,7 +40,7 @@ contract('Hermes fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
     it('should calculate proper fee righ after hermes registration', async () => {
         // Register hermes
         const hermesFee = 250 // 2.50%
-        await registry.registerHermes(hermesOperator.address, 100, hermesFee, OneToken)
+        await registry.registerHermes(hermesOperator.address, 100, hermesFee, 25, OneToken)
         const hermesId = await registry.getHermesAddress(hermesOperator.address)
         hermes = await HermesImplementation.at(hermesId)
 

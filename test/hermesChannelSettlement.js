@@ -51,7 +51,7 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
     })
 
     it("should register and initialize hermes hub", async () => {
-        await registry.registerHermes(operator.address, 1000, Zero, OneToken)
+        await registry.registerHermes(operator.address, 1000, Zero, 25, OneToken)
         const hermesId = await registry.getHermesAddress(operator.address)
         expect(await registry.isHermes(hermesId)).to.be.true
 

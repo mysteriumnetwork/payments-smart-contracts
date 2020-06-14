@@ -42,11 +42,11 @@ contract('Hermes stake management', ([txMaker, operatorAddress, ...beneficiaries
 
     it('should reject hermes registration if he do not pay enought stake', async () => {
         const stateAmount = stake - 1
-        await registry.registerHermes(hermesOperator.address, stateAmount, Zero, OneToken).should.be.rejected
+        await registry.registerHermes(hermesOperator.address, stateAmount, Zero, 25, OneToken).should.be.rejected
     })
 
     it('should register hermes when stake is ok', async () => {
-        await registry.registerHermes(hermesOperator.address, stake, Zero, OneToken)
+        await registry.registerHermes(hermesOperator.address, stake, Zero, 25, OneToken)
         const hermesId = await registry.getHermesAddress(hermesOperator.address)
         hermes = await HermesImplementation.at(hermesId)
         expect(await registry.isHermes(hermes.address)).to.be.true

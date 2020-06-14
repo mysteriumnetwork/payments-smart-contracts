@@ -23,6 +23,6 @@ module.exports = async function (deployer, network, accounts) {
 
     // Register hermes with 100.000 tokens stake, 3% tx fee and 5000 max channel balance
     await token.approve(registryAddress, '100000000000000')
-    await registry.registerHermes(hermesOperator, 10000000000000, 300, 500000000000)
+    await registry.registerHermes(hermesOperator, 10000000000000, 300, 100000000, 500000000000)
     console.log('HermesID: ', await registry.getHermesAddress(hermesOperator))
 }

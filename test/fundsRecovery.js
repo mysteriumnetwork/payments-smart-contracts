@@ -291,7 +291,7 @@ contract('Hermes funds recovery', ([_, txMaker, account, fundsDestination, ...ot
 
         // Deploy Hermes smart contract
         hermesImplementation = await TestHermesImplementation.new({ from: txMaker })
-        await hermesImplementation.initialize(nativeToken.address, account, 0, OneToken)
+        await hermesImplementation.initialize(nativeToken.address, account, 0, 25, OneToken)
         expect(hermesImplementation.address.toLowerCase()).to.be.equal(implementationAddress.toLowerCase())
 
         // Set funds destination
