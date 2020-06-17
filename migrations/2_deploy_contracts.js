@@ -6,6 +6,8 @@ const DEXProxy = artifacts.require("DEXProxy")
 const MystToken = artifacts.require("MystToken")
 const SafeMathLib = artifacts.require("SafeMathLib")
 
+const zeroAddress = '0x0000000000000000000000000000000000000000'
+
 module.exports = async function (deployer, network, accounts) {
     // We do have MYSTT and Config deployed on Görli already
     if (network === 'goerli') {
@@ -24,6 +26,6 @@ module.exports = async function (deployer, network, accounts) {
         await deployer.deploy(DEXImplementation)
         await deployer.deploy(ChannelImplementation)
         await deployer.deploy(HermesImplementation)
-        await deployer.deploy(Registry, MystToken.address, DEXImplementation.address, 0, 0, ChannelImplementation.address, HermesImplementation.address)
+        await deployer.deploy(Registry, MystToken.address, DEXImplementation.address, 0, 0, ChannelImplementation.address, HermesImplementation.address, zeroAddress)
     }
 };
