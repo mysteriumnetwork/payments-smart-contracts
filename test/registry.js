@@ -60,6 +60,12 @@ contract('Registry', ([txMaker, minter, hermesOperator, fundsDestination, ...oth
         expect(await registry.isRegistered(identityHash)).to.be.true
     })
 
+    it('should reject second attempt to create same channel', async () => {
+        const identity = identities[0]
+        const signature = signIdentityRegistration(registry.address, hermesId, Zero, Zero, fundsDestination, identity)
+        await registry.registerIdentity(hermesId, Zero, Zero, fundsDestination, signature).should.be.rejected
+    })
+
     it('registry should have proper channel address calculations', async () => {
         const identityHash = identities[0].address
         expect(
