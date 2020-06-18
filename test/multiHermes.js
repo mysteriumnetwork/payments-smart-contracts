@@ -14,6 +14,7 @@ const ChannelImplementation = artifacts.require("ChannelImplementation")
 
 const Zero = new BN(0)
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
+const ZeroAddress = '0x0000000000000000000000000000000000000000'
 
 // Generate private keys for hermes operators
 const operators = [
@@ -31,7 +32,7 @@ contract('Multi hermeses', ([txMaker, ...beneficiaries]) => {
         dex = await MystDex.new()
         const hermesImplementation = await HermesImplementation.new()
         channelImplementation = await ChannelImplementation.new()
-        registry = await Registry.new(token.address, dex.address, 0, 0, channelImplementation.address, hermesImplementation.address)
+        registry = await Registry.new(token.address, dex.address, 0, 0, channelImplementation.address, hermesImplementation.address, ZeroAddress)
 
         // Topup some tokens into txMaker address so it could register hermeses
         await topUpTokens(token, txMaker, 1000)

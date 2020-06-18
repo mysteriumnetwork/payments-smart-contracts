@@ -20,6 +20,7 @@ const ChannelImplementation = artifacts.require("ChannelImplementation")
 
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const Zero = new BN(0)
+const ZeroAddress = '0x0000000000000000000000000000000000000000'
 
 const provider = wallet.generateAccount()
 const hermesOperator = wallet.generateAccount()
@@ -33,7 +34,7 @@ contract('Hermes stake management', ([txMaker, operatorAddress, ...beneficiaries
         const dex = await MystDex.new()
         const hermesImplementation = await HermesImplementation.new(token.address, hermesOperator.address, 0, OneToken)
         const channelImplementation = await ChannelImplementation.new()
-        registry = await Registry.new(token.address, dex.address, Zero, stake, channelImplementation.address, hermesImplementation.address)
+        registry = await Registry.new(token.address, dex.address, Zero, stake, channelImplementation.address, hermesImplementation.address, ZeroAddress)
 
         // Topup some tokens into txMaker address so it could register hermes
         await topUpTokens(token, txMaker, OneToken)

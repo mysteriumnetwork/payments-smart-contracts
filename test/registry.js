@@ -17,6 +17,7 @@ const MystDex = artifacts.require("MystDEX")
 const OneEther = web3.utils.toWei('1', 'ether')
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const Zero = new BN(0)
+const ZeroAddress = '0x0000000000000000000000000000000000000000'
 
 function generateIdentities(amount) {
     return (amount <= 0) ? [generateAccount()] : [generateAccount(), ...generateIdentities(amount - 1)]
@@ -31,7 +32,7 @@ contract('Registry', ([txMaker, minter, hermesOperator, fundsDestination, ...oth
         dex = await MystDex.new()
         hermesImplementation = await HermesImplementation.new()
         channelImplementation = await ChannelImplementation.new()
-        registry = await Registry.new(token.address, dex.address, 0, 0, channelImplementation.address, hermesImplementation.address)
+        registry = await Registry.new(token.address, dex.address, 0, 0, channelImplementation.address, hermesImplementation.address, ZeroAddress)
 
         // Topup some tokens into txMaker address so it could register hermes
         await topUpTokens(token, txMaker, 10)
@@ -57,6 +58,12 @@ contract('Registry', ([txMaker, minter, hermesOperator, fundsDestination, ...oth
         expect(await registry.isRegistered(identityHash)).to.be.false
         await registry.registerIdentity(hermesId, Zero, Zero, fundsDestination, signature)
         expect(await registry.isRegistered(identityHash)).to.be.true
+    })
+
+    it('should reject second attempt to create same channel', async () => {
+        const identity = identities[0]
+        const signature = signIdentityRegistration(registry.address, hermesId, Zero, Zero, fundsDestination, identity)
+        await registry.registerIdentity(hermesId, Zero, Zero, fundsDestination, signature).should.be.rejected
     })
 
     it('registry should have proper channel address calculations', async () => {

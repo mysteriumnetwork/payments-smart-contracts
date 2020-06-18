@@ -26,6 +26,7 @@ const ChannelImplementation = artifacts.require("ChannelImplementation")
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const OneEther = web3.utils.toWei(new BN(1), 'ether')
 const Zero = new BN(0)
+const ZeroAddress = '0x0000000000000000000000000000000000000000'
 
 let token, hermes, registry;
 const identities = generateIdentities(5)   // Generates array of identities
@@ -51,7 +52,7 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
         const dex = await MystDex.new()
         const hermesImplementation = await HermesImplementation.new()
         const channelImplementation = await ChannelImplementation.new()
-        registry = await Registry.new(token.address, dex.address, 0, 1, channelImplementation.address, hermesImplementation.address)
+        registry = await Registry.new(token.address, dex.address, 0, 1, channelImplementation.address, hermesImplementation.address, ZeroAddress)
 
         // Give some ethers for gas for operator
         await topUpEthers(txMaker, operator.address, OneEther)

@@ -18,6 +18,12 @@ interface HermesContract {
     function getStatus() external view returns (Status);
 }
 
+interface ParentRegistry {
+    function isRegistered(address _identityHash) external view returns (bool);
+    function isAccountant(address _hermesId) external view returns (bool);
+    function isActiveAccountant(address _hermesId) external view returns (bool);
+}
+
 contract Registry is FundsRecovery {
     using ECDSA for bytes32;
     using SafeMath for uint256;
@@ -29,6 +35,7 @@ contract Registry is FundsRecovery {
     uint256 public minimalHermesStake;
     address internal channelImplementationAddress;
     address internal hermesImplementationAddress;
+    ParentRegistry internal parentRegistry;
 
     struct Hermes {
         address operator;
@@ -42,7 +49,7 @@ contract Registry is FundsRecovery {
     event RegisteredHermes(address indexed hermesId, address hermesOperator);
     event ConsumerChannelCreated(address indexed identityHash, address indexed hermesId, address channelAddress);
 
-    constructor (address _tokenAddress, address _dexAddress, uint256 _regFee, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation) public {
+    constructor (address _tokenAddress, address _dexAddress, uint256 _regFee, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation, address _parentAddress) public {
         registrationFee = _regFee;
         minimalHermesStake = _minimalHermesStake;
 
@@ -54,9 +61,11 @@ contract Registry is FundsRecovery {
 
         channelImplementationAddress = _channelImplementation;
         hermesImplementationAddress = _hermesImplementation;
+
+        parentRegistry = ParentRegistry(_parentAddress);
     }
 
-    // Reject any ethers send to this smart-contract
+    // Reject any ethers sent to this smart-contract
     receive() external payable {
         revert("Rejecting tx with ethers sent");
     }
@@ -181,11 +190,24 @@ contract Registry is FundsRecovery {
 
     // ------------------------------------------------------------------------
 
-    function isRegistered(address _identityHash) public view returns (bool) {
-        return identities[_identityHash];
+    // Returns true when parent registry is set
+    function hasParentRegistry(address _parentAddress) public view returns (bool) {
+        return _parentAddress != address(0x0);
+    }
+
+    function isRegistered(address _identity) public view returns (bool) {
+        if (hasParentRegistry(address(parentRegistry)) && parentRegistry.isRegistered(_identity)) {
+            return true;
+        }
+
+        return identities[_identity];
     }
 
     function isHermes(address _hermesId) public view returns (bool) {
+        if (hasParentRegistry(address(parentRegistry)) && parentRegistry.isAccountant(_hermesId)) {
+            return true;
+        }
+
         address hermesOperator = hermeses[_hermesId].operator;
         address _addr = getHermesAddress(hermesOperator);
         uint _codeLength;
@@ -198,6 +220,10 @@ contract Registry is FundsRecovery {
     }
 
     function isActiveHermes(address _hermesId) internal view returns (bool) {
+        if (hasParentRegistry(address(parentRegistry)) && parentRegistry.isActiveAccountant(_hermesId)) {
+            return true;
+        }
+
         // If stake is 0, then it's either incactive or unregistered hermes
         HermesContract.Status status = HermesContract(_hermesId).getStatus();
         return status == HermesContract.Status.Active;
