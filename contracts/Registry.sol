@@ -147,7 +147,7 @@ contract Registry is FundsRecovery {
     }
 
     function updateHermsURL(address _hermesId, bytes memory _url, bytes memory _signature) public {
-        require(isActiveHermes(_hermesId), "provided has have to be active");
+        require(isActiveHermes(_hermesId), "provided hermes has to be active");
 
         // Check if given signature is valid
         address _operator = keccak256(abi.encodePacked(address(this), _hermesId, _url)).recover(_signature);
