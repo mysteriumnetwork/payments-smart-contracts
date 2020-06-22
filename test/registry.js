@@ -5,7 +5,7 @@ const { BN } = require('@openzeppelin/test-helpers')
 
 const genCreate2Address = require('./utils/index.js').genCreate2Address
 const topUpTokens = require('./utils/index.js').topUpTokens
-const signIdentityRegistration = require('./utils/client.js').signIdentityRegistration
+const { signIdentityRegistration, signUrlUpdate } = require('./utils/client.js')
 const generateAccount = require('./utils/wallet.js').generateAccount
 
 const Registry = artifacts.require("Registry")
@@ -24,8 +24,10 @@ function generateIdentities(amount) {
 }
 
 const identities = generateIdentities(3)   // Generates array of identities
+const operator = generateAccount()
+const hermesOperator = operator.address
 
-contract('Registry', ([txMaker, minter, hermesOperator, fundsDestination, ...otherAccounts]) => {
+contract('Registry', ([txMaker, minter, fundsDestination, ...otherAccounts]) => {
     let token, channelImplementation, hermesImplementation, hermesId, dex, registry
     before(async () => {
         token = await MystToken.new()
@@ -45,9 +47,23 @@ contract('Registry', ([txMaker, minter, hermesOperator, fundsDestination, ...oth
     })
 
     it('should register hermes', async () => {
-        await registry.registerHermes(hermesOperator, 10, 0, 25, OneToken)
+        const hermesURL = Buffer.from('http://test.hermes')
+        await registry.registerHermes(hermesOperator, 10, 0, 25, OneToken, hermesURL)
         hermesId = await registry.getHermesAddress(hermesOperator)
         expect(await registry.isHermes(hermesId)).to.be.true
+    })
+
+    it('hermes should have proper URL', async () => {
+        const expectedURL = 'http://test.hermes'
+        expect(Buffer.from((await registry.getHermesURL(hermesId)).slice(2), 'hex').toString()).to.be.equal(expectedURL)
+    })
+
+    it('should be possible to change hermes URL', async () => {
+        const newURL = 'https://test.hermes/api/v2'
+        const signature = signUrlUpdate(registry.address, hermesId, newURL, operator)
+        await registry.updateHermsURL(hermesId, Buffer.from(newURL), signature)
+
+        expect(Buffer.from((await registry.getHermesURL(hermesId)).slice(2), 'hex').toString()).to.be.equal(newURL)
     })
 
     it('should register identity having 0 balance', async () => {

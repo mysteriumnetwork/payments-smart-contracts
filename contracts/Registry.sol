@@ -28,8 +28,6 @@ contract Registry is FundsRecovery {
     using ECDSA for bytes32;
     using SafeMath for uint256;
 
-    string constant REGISTER_PREFIX="Register prefix:";
-
     address public dex;
     uint256 public registrationFee;
     uint256 public minimalHermesStake;
@@ -38,15 +36,17 @@ contract Registry is FundsRecovery {
     ParentRegistry internal parentRegistry;
 
     struct Hermes {
-        address operator;
+        address operator;   // hermes operator who will sign promises
         function() external view returns(uint256) stake;
+        bytes url;          // hermes service URL
     }
     mapping(address => Hermes) public hermeses;
 
     mapping(address => bool) private identities;
 
     event RegisteredIdentity(address indexed identityHash, address indexed hermesId);
-    event RegisteredHermes(address indexed hermesId, address hermesOperator);
+    event RegisteredHermes(address indexed hermesId, address hermesOperator, bytes ur);
+    event HermesURLUpdated(address indexed hermesId, bytes newURL);
     event ConsumerChannelCreated(address indexed identityHash, address indexed hermesId, address channelAddress);
 
     constructor (address _tokenAddress, address _dexAddress, uint256 _regFee, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation, address _parentAddress) public {
@@ -109,7 +109,7 @@ contract Registry is FundsRecovery {
         }
     }
 
-    function registerHermes(address _hermesOperator, uint256 _stakeAmount, uint16 _hermesFee, uint256 _minStake, uint256 _maxStake) public {
+    function registerHermes(address _hermesOperator, uint256 _stakeAmount, uint16 _hermesFee, uint256 _minStake, uint256 _maxStake, bytes memory _url) public {
         require(_hermesOperator != address(0), "operator can't be zero address");
         require(_stakeAmount >= minimalHermesStake, "hermes have to stake at least minimal stake amount");
 
@@ -126,9 +126,9 @@ contract Registry is FundsRecovery {
         _hermes.initialize(address(token), _hermesOperator, _hermesFee, _minStake, _maxStake);
 
         // Save info about newly created hermes
-        hermeses[address(_hermes)] = Hermes(_hermesOperator, _hermes.getStake);
+        hermeses[address(_hermes)] = Hermes(_hermesOperator, _hermes.getStake, _url);
 
-        emit RegisteredHermes(address(_hermes), _hermesOperator);
+        emit RegisteredHermes(address(_hermes), _hermesOperator, _url);
     }
 
     function getChannelAddress(address _identity, address _hermesId) public view returns (address) {
@@ -140,6 +140,23 @@ contract Registry is FundsRecovery {
     function getHermesAddress(address _hermesOperator) public view returns (address) {
         bytes32 _code = keccak256(getProxyCode(getHermesImplementation()));
         return getCreate2Address(bytes32(uint256(_hermesOperator)), _code);
+    }
+
+    function getHermesURL(address _hermesId) public view returns (bytes memory) {
+        return hermeses[_hermesId].url;
+    }
+
+    function updateHermsURL(address _hermesId, bytes memory _url, bytes memory _signature) public {
+        require(isActiveHermes(_hermesId), "provided has have to be active");
+
+        // Check if given signature is valid
+        address _operator = keccak256(abi.encodePacked(address(this), _hermesId, _url)).recover(_signature);
+        require(_operator == hermeses[_hermesId].operator, "wrong signature");
+
+        // Update URL
+        hermeses[_hermesId].url = _url;
+
+        emit HermesURLUpdated(_hermesId, _url);
     }
 
     // ------------ UTILS ------------

@@ -332,6 +332,20 @@ function signIdentityRegistration(registryAddress, hermesId, stake, fee, benefic
     return signature
 }
 
+function signUrlUpdate(registryAddress, hermesId, url, identity) {
+    const message = Buffer.concat([
+        Buffer.from(registryAddress.slice(2), 'hex'),
+        Buffer.from(hermesId.slice(2), 'hex'),
+        Buffer.from(url)
+    ])
+
+    // sign and verify the signature
+    const signature = signMessage(message, identity.privKey)
+    expect(verifySignature(message, signature, identity.pubKey)).to.be.true
+
+    return signature
+}
+
 function signStakeGoalUpdate(channelId, stakeGoal, channelNonce, identity) {
     const STAKE_GOAL_UPDATE_PREFIX = "Stake goal update request"
 
@@ -385,5 +399,6 @@ module.exports = {
     signExitRequest,
     signIdentityRegistration,
     signStakeGoalUpdate,
+    signUrlUpdate,
     validatePromise
 }

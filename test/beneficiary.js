@@ -26,6 +26,7 @@ const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const OneEther = web3.utils.toWei(new BN(1), 'ether')
 const Zero = new BN(0)
 const zeroAddress = '0x0000000000000000000000000000000000000000'
+const hermesURL = Buffer.from('http://test.hermes')
 
 // const operatorPrivKey = Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8c26933e5d9f0cda92f3c3', 'hex')
 const operator = wallet.generateAccount(Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8c26933e5d9f0cda92f3c3', 'hex'))  // Generate hermes operator wallet
@@ -49,7 +50,7 @@ contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, 
     })
 
     it("should register and initialize hermes hub", async () => {
-        await registry.registerHermes(operator.address, 10, 0, 25, OneToken)
+        await registry.registerHermes(operator.address, 10, 0, 25, OneToken, hermesURL)
         const hermesId = await registry.getHermesAddress(operator.address)
         expect(await registry.isHermes(hermesId)).to.be.true
 

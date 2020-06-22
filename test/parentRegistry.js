@@ -14,10 +14,9 @@ const HermesImplementation = artifacts.require("HermesImplementation")
 const Registry = artifacts.require("Registry")
 const ParentRegistry = artifacts.require("TestOldRegistry")
 
-const OneEther = web3.utils.toWei('1', 'ether')
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const Zero = new BN(0)
-const ZeroAddress = '0x0000000000000000000000000000000000000000'
+const hermesURL = Buffer.from('http://test.hermes')
 
 function generateIdentities(amount) {
     return (amount <= 0) ? [generateAccount()] : [generateAccount(), ...generateIdentities(amount - 1)]
@@ -47,7 +46,7 @@ contract('Parent registry', ([txMaker, minter, hermesOperator, hermesOperator2, 
     })
 
     it('should register hermes into new registry', async () => {
-        await registry.registerHermes(hermesOperator2, 10, 0, 25, OneToken)
+        await registry.registerHermes(hermesOperator2, 10, 0, 25, OneToken, hermesURL)
         hermesId = await registry.getHermesAddress(hermesOperator2)
         expect(await registry.isHermes(hermesId)).to.be.true
     })

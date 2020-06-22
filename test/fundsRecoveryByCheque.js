@@ -20,6 +20,7 @@ const MystDex = artifacts.require("MystDEX")
 const OneEther = web3.utils.toWei('1', 'ether')
 const Zero = new BN(0)
 const ZeroAddress = '0x0000000000000000000000000000000000000000'
+const hermesURL = Buffer.from('http://test.hermes')
 
 function createCheque(signer, destination, nonce) {
     const PREFIX = Buffer.from("Set funds destination:")
@@ -64,7 +65,7 @@ contract('Full path (in channel using cheque) test for funds recovery', ([txMake
     })
 
     it('should register hermes', async () => {
-        await registry.registerHermes(hermesOperator, 10, 0, 25, OneEther)
+        await registry.registerHermes(hermesOperator, 10, 0, 25, OneEther, hermesURL)
         expect(await registry.isHermes(hermesId)).to.be.true
     })
 
