@@ -21,6 +21,7 @@ const ChannelImplementation = artifacts.require("ChannelImplementation")
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const Zero = new BN(0)
 const ZeroAddress = '0x0000000000000000000000000000000000000000'
+const hermesURL = Buffer.from('http://test.hermes')
 
 const provider = wallet.generateAccount()
 const hermesOperator = wallet.generateAccount()
@@ -43,11 +44,11 @@ contract('Hermes stake management', ([txMaker, operatorAddress, ...beneficiaries
 
     it('should reject hermes registration if he do not pay enought stake', async () => {
         const stateAmount = stake - 1
-        await registry.registerHermes(hermesOperator.address, stateAmount, Zero, 25, OneToken).should.be.rejected
+        await registry.registerHermes(hermesOperator.address, stateAmount, Zero, 25, OneToken, hermesURL).should.be.rejected
     })
 
     it('should register hermes when stake is ok', async () => {
-        await registry.registerHermes(hermesOperator.address, stake, Zero, 25, OneToken)
+        await registry.registerHermes(hermesOperator.address, stake, Zero, 25, OneToken, hermesURL)
         const hermesId = await registry.getHermesAddress(hermesOperator.address)
         hermes = await HermesImplementation.at(hermesId)
         expect(await registry.isHermes(hermes.address)).to.be.true

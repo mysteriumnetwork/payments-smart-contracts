@@ -19,6 +19,7 @@ const ChannelImplementation = artifacts.require("ChannelImplementation")
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const Zero = new BN(0)
 const ZeroAddress = '0x0000000000000000000000000000000000000000'
+const hermesURL = Buffer.from('http://test.hermes')
 
 const provider = wallet.generateAccount()
 const operatorPrivKey = Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8c26933e5d9f0cda92f3c3', 'hex')
@@ -41,7 +42,7 @@ contract('Hermes fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
     it('should calculate proper fee righ after hermes registration', async () => {
         // Register hermes
         const hermesFee = 250 // 2.50%
-        await registry.registerHermes(hermesOperator.address, 100, hermesFee, 25, OneToken)
+        await registry.registerHermes(hermesOperator.address, 100, hermesFee, 25, OneToken, hermesURL)
         const hermesId = await registry.getHermesAddress(hermesOperator.address)
         hermes = await HermesImplementation.at(hermesId)
 
