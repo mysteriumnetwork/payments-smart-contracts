@@ -245,4 +245,35 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
         balanceAfter.should.be.bignumber.equal(balanceBefore.add(amountToSettle))
     })
 
+    it("simple settlement should decrease balance for provider with partial stake", async () => {
+        const identity = wallet.generateAccount()
+        const channelId = generateChannelId(identity.address, hermes.address)
+        const channelState = Object.assign({}, { channelId }, await hermes.channels(channelId))
+        const initialBalance = await token.balanceOf(beneficiaryC)
+        const amountToPay = new BN('20')
+        const amountToStake = new BN('10')
+
+        // Topup stake needed during registration
+        const topupAddress = await registry.getChannelAddress(identity.address, hermes.address)  // User's topup channes is used as beneficiary when channel opening during settlement is used.
+        await topUpTokens(token, topupAddress, amountToStake)
+
+        // Register identity and open channel with hermes
+        const signature = signIdentityRegistration(registry.address, hermes.address, amountToStake, Zero, beneficiaryC, identity)
+        await registry.registerIdentity(hermes.address, amountToStake, Zero, beneficiaryC, signature)
+        expect(await registry.isRegistered(identity.address)).to.be.true
+        expect(await hermes.isChannelOpened(channelId)).to.be.true
+
+        // Settle promise
+        promise = generatePromise(amountToPay, Zero, channelState, operator, identity.address)
+        await hermes.settlePromise(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
+
+        const channel = await hermes.channels(channelId)
+        expect(channel.beneficiary).to.be.equal(beneficiaryC)
+        expect(channel.balance.toNumber()).to.be.equal(0)
+
+        const balanceAfter = await token.balanceOf(beneficiaryC)
+        const amountToSettle = amountToPay.sub(amountToPay.div(new BN(10))) // amountToPay - 10% which will be used as stake
+        balanceAfter.should.be.bignumber.equal(initialBalance.add(amountToSettle))
+    })
+
 })
