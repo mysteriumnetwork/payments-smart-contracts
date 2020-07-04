@@ -263,10 +263,15 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
         expect(await registry.isRegistered(identity.address)).to.be.true
         expect(await hermes.isChannelOpened(channelId)).to.be.true
 
+        // Remember hermes available balance and channel balance before settlement
+        const initialChannelBalance = (await hermes.channels(channelId)).balance
+        const initialHermesAvailableBalance = await hermes.availableBalance()
+
         // Settle promise
         promise = generatePromise(amountToPay, Zero, channelState, operator, identity.address)
         await hermes.settlePromise(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
 
+        // Check correctness of all the things
         const channel = await hermes.channels(channelId)
         expect(channel.beneficiary).to.be.equal(beneficiaryC)
         expect(channel.balance.toNumber()).to.be.equal(0)
@@ -274,6 +279,9 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
         const balanceAfter = await token.balanceOf(beneficiaryC)
         const amountToSettle = amountToPay.sub(amountToPay.div(new BN(10))) // amountToPay - 10% which will be used as stake
         balanceAfter.should.be.bignumber.equal(initialBalance.add(amountToSettle))
+
+        const hermesAvailableBalance = await hermes.availableBalance()
+        hermesAvailableBalance.should.be.bignumber.equal(initialHermesAvailableBalance.sub(amountToPay.sub(initialChannelBalance)))
     })
 
 })
