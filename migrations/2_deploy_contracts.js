@@ -1,14 +1,18 @@
+const erc1820 = require("../scripts/erc1820Deploy")
+
 const Registry = artifacts.require("Registry")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
 const HermesImplementation = artifacts.require("HermesImplementation")
 const DEXImplementation = artifacts.require("MystDEX")
-const DEXProxy = artifacts.require("DEXProxy")
 const MystToken = artifacts.require("MystToken")
 const SafeMathLib = artifacts.require("SafeMathLib")
 
 const zeroAddress = '0x0000000000000000000000000000000000000000'
 
 module.exports = async function (deployer, network, accounts) {
+    // Deploy ERC1820 Pseudo-introspection Registry Contract
+    await erc1820.deploy(web3, accounts[0])
+
     // We do have MYSTT and Config deployed on Görli already
     if (network === 'goerli') {
         const tokenAddress = '0x7753cfAD258eFbC52A9A1452e42fFbce9bE486cb'

@@ -3,7 +3,7 @@ pragma solidity >=0.5.12 <0.7.0;
 
 import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20Token } from "./interfaces/IERC20Token.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
 
 interface Channel {
@@ -54,7 +54,7 @@ contract Registry is FundsRecovery {
         minimalHermesStake = _minimalHermesStake;
 
         require(_tokenAddress != address(0));
-        token = IERC20(_tokenAddress);
+        token = IERC20Token(_tokenAddress);
 
         require(_dexAddress != address(0));
         dex = _dexAddress;
@@ -208,7 +208,7 @@ contract Registry is FundsRecovery {
     // ------------------------------------------------------------------------
 
     // Returns true when parent registry is set
-    function hasParentRegistry(address _parentAddress) public view returns (bool) {
+    function hasParentRegistry(address _parentAddress) public pure returns (bool) {
         return _parentAddress != address(0x0);
     }
 

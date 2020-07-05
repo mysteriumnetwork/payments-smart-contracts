@@ -3,7 +3,7 @@ pragma solidity >=0.5.12 <0.7.0;
 
 import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20Token } from "./interfaces/IERC20Token.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
 
 interface IdentityRegistry {
@@ -124,7 +124,7 @@ contract HermesImplementation is FundsRecovery {
         require(_fee <= 5000, "fee can't be bigger than 50%");
         require(_maxStake > _minStake, "maxStake have to be bigger than minStake");
 
-        token = IERC20(_token);
+        token = IERC20Token(_token);
         registry = IdentityRegistry(msg.sender);
         operator = _operator;
         lastFee = HermesFee(_fee, uint64(block.number));

@@ -3,7 +3,7 @@ pragma solidity >=0.6.0 <0.7.0;
 
 import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20Token } from "../../contracts/interfaces/IERC20Token.sol";
 import { FundsRecovery } from "../../contracts/FundsRecovery.sol";
 
 interface AccountantContract {
@@ -31,7 +31,7 @@ contract TestOldRegistry is FundsRecovery {
 
     constructor (address _tokenAddress) public {
         require(_tokenAddress != address(0));
-        token = IERC20(_tokenAddress);
+        token = IERC20Token(_tokenAddress);
     }
 
     // Reject any ethers sent to this smart-contract

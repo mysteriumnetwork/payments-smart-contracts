@@ -2,7 +2,7 @@
 pragma solidity >=0.6.0 <0.7.0;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20Token } from "./interfaces/IERC20Token.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
 import { Ownable } from "./Ownable.sol";
 
@@ -12,7 +12,6 @@ contract MystDEX is Ownable, FundsRecovery {
 
     bool public initialised;
     uint256 rate;   // Wei per token
-    // IERC20 token;
 
     // Default function - converts ethers to MYST
     receive() external payable {
@@ -29,7 +28,7 @@ contract MystDEX is Ownable, FundsRecovery {
     function initialise(address _dexOwner, address _token, uint256 _rate) public {
         require(!initialised, "Contract is already initialised");
         transferOwnership(_dexOwner);
-        token = IERC20(_token);
+        token = IERC20Token(_token);
         rate = _rate;
         initialised = true;
     }
