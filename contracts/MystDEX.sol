@@ -5,13 +5,18 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IERC20Token } from "./interfaces/IERC20Token.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
 import { Ownable } from "./Ownable.sol";
+import { ERC1820Client } from "./utils/ERC1820Client.sol";
 
-
-contract MystDEX is Ownable, FundsRecovery {
+contract MystDEX is Ownable, FundsRecovery, ERC1820Client {
     using SafeMath for uint256;
 
     bool public initialised;
     uint256 rate;   // Wei per token
+
+    constructor() public {
+        // Register as ERC777 recipient
+        setInterfaceImplementation("ERC777TokensRecipient", address(this));
+    }
 
     // Default function - converts ethers to MYST
     receive() external payable {

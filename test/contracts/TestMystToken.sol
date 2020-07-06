@@ -6,11 +6,11 @@ import "@openzeppelin/contracts/token/ERC777/ERC777.sol";
 
 contract TestMystToken is ERC777, IUpgradeAgent {
     address public originalToken;
+    address[] empty;
 
-    constructor(address _originalToken, uint256 _originalSupply, address[] memory _defaultOperators)
-        ERC777("Test Mysterium token v2", "MYSTTv2", _defaultOperators)
-        public
-    {
+    constructor () ERC777("Test Mysterium token v2", "MYSTTv2", empty) public {}
+
+    function initilize(address _originalToken, uint256 _originalSupply) public {
         originalToken  = _originalToken;
         originalSupply = _originalSupply;
     }
@@ -27,5 +27,9 @@ contract TestMystToken is ERC777, IUpgradeAgent {
         _mint(_account, _amount, "", "");
 
         require(totalSupply() <= originalSupply, "can not mint more tokens than in original contract");
+    }
+
+    function mint(address _account, uint _amount) public {
+        _mint(_account, _amount, "", "");
     }
 }

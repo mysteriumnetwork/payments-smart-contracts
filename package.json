@@ -1,6 +1,6 @@
 {
     "name": "payments-smart-contracts",
-    "version": "0.9.6",
+    "version": "0.9.7",
     "description": "Smart contracts for Mysterium Network payments flow",
     "main": "index.js",
     "scripts": {

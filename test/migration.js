@@ -5,8 +5,8 @@ const { BN } = require('@openzeppelin/test-helpers')
 
 const { topUpTokens } = require('./utils/index.js')
 
+const OldMystToken = artifacts.require("OldMystToken")
 const MystToken = artifacts.require("MystToken")
-const NewMystToken = artifacts.require("NewMystToken")
 const TestMystToken = artifacts.require("TestMystToken")
 
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
@@ -22,16 +22,16 @@ const states = {
     upgrading: new BN(4)
 }
 
-contract('Token migration', ([txMaker, addressOne, addressTwo, ...otherAddresses]) => {
+contract('ERC20 token migration', ([txMaker, addressOne, addressTwo, ...otherAddresses]) => {
     let token, newToken, totalSupply
     before(async () => {
-        token = await MystToken.new()
+        token = await OldMystToken.new()
         await topUpTokens(token, txMaker, OneToken)
         await topUpTokens(token, addressOne, new BN('123'))
         await topUpTokens(token, addressTwo, new BN('321'))
         totalSupply = await token.totalSupply()
 
-        newToken = await NewMystToken.new(token.address, totalSupply, [])
+        newToken = await MystToken.new(token.address, totalSupply, [])
     })
 
     it('should fail migration when it is not enabled', async () => {
@@ -103,7 +103,7 @@ contract('Token migration', ([txMaker, addressOne, addressTwo, ...otherAddresses
     })
 
     it('should fail settting upgrade agent while in upgrading stage', async () => {
-        const nextToken = await NewMystToken.new(token.address, totalSupply, [])
+        const nextToken = await MystToken.new(token.address, totalSupply, [])
         await token.setUpgradeAgent(nextToken.address).should.be.rejected
     })
 
@@ -122,17 +122,18 @@ contract('Token migration', ([txMaker, addressOne, addressTwo, ...otherAddresses
     })
 })
 
-contract('ERC777 Token migration', ([txMaker, addressOne, addressTwo, ...otherAddresses]) => {
+contract('ERC777 token migration', ([txMaker, addressOne, addressTwo, ...otherAddresses]) => {
     let oldToken, token, newToken, totalSupply
     before(async () => {
-        oldToken = await MystToken.new()
+        oldToken = await OldMystToken.new()
         await topUpTokens(oldToken, txMaker, OneToken)
         await topUpTokens(oldToken, addressOne, new BN('123'))
         await topUpTokens(oldToken, addressTwo, new BN('321'))
         totalSupply = await oldToken.totalSupply()
 
-        token = await NewMystToken.new(oldToken.address, totalSupply, [])
-        newToken = await TestMystToken.new(token.address, totalSupply.mul(Multiplier), [])
+        token = await MystToken.new(oldToken.address, totalSupply, [])
+        newToken = await TestMystToken.new()
+        newToken.initilize(token.address, totalSupply.mul(Multiplier))
     })
 
     it('should migrate from ERC20 to ERC777 token', async () => {
@@ -241,7 +242,7 @@ contract('ERC777 Token migration', ([txMaker, addressOne, addressTwo, ...otherAd
     })
 
     it('should fail settting upgrade agent while in upgrading stage', async () => {
-        const nextToken = await NewMystToken.new(token.address, totalSupply, [])
+        const nextToken = await MystToken.new(token.address, totalSupply, [])
         await token.setUpgradeAgent(nextToken.address).should.be.rejected
     })
 
