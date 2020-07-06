@@ -2,7 +2,7 @@
 pragma solidity >=0.5.12 <0.7.0;
 
 import { SafeMathLib } from "./libs/SafeMathLib.sol";
-
+import { IUpgradeAgent } from "./interfaces/IUpgradeAgent.sol";
 
 /*
  * ERC20 interface
@@ -93,23 +93,6 @@ contract Ownable {
     }
 }
 
-/**
- * Upgrade agent interface inspired by Lunyr.
- *
- * Upgrade agent transfers tokens to a new contract.
- * Upgrade agent itself can be the token contract, or just a middle man contract doing the heavy lifting.
- */
-abstract contract UpgradeAgent {
-    uint public originalSupply;
-
-    /** Interface marker */
-    function isUpgradeAgent() public pure returns (bool) {
-      return true;
-    }
-
-    function upgradeFrom(address _from, uint256 _value) public virtual;
-}
-
 // Standard ERC20 token to represent MYST token in testnet and local environment.
 contract MystToken is ERC20, Ownable, SafeMath {
     using SafeMathLib for uint;
@@ -120,7 +103,7 @@ contract MystToken is ERC20, Ownable, SafeMath {
 
     bool public mintingFinished = false;
     address public upgradeMaster;
-    UpgradeAgent public upgradeAgent;                       // The next contract where the tokens will be migrated.
+    IUpgradeAgent public upgradeAgent;                       // The next contract where the tokens will be migrated.
     uint256 public totalUpgraded;                           // How many tokens we have upgraded by now.
 
     mapping (address => bool) public mintAgents;            // List of agents that are allowed to create new tokens
@@ -288,7 +271,7 @@ contract MystToken is ERC20, Ownable, SafeMath {
         require(agent != address(0x0));
         require(getUpgradeState() != UpgradeState.Upgrading, "Upgrade has already begun for an agent");
 
-        upgradeAgent = UpgradeAgent(agent);
+        upgradeAgent = IUpgradeAgent(agent);
 
         // Bad interface
         if(!upgradeAgent.isUpgradeAgent()) revert();
