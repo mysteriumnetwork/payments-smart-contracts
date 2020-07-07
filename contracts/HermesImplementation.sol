@@ -202,14 +202,14 @@ contract HermesImplementation is FundsRecovery {
 
             _increaseStake(_channelId, _stakeIncrease, true);
             _amountToSettle = _amountToSettle.sub(_stakeIncrease);
-        } else {
-            // Update balance and decrease hermes locked funds.
-            _channel.balance = _channel.balance.sub(_unpaidAmount);
-            lockedFunds = lockedFunds.sub(_unpaidAmount);
         }
 
-        // Transfer tokens and decrease balance.
+        // Decrease hermes locked funds.
+        lockedFunds = lockedFunds.sub(min(_unpaidAmount, _channel.balance));
+
+        // Transfer tokens and update channel balance.
         token.transfer(_channel.beneficiary, _amountToSettle);
+        _channel.balance = _channel.balance.sub(min(_unpaidAmount, _channel.balance));
 
         // Pay fee
         if (_transactorFee > 0) {
