@@ -11,7 +11,7 @@ const generateAccount = require('./utils/wallet.js').generateAccount
 const Registry = artifacts.require("Registry")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
 const HermesImplementation = artifacts.require("HermesImplementation")
-const MystToken = artifacts.require("MystToken")
+const MystToken = artifacts.require("TestMystToken")
 const MystDex = artifacts.require("MystDEX")
 
 const OneEther = web3.utils.toWei('1', 'ether')

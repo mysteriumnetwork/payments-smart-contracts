@@ -16,13 +16,13 @@ const {
     generatePromise
 } = require('./utils/client.js')
 
-const MystToken = artifacts.require("MystToken")
+const MystToken = artifacts.require("TestMystToken")
 const MystDex = artifacts.require("MystDEX")
 const Registry = artifacts.require("Registry")
 const HermesImplementation = artifacts.require("TestHermesImplementation")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
 
-const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
+const OneToken = web3.utils.toWei(new BN('1000000000000000000'), 'wei')
 const OneEther = web3.utils.toWei(new BN(1), 'ether')
 const Zero = new BN(0)
 const zeroAddress = '0x0000000000000000000000000000000000000000'

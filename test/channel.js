@@ -11,7 +11,7 @@ const {
 const wallet = require('./utils/wallet.js')
 const { generatePromise, signExitRequest, constructPayload } = require('./utils/client.js')
 
-const MystToken = artifacts.require("MystToken")
+const MystToken = artifacts.require("TestMystToken")
 const TestChannelImplementation = artifacts.require("TestChannelImplementation")
 const TestHermesImplementation = artifacts.require("TestHermesImplementation")
 

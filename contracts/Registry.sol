@@ -3,7 +3,7 @@ pragma solidity >=0.5.12 <0.7.0;
 
 import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20Token } from "./interfaces/IERC20Token.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
 
 interface Channel {
@@ -54,7 +54,7 @@ contract Registry is FundsRecovery {
         minimalHermesStake = _minimalHermesStake;
 
         require(_tokenAddress != address(0));
-        token = IERC20(_tokenAddress);
+        token = IERC20Token(_tokenAddress);
 
         require(_dexAddress != address(0));
         dex = _dexAddress;
@@ -80,7 +80,7 @@ contract Registry is FundsRecovery {
         require(_identityHash != address(0), "wrong signature");
 
         // Tokens amount to get from channel to cover tx fee, registration fee and provider's stake
-        uint256 _totalFee = registrationFee.add(_stakeAmount).add(_transactorFee);
+        uint256 _totalFee = registrationFee.add(_stakeAmount); //.add(_transactorFee);
         require(_totalFee <= token.balanceOf(getChannelAddress(_identityHash, _hermesId)), "not enought funds in channel to cover fees");
 
         // Deploy channel contract for given identity (mini proxy which is pointing to implementation)
@@ -109,9 +109,9 @@ contract Registry is FundsRecovery {
         }
     }
 
-    function registerHermes(address _hermesOperator, uint256 _stakeAmount, uint16 _hermesFee, uint256 _minStake, uint256 _maxStake, bytes memory _url) public {
+    function registerHermes(address _hermesOperator, uint256 _hermesStake, uint16 _hermesFee, uint256 _minChannelStake, uint256 _maxChannelStake, bytes memory _url) public {
         require(_hermesOperator != address(0), "operator can't be zero address");
-        require(_stakeAmount >= minimalHermesStake, "hermes have to stake at least minimal stake amount");
+        require(_hermesStake >= minimalHermesStake, "hermes have to stake at least minimal stake amount");
 
         address _hermesId = getHermesAddress(_hermesOperator);
         require(!isHermes(_hermesId), "hermes already registered");
@@ -120,10 +120,10 @@ contract Registry is FundsRecovery {
         HermesContract _hermes = HermesContract(deployMiniProxy(uint256(_hermesOperator), getProxyCode(getHermesImplementation())));
 
         // Transfer stake into hermes smart contract
-        token.transferFrom(msg.sender, address(_hermes), _stakeAmount);
+        token.transferFrom(msg.sender, address(_hermes), _hermesStake);
 
         // Initialise hermes
-        _hermes.initialize(address(token), _hermesOperator, _hermesFee, _minStake, _maxStake);
+        _hermes.initialize(address(token), _hermesOperator, _hermesFee, _minChannelStake, _maxChannelStake);
 
         // Save info about newly created hermes
         hermeses[address(_hermes)] = Hermes(_hermesOperator, _hermes.getStake, _url);
@@ -208,7 +208,7 @@ contract Registry is FundsRecovery {
     // ------------------------------------------------------------------------
 
     // Returns true when parent registry is set
-    function hasParentRegistry(address _parentAddress) public view returns (bool) {
+    function hasParentRegistry(address _parentAddress) public pure returns (bool) {
         return _parentAddress != address(0x0);
     }
 

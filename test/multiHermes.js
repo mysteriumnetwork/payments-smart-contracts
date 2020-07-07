@@ -6,7 +6,7 @@ const { topUpTokens } = require('./utils/index.js')
 const { signIdentityRegistration } = require('./utils/client.js')
 const wallet = require('./utils/wallet.js')
 
-const MystToken = artifacts.require("MystToken")
+const MystToken = artifacts.require("TestMystToken")
 const MystDex = artifacts.require("MystDEX")
 const Registry = artifacts.require("Registry")
 const HermesImplementation = artifacts.require("HermesImplementation")

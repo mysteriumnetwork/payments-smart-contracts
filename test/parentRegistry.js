@@ -7,7 +7,7 @@ const generateAccount = require('./utils/wallet.js').generateAccount
 const topUpTokens = require('./utils/index.js').topUpTokens
 const signIdentityRegistration = require('./utils/client.js').signIdentityRegistration
 
-const MystToken = artifacts.require("MystToken")
+const MystToken = artifacts.require("TestMystToken")
 const MystDex = artifacts.require("MystDEX")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
 const HermesImplementation = artifacts.require("HermesImplementation")

@@ -14,7 +14,7 @@ const signIdentityRegistration = require('./utils/client.js').signIdentityRegist
 const Registry = artifacts.require("Registry")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
 const HermesImplementation = artifacts.require("HermesImplementation")
-const Token = artifacts.require("MystToken")
+const Token = artifacts.require("TestMystToken")
 const MystDex = artifacts.require("MystDEX")
 
 const OneEther = web3.utils.toWei('1', 'ether')
