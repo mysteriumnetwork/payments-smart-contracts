@@ -90,7 +90,6 @@ async function createHermesService(hermes, operator, token) {
     }
     this.getOutgoingChannel = async (receiver) => {
         const channelId = await hermes.getChannelId(receiver)
-        expect(await hermes.isChannelOpened(channelId)).to.be.true
 
         if (!state.channels[channelId]) {
             state.channels[channelId] = merge({}, DEFAULT_CHANNEL_STATE, await hermes.channels(channelId))
