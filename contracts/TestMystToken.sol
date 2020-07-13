@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.5.12 <0.7.0;
 
-import { IUpgradeAgent } from "../../contracts/interfaces/IUpgradeAgent.sol";
+import { IUpgradeAgent } from "./interfaces/IUpgradeAgent.sol";
 import "@openzeppelin/contracts/token/ERC777/ERC777.sol";
 
 contract TestMystToken is ERC777, IUpgradeAgent {
