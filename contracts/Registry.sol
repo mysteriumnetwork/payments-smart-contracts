@@ -80,7 +80,7 @@ contract Registry is FundsRecovery {
         require(_identityHash != address(0), "wrong signature");
 
         // Tokens amount to get from channel to cover tx fee, registration fee and provider's stake
-        uint256 _totalFee = registrationFee.add(_stakeAmount); //.add(_transactorFee);
+        uint256 _totalFee = registrationFee.add(_stakeAmount).add(_transactorFee);
         require(_totalFee <= token.balanceOf(getChannelAddress(_identityHash, _hermesId)), "not enought funds in channel to cover fees");
 
         // Deploy channel contract for given identity (mini proxy which is pointing to implementation)

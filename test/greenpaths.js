@@ -16,6 +16,7 @@ const {
     signIdentityRegistration
 } = require('./utils/client.js')
 const wallet = require('./utils/wallet.js')
+const { expect } = require('chai')
 
 const MystToken = artifacts.require("TestMystToken")
 const MystDex = artifacts.require("MystDEX")
@@ -31,7 +32,7 @@ const hermesURL = Buffer.from('http://test.hermes')
 const hermes2URL = Buffer.from('https://test.hermes2')
 
 let token, hermes, registry;
-const identities = generateIdentities(5)   // Generates array of identities
+const identities = generateIdentities(6)   // Generates array of identities
 const operator = wallet.generateAccount()  // Generate hermes operator wallet
 const operator2 = wallet.generateAccount() // Generate operator for second hermes
 
@@ -109,6 +110,39 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
 
         const channel = await hermes.channels(expectedChannelId)
         expect(channel.balance.toNumber()).to.be.equal(channelStake.toNumber())
+    })
+
+    it("register provider identity and transfer fee to transactor", async () => {
+        const providerIdentity = identities[5].address
+        const expectedChannelId = generateChannelId(providerIdentity, hermes.address)
+        const initialHermesBalance = await token.balanceOf(hermes.address)
+
+        // Guaranteed incomming channel size
+        const channelStake = new BN(2000)
+
+        // Topup some tokens into paying channel
+        const channelAddress = await registry.getChannelAddress(providerIdentity, hermes.address)
+        await topUpTokens(token, channelAddress, OneToken)
+
+        // Save current token balance
+        const txMakerTokenBalance = await token.balanceOf(txMaker)
+        const fee = new BN(100)
+
+        // Register identity and open channel with hermes
+        const signature = signIdentityRegistration(registry.address, hermes.address, channelStake, fee, beneficiaries[5], identities[5])
+        await registry.registerIdentity(hermes.address, channelStake, fee, beneficiaries[5], signature)
+        expect(await registry.isRegistered(providerIdentity)).to.be.true
+        expect(await hermes.isChannelOpened(expectedChannelId)).to.be.true
+
+        // Channel stake have to be transfered to hermes
+        const hermesTokenBalance = await token.balanceOf(hermes.address)
+        hermesTokenBalance.should.be.bignumber.equal(initialHermesBalance.add(channelStake))
+
+        const channel = await hermes.channels(expectedChannelId)
+        expect(channel.balance.toNumber()).to.be.equal(channelStake.toNumber())
+
+        const newTxMakerTokenBalance = await token.balanceOf(txMaker)
+        expect(newTxMakerTokenBalance.toNumber()).to.be.equal(txMakerTokenBalance.toNumber() + fee.toNumber())
     })
 
     it("topup consumer channels", async () => {
