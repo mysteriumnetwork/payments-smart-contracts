@@ -112,6 +112,7 @@ library SafeMath {
      * Counterpart to Solidity's `+` operator.
      *
      * Requirements:
+     *
      * - Addition cannot overflow.
      */
     function add(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -128,6 +129,7 @@ library SafeMath {
      * Counterpart to Solidity's `-` operator.
      *
      * Requirements:
+     *
      * - Subtraction cannot overflow.
      */
     function sub(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -141,6 +143,7 @@ library SafeMath {
      * Counterpart to Solidity's `-` operator.
      *
      * Requirements:
+     *
      * - Subtraction cannot overflow.
      */
     function sub(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
@@ -157,6 +160,7 @@ library SafeMath {
      * Counterpart to Solidity's `*` operator.
      *
      * Requirements:
+     *
      * - Multiplication cannot overflow.
      */
     function mul(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -182,6 +186,7 @@ library SafeMath {
      * uses an invalid opcode to revert (consuming all remaining gas).
      *
      * Requirements:
+     *
      * - The divisor cannot be zero.
      */
     function div(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -197,10 +202,10 @@ library SafeMath {
      * uses an invalid opcode to revert (consuming all remaining gas).
      *
      * Requirements:
+     *
      * - The divisor cannot be zero.
      */
     function div(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
-        // Solidity only automatically asserts when dividing by 0
         require(b > 0, errorMessage);
         uint256 c = a / b;
         // assert(a == b * c + a % b); // There is no case in which this doesn't hold
@@ -217,6 +222,7 @@ library SafeMath {
      * invalid opcode to revert (consuming all remaining gas).
      *
      * Requirements:
+     *
      * - The divisor cannot be zero.
      */
     function mod(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -232,6 +238,7 @@ library SafeMath {
      * invalid opcode to revert (consuming all remaining gas).
      *
      * Requirements:
+     *
      * - The divisor cannot be zero.
      */
     function mod(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
@@ -320,6 +327,53 @@ interface IERC20 {
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
+// File: contracts/interfaces/IERC20Token.sol
+
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.5.12 <0.7.0;
+
+
+abstract contract IERC20Token is IERC20 {
+    function upgrade(uint256 value) public virtual;
+}
+
+// File: @openzeppelin/contracts/token/ERC777/IERC777Recipient.sol
+
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.6.0;
+
+/**
+ * @dev Interface of the ERC777TokensRecipient standard as defined in the EIP.
+ *
+ * Accounts can be notified of {IERC777} tokens being sent to them by having a
+ * contract implement this interface (contract holders can be their own
+ * implementer) and registering it on the
+ * https://eips.ethereum.org/EIPS/eip-1820[ERC1820 global registry].
+ *
+ * See {IERC1820Registry} and {ERC1820Implementer}.
+ */
+interface IERC777Recipient {
+    /**
+     * @dev Called by an {IERC777} token contract whenever tokens are being
+     * moved or created into a registered account (`to`). The type of operation
+     * is conveyed by `from` being the zero address or not.
+     *
+     * This call occurs _after_ the token contract's state is updated, so
+     * {IERC777-balanceOf}, etc., can be used to query the post-operation state.
+     *
+     * This function may revert to prevent the operation from being executed.
+     */
+    function tokensReceived(
+        address operator,
+        address from,
+        address to,
+        uint256 amount,
+        bytes calldata userData,
+        bytes calldata operatorData
+    ) external;
+}
+
 // File: contracts/Ownable.sol
 
 // SPDX-License-Identifier: GPL-3.0
@@ -358,11 +412,19 @@ pragma solidity >=0.5.12 <0.7.0;
 
 
 
-contract FundsRecovery is Ownable {
+
+contract FundsRecovery is Ownable, IERC777Recipient {
     address payable internal fundsDestination;
-    IERC20 public token;
+    IERC20Token public token;
 
     event DestinationChanged(address indexed previousDestination, address indexed newDestination);
+
+    /**
+     * Callback for received ERC777 tokens
+     */
+    function tokensReceived(address, address, address, uint256, bytes calldata, bytes calldata) public override {
+        // Do nothing when tokens are received.
+    }
 
     /**
      * Setting new destination of funds recovery.
@@ -395,8 +457,40 @@ contract FundsRecovery is Ownable {
     function claimTokens(address _token) public {
         require(fundsDestination != address(0));
         require(_token != address(token), "native token funds can't be recovered");
-        uint256 _amount = IERC20(_token).balanceOf(address(this));
-        IERC20(_token).transfer(fundsDestination, _amount);
+        uint256 _amount = IERC20Token(_token).balanceOf(address(this));
+        IERC20Token(_token).transfer(fundsDestination, _amount);
+    }
+}
+
+// File: contracts/utils/ERC1820Client.sol
+
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.5.12 <0.7.0;
+
+abstract contract ERC1820Registry {
+    function setInterfaceImplementer(address _addr, bytes32 _interfaceHash, address _implementer) external virtual;
+    function getInterfaceImplementer(address _addr, bytes32 _interfaceHash) external virtual view returns (address);
+    function setManager(address _addr, address _newManager) external virtual;
+    function getManager(address _addr) public virtual view returns (address);
+}
+
+
+/// Base client to interact with the registry.
+contract ERC1820Client {
+    ERC1820Registry constant ERC1820REGISTRY = ERC1820Registry(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24);
+
+    function setInterfaceImplementation(string memory _interfaceLabel, address _implementation) internal {
+        bytes32 interfaceHash = keccak256(abi.encodePacked(_interfaceLabel));
+        ERC1820REGISTRY.setInterfaceImplementer(address(this), interfaceHash, _implementation);
+    }
+
+    function interfaceAddr(address addr, string memory _interfaceLabel) internal view returns(address) {
+        bytes32 interfaceHash = keccak256(abi.encodePacked(_interfaceLabel));
+        return ERC1820REGISTRY.getInterfaceImplementer(addr, interfaceHash);
+    }
+
+    function delegateManagement(address _newManager) internal {
+        ERC1820REGISTRY.setManager(address(this), _newManager);
     }
 }
 
@@ -409,6 +503,7 @@ pragma solidity >=0.5.12 <0.7.0;
 
 
 
+
 interface IdentityRegistry {
     function isRegistered(address _identity) external view returns (bool);
     function minimalHermesStake() external view returns (uint256);
@@ -416,7 +511,7 @@ interface IdentityRegistry {
 }
 
 // Uni-directional settle based hermes
-contract HermesImplementation is FundsRecovery {
+contract HermesImplementation is FundsRecovery, ERC1820Client {
     using ECDSA for bytes32;
     using SafeMath for uint256;
 
@@ -520,19 +615,23 @@ contract HermesImplementation is FundsRecovery {
 
     // Because of proxy pattern this function is used insted of constructor.
     // Have to be called right after proxy deployment.
-    function initialize(address _token, address _operator, uint16 _fee, uint256 _maxStake) public virtual {
+    function initialize(address _token, address _operator, uint16 _fee, uint256 _minStake, uint256 _maxStake) public virtual {
         require(!isInitialized(), "have to be not initialized");
         require(_operator != address(0), "operator have to be set");
         require(_token != address(0), "token can't be deployd into zero address");
         require(_fee <= 5000, "fee can't be bigger than 50%");
+        require(_maxStake > _minStake, "maxStake have to be bigger than minStake");
 
-        token = IERC20(_token);
+        token = IERC20Token(_token);
         registry = IdentityRegistry(msg.sender);
         operator = _operator;
         lastFee = HermesFee(_fee, uint64(block.number));
-        minStake = 100000000; // 1 token
+        minStake = _minStake;
         maxStake = _maxStake;
         hermesStake = token.balanceOf(address(this));
+
+        // Register as ERC777 recipient
+        setInterfaceImplementation("ERC777TokensRecipient", address(this));
     }
 
     function isInitialized() public view returns (bool) {
@@ -604,14 +703,14 @@ contract HermesImplementation is FundsRecovery {
 
             _increaseStake(_channelId, _stakeIncrease, true);
             _amountToSettle = _amountToSettle.sub(_stakeIncrease);
-        } else {
-            // Update balance and decrease hermes locked funds.
-            _channel.balance = _channel.balance.sub(_unpaidAmount);
-            lockedFunds = lockedFunds.sub(_unpaidAmount);
         }
 
-        // Transfer tokens and decrease balance.
+        // Decrease hermes locked funds.
+        lockedFunds = lockedFunds.sub(min(_unpaidAmount, _channel.balance));
+
+        // Transfer tokens and update channel balance.
         token.transfer(_channel.beneficiary, _amountToSettle);
+        _channel.balance = _channel.balance.sub(min(_unpaidAmount, _channel.balance));
 
         // Pay fee
         if (_transactorFee > 0) {
@@ -921,13 +1020,14 @@ contract HermesImplementation is FundsRecovery {
 
     function setMaxStake(uint256 _newMaxStake) public onlyOperator {
         require(isHermesActive(), "hermes has to be active");
+        require(_newMaxStake > minStake, "maxStake has to be bigger than minStake");
         maxStake = _newMaxStake;
         emit MaxStakeValueUpdated(_newMaxStake);
     }
 
     function setMinStake(uint256 _newMinStake) public onlyOperator {
         require(isHermesActive(), "hermes has to be active");
-        require(_newMinStake < maxStake, "min stake has to be smaller than max stake");
+        require(_newMinStake < maxStake, "minStake has to be smaller than maxStake");
         minStake = _newMinStake;
         emit MinStakeValueUpdated(_newMinStake);
     }

@@ -31,7 +31,7 @@ contract('ERC20 token migration', ([txMaker, addressOne, addressTwo, ...otherAdd
         await topUpTokens(token, addressTwo, new BN('321'))
         totalSupply = await token.totalSupply()
 
-        newToken = await MystToken.new(token.address, totalSupply, [])
+        newToken = await MystToken.new(token.address, [])
     })
 
     it('should fail migration when it is not enabled', async () => {
@@ -103,7 +103,7 @@ contract('ERC20 token migration', ([txMaker, addressOne, addressTwo, ...otherAdd
     })
 
     it('should fail settting upgrade agent while in upgrading stage', async () => {
-        const nextToken = await MystToken.new(token.address, totalSupply, [])
+        const nextToken = await MystToken.new(token.address, [])
         await token.setUpgradeAgent(nextToken.address).should.be.rejected
     })
 
@@ -131,7 +131,7 @@ contract('ERC777 token migration', ([txMaker, addressOne, addressTwo, ...otherAd
         await topUpTokens(oldToken, addressTwo, new BN('321'))
         totalSupply = await oldToken.totalSupply()
 
-        token = await MystToken.new(oldToken.address, totalSupply, [])
+        token = await MystToken.new(oldToken.address, [])
         newToken = await TestMystToken.new()
         newToken.initilize(token.address, totalSupply.mul(Multiplier))
     })
@@ -242,7 +242,7 @@ contract('ERC777 token migration', ([txMaker, addressOne, addressTwo, ...otherAd
     })
 
     it('should fail settting upgrade agent while in upgrading stage', async () => {
-        const nextToken = await MystToken.new(token.address, totalSupply, [])
+        const nextToken = await MystToken.new(token.address, [])
         await token.setUpgradeAgent(nextToken.address).should.be.rejected
     })
 

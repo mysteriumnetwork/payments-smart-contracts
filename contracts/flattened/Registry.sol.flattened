@@ -112,6 +112,7 @@ library SafeMath {
      * Counterpart to Solidity's `+` operator.
      *
      * Requirements:
+     *
      * - Addition cannot overflow.
      */
     function add(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -128,6 +129,7 @@ library SafeMath {
      * Counterpart to Solidity's `-` operator.
      *
      * Requirements:
+     *
      * - Subtraction cannot overflow.
      */
     function sub(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -141,6 +143,7 @@ library SafeMath {
      * Counterpart to Solidity's `-` operator.
      *
      * Requirements:
+     *
      * - Subtraction cannot overflow.
      */
     function sub(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
@@ -157,6 +160,7 @@ library SafeMath {
      * Counterpart to Solidity's `*` operator.
      *
      * Requirements:
+     *
      * - Multiplication cannot overflow.
      */
     function mul(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -182,6 +186,7 @@ library SafeMath {
      * uses an invalid opcode to revert (consuming all remaining gas).
      *
      * Requirements:
+     *
      * - The divisor cannot be zero.
      */
     function div(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -197,10 +202,10 @@ library SafeMath {
      * uses an invalid opcode to revert (consuming all remaining gas).
      *
      * Requirements:
+     *
      * - The divisor cannot be zero.
      */
     function div(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
-        // Solidity only automatically asserts when dividing by 0
         require(b > 0, errorMessage);
         uint256 c = a / b;
         // assert(a == b * c + a % b); // There is no case in which this doesn't hold
@@ -217,6 +222,7 @@ library SafeMath {
      * invalid opcode to revert (consuming all remaining gas).
      *
      * Requirements:
+     *
      * - The divisor cannot be zero.
      */
     function mod(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -232,6 +238,7 @@ library SafeMath {
      * invalid opcode to revert (consuming all remaining gas).
      *
      * Requirements:
+     *
      * - The divisor cannot be zero.
      */
     function mod(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
@@ -320,6 +327,53 @@ interface IERC20 {
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
+// File: contracts/interfaces/IERC20Token.sol
+
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.5.12 <0.7.0;
+
+
+abstract contract IERC20Token is IERC20 {
+    function upgrade(uint256 value) public virtual;
+}
+
+// File: @openzeppelin/contracts/token/ERC777/IERC777Recipient.sol
+
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.6.0;
+
+/**
+ * @dev Interface of the ERC777TokensRecipient standard as defined in the EIP.
+ *
+ * Accounts can be notified of {IERC777} tokens being sent to them by having a
+ * contract implement this interface (contract holders can be their own
+ * implementer) and registering it on the
+ * https://eips.ethereum.org/EIPS/eip-1820[ERC1820 global registry].
+ *
+ * See {IERC1820Registry} and {ERC1820Implementer}.
+ */
+interface IERC777Recipient {
+    /**
+     * @dev Called by an {IERC777} token contract whenever tokens are being
+     * moved or created into a registered account (`to`). The type of operation
+     * is conveyed by `from` being the zero address or not.
+     *
+     * This call occurs _after_ the token contract's state is updated, so
+     * {IERC777-balanceOf}, etc., can be used to query the post-operation state.
+     *
+     * This function may revert to prevent the operation from being executed.
+     */
+    function tokensReceived(
+        address operator,
+        address from,
+        address to,
+        uint256 amount,
+        bytes calldata userData,
+        bytes calldata operatorData
+    ) external;
+}
+
 // File: contracts/Ownable.sol
 
 // SPDX-License-Identifier: GPL-3.0
@@ -358,11 +412,19 @@ pragma solidity >=0.5.12 <0.7.0;
 
 
 
-contract FundsRecovery is Ownable {
+
+contract FundsRecovery is Ownable, IERC777Recipient {
     address payable internal fundsDestination;
-    IERC20 public token;
+    IERC20Token public token;
 
     event DestinationChanged(address indexed previousDestination, address indexed newDestination);
+
+    /**
+     * Callback for received ERC777 tokens
+     */
+    function tokensReceived(address, address, address, uint256, bytes calldata, bytes calldata) public override {
+        // Do nothing when tokens are received.
+    }
 
     /**
      * Setting new destination of funds recovery.
@@ -395,8 +457,8 @@ contract FundsRecovery is Ownable {
     function claimTokens(address _token) public {
         require(fundsDestination != address(0));
         require(_token != address(token), "native token funds can't be recovered");
-        uint256 _amount = IERC20(_token).balanceOf(address(this));
-        IERC20(_token).transfer(fundsDestination, _amount);
+        uint256 _amount = IERC20Token(_token).balanceOf(address(this));
+        IERC20Token(_token).transfer(fundsDestination, _amount);
     }
 }
 
@@ -415,51 +477,60 @@ interface Channel {
 
 interface HermesContract {
     enum Status { Active, Paused, Punishment, Closed }
-    function initialize(address _token, address _operator, uint16 _hermesFee, uint256 _maxStake) external;
+    function initialize(address _token, address _operator, uint16 _hermesFee, uint256 _minStake, uint256 _maxStake) external;
     function openChannel(address _party, address _beneficiary, uint256 _amountToLend) external;
     function getStake() external view returns (uint256);
     function getStatus() external view returns (Status);
+}
+
+interface ParentRegistry {
+    function isRegistered(address _identityHash) external view returns (bool);
+    function isAccountant(address _hermesId) external view returns (bool);
+    function isActiveAccountant(address _hermesId) external view returns (bool);
 }
 
 contract Registry is FundsRecovery {
     using ECDSA for bytes32;
     using SafeMath for uint256;
 
-    string constant REGISTER_PREFIX="Register prefix:";
-
     address public dex;
     uint256 public registrationFee;
     uint256 public minimalHermesStake;
     address internal channelImplementationAddress;
     address internal hermesImplementationAddress;
+    ParentRegistry internal parentRegistry;
 
     struct Hermes {
-        address operator;
+        address operator;   // hermes operator who will sign promises
         function() external view returns(uint256) stake;
+        bytes url;          // hermes service URL
     }
     mapping(address => Hermes) public hermeses;
 
     mapping(address => bool) private identities;
 
     event RegisteredIdentity(address indexed identityHash, address indexed hermesId);
-    event RegisteredHermes(address indexed hermesId, address hermesOperator);
+    event RegisteredHermes(address indexed hermesId, address hermesOperator, bytes ur);
+    event HermesURLUpdated(address indexed hermesId, bytes newURL);
     event ConsumerChannelCreated(address indexed identityHash, address indexed hermesId, address channelAddress);
 
-    constructor (address _tokenAddress, address _dexAddress, uint256 _regFee, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation) public {
+    constructor (address _tokenAddress, address _dexAddress, uint256 _regFee, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation, address _parentAddress) public {
         registrationFee = _regFee;
         minimalHermesStake = _minimalHermesStake;
 
         require(_tokenAddress != address(0));
-        token = IERC20(_tokenAddress);
+        token = IERC20Token(_tokenAddress);
 
         require(_dexAddress != address(0));
         dex = _dexAddress;
 
         channelImplementationAddress = _channelImplementation;
         hermesImplementationAddress = _hermesImplementation;
+
+        parentRegistry = ParentRegistry(_parentAddress);
     }
 
-    // Reject any ethers send to this smart-contract
+    // Reject any ethers sent to this smart-contract
     receive() external payable {
         revert("Rejecting tx with ethers sent");
     }
@@ -503,9 +574,9 @@ contract Registry is FundsRecovery {
         }
     }
 
-    function registerHermes(address _hermesOperator, uint256 _stakeAmount, uint16 _hermesFee, uint256 _maxStake) public {
+    function registerHermes(address _hermesOperator, uint256 _hermesStake, uint16 _hermesFee, uint256 _minChannelStake, uint256 _maxChannelStake, bytes memory _url) public {
         require(_hermesOperator != address(0), "operator can't be zero address");
-        require(_stakeAmount >= minimalHermesStake, "hermes have to stake at least minimal stake amount");
+        require(_hermesStake >= minimalHermesStake, "hermes have to stake at least minimal stake amount");
 
         address _hermesId = getHermesAddress(_hermesOperator);
         require(!isHermes(_hermesId), "hermes already registered");
@@ -514,15 +585,15 @@ contract Registry is FundsRecovery {
         HermesContract _hermes = HermesContract(deployMiniProxy(uint256(_hermesOperator), getProxyCode(getHermesImplementation())));
 
         // Transfer stake into hermes smart contract
-        token.transferFrom(msg.sender, address(_hermes), _stakeAmount);
+        token.transferFrom(msg.sender, address(_hermes), _hermesStake);
 
         // Initialise hermes
-        _hermes.initialize(address(token), _hermesOperator, _hermesFee, _maxStake);
+        _hermes.initialize(address(token), _hermesOperator, _hermesFee, _minChannelStake, _maxChannelStake);
 
         // Save info about newly created hermes
-        hermeses[address(_hermes)] = Hermes(_hermesOperator, _hermes.getStake);
+        hermeses[address(_hermes)] = Hermes(_hermesOperator, _hermes.getStake, _url);
 
-        emit RegisteredHermes(address(_hermes), _hermesOperator);
+        emit RegisteredHermes(address(_hermes), _hermesOperator, _url);
     }
 
     function getChannelAddress(address _identity, address _hermesId) public view returns (address) {
@@ -534,6 +605,23 @@ contract Registry is FundsRecovery {
     function getHermesAddress(address _hermesOperator) public view returns (address) {
         bytes32 _code = keccak256(getProxyCode(getHermesImplementation()));
         return getCreate2Address(bytes32(uint256(_hermesOperator)), _code);
+    }
+
+    function getHermesURL(address _hermesId) public view returns (bytes memory) {
+        return hermeses[_hermesId].url;
+    }
+
+    function updateHermsURL(address _hermesId, bytes memory _url, bytes memory _signature) public {
+        require(isActiveHermes(_hermesId), "provided hermes has to be active");
+
+        // Check if given signature is valid
+        address _operator = keccak256(abi.encodePacked(address(this), _hermesId, _url)).recover(_signature);
+        require(_operator == hermeses[_hermesId].operator, "wrong signature");
+
+        // Update URL
+        hermeses[_hermesId].url = _url;
+
+        emit HermesURLUpdated(_hermesId, _url);
     }
 
     // ------------ UTILS ------------
@@ -584,11 +672,24 @@ contract Registry is FundsRecovery {
 
     // ------------------------------------------------------------------------
 
-    function isRegistered(address _identityHash) public view returns (bool) {
-        return identities[_identityHash];
+    // Returns true when parent registry is set
+    function hasParentRegistry(address _parentAddress) public pure returns (bool) {
+        return _parentAddress != address(0x0);
+    }
+
+    function isRegistered(address _identity) public view returns (bool) {
+        if (hasParentRegistry(address(parentRegistry)) && parentRegistry.isRegistered(_identity)) {
+            return true;
+        }
+
+        return identities[_identity];
     }
 
     function isHermes(address _hermesId) public view returns (bool) {
+        if (hasParentRegistry(address(parentRegistry)) && parentRegistry.isAccountant(_hermesId)) {
+            return true;
+        }
+
         address hermesOperator = hermeses[_hermesId].operator;
         address _addr = getHermesAddress(hermesOperator);
         uint _codeLength;
@@ -601,6 +702,10 @@ contract Registry is FundsRecovery {
     }
 
     function isActiveHermes(address _hermesId) internal view returns (bool) {
+        if (hasParentRegistry(address(parentRegistry)) && parentRegistry.isActiveAccountant(_hermesId)) {
+            return true;
+        }
+
         // If stake is 0, then it's either incactive or unregistered hermes
         HermesContract.Status status = HermesContract(_hermesId).getStatus();
         return status == HermesContract.Status.Active;

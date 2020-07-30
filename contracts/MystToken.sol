@@ -3,17 +3,18 @@ pragma solidity >=0.5.12 <0.7.0;
 
 import { IUpgradeAgent } from "./interfaces/IUpgradeAgent.sol";
 import { UpgradableERC777 } from "./utils/UpgradableERC777.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 
 contract MystToken is UpgradableERC777, IUpgradeAgent {
     address public originalToken;
 
-    constructor(address _originalToken, uint256 _originalSupply, address[] memory _defaultOperators)
+    constructor(address _originalToken, address[] memory _defaultOperators)
         UpgradableERC777("Test Mysterium token", "MYSTT", _defaultOperators)
         public
     {
         originalToken  = _originalToken;
-        originalSupply = _originalSupply;
+        originalSupply = IERC20(_originalToken).totalSupply();
     }
 
     /** Interface marker */

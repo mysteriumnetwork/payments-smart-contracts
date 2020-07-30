@@ -26,6 +26,7 @@ library SafeMath {
      * Counterpart to Solidity's `+` operator.
      *
      * Requirements:
+     *
      * - Addition cannot overflow.
      */
     function add(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -42,6 +43,7 @@ library SafeMath {
      * Counterpart to Solidity's `-` operator.
      *
      * Requirements:
+     *
      * - Subtraction cannot overflow.
      */
     function sub(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -55,6 +57,7 @@ library SafeMath {
      * Counterpart to Solidity's `-` operator.
      *
      * Requirements:
+     *
      * - Subtraction cannot overflow.
      */
     function sub(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
@@ -71,6 +74,7 @@ library SafeMath {
      * Counterpart to Solidity's `*` operator.
      *
      * Requirements:
+     *
      * - Multiplication cannot overflow.
      */
     function mul(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -96,6 +100,7 @@ library SafeMath {
      * uses an invalid opcode to revert (consuming all remaining gas).
      *
      * Requirements:
+     *
      * - The divisor cannot be zero.
      */
     function div(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -111,10 +116,10 @@ library SafeMath {
      * uses an invalid opcode to revert (consuming all remaining gas).
      *
      * Requirements:
+     *
      * - The divisor cannot be zero.
      */
     function div(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
-        // Solidity only automatically asserts when dividing by 0
         require(b > 0, errorMessage);
         uint256 c = a / b;
         // assert(a == b * c + a % b); // There is no case in which this doesn't hold
@@ -131,6 +136,7 @@ library SafeMath {
      * invalid opcode to revert (consuming all remaining gas).
      *
      * Requirements:
+     *
      * - The divisor cannot be zero.
      */
     function mod(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -146,6 +152,7 @@ library SafeMath {
      * invalid opcode to revert (consuming all remaining gas).
      *
      * Requirements:
+     *
      * - The divisor cannot be zero.
      */
     function mod(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
@@ -234,6 +241,53 @@ interface IERC20 {
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
+// File: contracts/interfaces/IERC20Token.sol
+
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.5.12 <0.7.0;
+
+
+abstract contract IERC20Token is IERC20 {
+    function upgrade(uint256 value) public virtual;
+}
+
+// File: @openzeppelin/contracts/token/ERC777/IERC777Recipient.sol
+
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.6.0;
+
+/**
+ * @dev Interface of the ERC777TokensRecipient standard as defined in the EIP.
+ *
+ * Accounts can be notified of {IERC777} tokens being sent to them by having a
+ * contract implement this interface (contract holders can be their own
+ * implementer) and registering it on the
+ * https://eips.ethereum.org/EIPS/eip-1820[ERC1820 global registry].
+ *
+ * See {IERC1820Registry} and {ERC1820Implementer}.
+ */
+interface IERC777Recipient {
+    /**
+     * @dev Called by an {IERC777} token contract whenever tokens are being
+     * moved or created into a registered account (`to`). The type of operation
+     * is conveyed by `from` being the zero address or not.
+     *
+     * This call occurs _after_ the token contract's state is updated, so
+     * {IERC777-balanceOf}, etc., can be used to query the post-operation state.
+     *
+     * This function may revert to prevent the operation from being executed.
+     */
+    function tokensReceived(
+        address operator,
+        address from,
+        address to,
+        uint256 amount,
+        bytes calldata userData,
+        bytes calldata operatorData
+    ) external;
+}
+
 // File: contracts/Ownable.sol
 
 // SPDX-License-Identifier: GPL-3.0
@@ -272,11 +326,19 @@ pragma solidity >=0.5.12 <0.7.0;
 
 
 
-contract FundsRecovery is Ownable {
+
+contract FundsRecovery is Ownable, IERC777Recipient {
     address payable internal fundsDestination;
-    IERC20 public token;
+    IERC20Token public token;
 
     event DestinationChanged(address indexed previousDestination, address indexed newDestination);
+
+    /**
+     * Callback for received ERC777 tokens
+     */
+    function tokensReceived(address, address, address, uint256, bytes calldata, bytes calldata) public override {
+        // Do nothing when tokens are received.
+    }
 
     /**
      * Setting new destination of funds recovery.
@@ -309,8 +371,40 @@ contract FundsRecovery is Ownable {
     function claimTokens(address _token) public {
         require(fundsDestination != address(0));
         require(_token != address(token), "native token funds can't be recovered");
-        uint256 _amount = IERC20(_token).balanceOf(address(this));
-        IERC20(_token).transfer(fundsDestination, _amount);
+        uint256 _amount = IERC20Token(_token).balanceOf(address(this));
+        IERC20Token(_token).transfer(fundsDestination, _amount);
+    }
+}
+
+// File: contracts/utils/ERC1820Client.sol
+
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.5.12 <0.7.0;
+
+abstract contract ERC1820Registry {
+    function setInterfaceImplementer(address _addr, bytes32 _interfaceHash, address _implementer) external virtual;
+    function getInterfaceImplementer(address _addr, bytes32 _interfaceHash) external virtual view returns (address);
+    function setManager(address _addr, address _newManager) external virtual;
+    function getManager(address _addr) public virtual view returns (address);
+}
+
+
+/// Base client to interact with the registry.
+contract ERC1820Client {
+    ERC1820Registry constant ERC1820REGISTRY = ERC1820Registry(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24);
+
+    function setInterfaceImplementation(string memory _interfaceLabel, address _implementation) internal {
+        bytes32 interfaceHash = keccak256(abi.encodePacked(_interfaceLabel));
+        ERC1820REGISTRY.setInterfaceImplementer(address(this), interfaceHash, _implementation);
+    }
+
+    function interfaceAddr(address addr, string memory _interfaceLabel) internal view returns(address) {
+        bytes32 interfaceHash = keccak256(abi.encodePacked(_interfaceLabel));
+        return ERC1820REGISTRY.getInterfaceImplementer(addr, interfaceHash);
+    }
+
+    function delegateManagement(address _newManager) internal {
+        ERC1820REGISTRY.setManager(address(this), _newManager);
     }
 }
 
@@ -324,12 +418,16 @@ pragma solidity >=0.6.0 <0.7.0;
 
 
 
-contract MystDEX is Ownable, FundsRecovery {
+contract MystDEX is Ownable, FundsRecovery, ERC1820Client {
     using SafeMath for uint256;
 
     bool public initialised;
     uint256 rate;   // Wei per token
-    // IERC20 token;
+
+    constructor() public {
+        // Register as ERC777 recipient
+        setInterfaceImplementation("ERC777TokensRecipient", address(this));
+    }
 
     // Default function - converts ethers to MYST
     receive() external payable {
@@ -346,7 +444,7 @@ contract MystDEX is Ownable, FundsRecovery {
     function initialise(address _dexOwner, address _token, uint256 _rate) public {
         require(!initialised, "Contract is already initialised");
         transferOwnership(_dexOwner);
-        token = IERC20(_token);
+        token = IERC20Token(_token);
         rate = _rate;
         initialised = true;
     }
