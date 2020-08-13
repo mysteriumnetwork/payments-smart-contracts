@@ -77,6 +77,16 @@ contract('Registry', ([txMaker, minter, fundsDestination, ...otherAccounts]) => 
         await registry.registerIdentity(hermesId, Zero, Zero, fundsDestination, signature).should.be.rejected
     })
 
+    it('should reject registration with different beneficiary for already registered identity', async () => {
+        const identity = identities[0]
+        const beneficiary = otherAccounts[0]
+
+        expect(await registry.isRegistered(identity.address)).to.be.true
+
+        const signature = signIdentityRegistration(registry.address, hermesId, Zero, Zero, beneficiary, identity)
+        await registry.registerIdentity(hermesId, Zero, Zero, beneficiary, signature).should.be.rejected
+    })
+
     it('registry should have proper channel address calculations', async () => {
         const identityHash = identities[0].address
         expect(
