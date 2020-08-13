@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.5.12 <0.7.0;
 
-import { ERC1820Client } from "./utils/ERC1820Client.sol";
-
-contract DEXProxy is ERC1820Client {
+contract DEXProxy {
     bytes32 constant IMPLEMENTATION_POSITION = keccak256("MysDEXProxy.implementation");
     bytes32 constant OWNER_POSITION = keccak256("MystDEXProxy.owner");
 
@@ -24,9 +22,6 @@ contract DEXProxy is ERC1820Client {
             sstore(_ownerPosition, _owner)       // sets owner
             sstore(_implementationPosition, _implementation) // sets proxy target
         }
-
-        // Register as ERC777 recipient
-        setInterfaceImplementation("ERC777TokensRecipient", address(this));
     }
 
     // Proxying all calls into MystDEX implementation

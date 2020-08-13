@@ -5,7 +5,6 @@ import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IERC20Token } from "./interfaces/IERC20Token.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
-import { ERC1820Client } from "./utils/ERC1820Client.sol";
 
 interface IdentityRegistry {
     function isRegistered(address _identity) external view returns (bool);
@@ -14,7 +13,7 @@ interface IdentityRegistry {
 }
 
 // Uni-directional settle based hermes
-contract HermesImplementation is FundsRecovery, ERC1820Client {
+contract HermesImplementation is FundsRecovery {
     using ECDSA for bytes32;
     using SafeMath for uint256;
 
@@ -132,9 +131,6 @@ contract HermesImplementation is FundsRecovery, ERC1820Client {
         minStake = _minStake;
         maxStake = _maxStake;
         hermesStake = token.balanceOf(address(this));
-
-        // Register as ERC777 recipient
-        setInterfaceImplementation("ERC777TokensRecipient", address(this));
     }
 
     function isInitialized() public view returns (bool) {
