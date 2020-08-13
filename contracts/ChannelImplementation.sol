@@ -5,13 +5,12 @@ import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IERC20Token } from "./interfaces/IERC20Token.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
-import { ERC1820Client } from "./utils/ERC1820Client.sol";
 
 interface HermesContract {
     function getOperator() external view returns (address);
 }
 
-contract ChannelImplementation is FundsRecovery, ERC1820Client {
+contract ChannelImplementation is FundsRecovery {
     using ECDSA for bytes32;
     using SafeMath for uint256;
 
@@ -68,9 +67,6 @@ contract ChannelImplementation is FundsRecovery, ERC1820Client {
         operator = _identityHash;
         transferOwnership(operator);
         hermes = Hermes(HermesContract(_hermesId).getOperator(), _hermesId, 0);
-
-        // Register as ERC777 recipient
-        setInterfaceImplementation("ERC777TokensRecipient", address(this));
 
         emit ChannelInitialised(_identityHash, _hermesId);
     }

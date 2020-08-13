@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity >=0.5.12 <0.7.0;
+pragma solidity >=0.6.12;
 
 /**
  * Upgrade agent interface inspired by Lunyr.
@@ -8,7 +8,8 @@ pragma solidity >=0.5.12 <0.7.0;
  * Upgrade agent itself can be the token contract, or just a middle man contract doing the heavy lifting.
  */
 abstract contract IUpgradeAgent {
-    uint public originalSupply;
-    function isUpgradeAgent() public virtual pure returns (bool);
+    function isUpgradeAgent() external virtual pure returns (bool);
     function upgradeFrom(address _from, uint256 _value) public virtual;
+    function originalSupply() public virtual view returns (uint256);
+    function originalToken() public virtual view returns (address);
 }

@@ -1,6 +1,6 @@
 {
     "name": "payments-smart-contracts",
-    "version": "0.9.8",
+    "version": "0.9.9",
     "description": "Smart contracts for Mysterium Network payments flow",
     "main": "index.js",
     "scripts": {
@@ -32,10 +32,10 @@
         "eth-json-rpc-filters": "^4.1.1",
         "ethereumjs-tx": "^2.1.2",
         "ethereumjs-util": "^7.0.2",
-        "ganache-cli": "^6.9.1",
+        "ganache-cli": "^6.10.1",
         "lodash": "^4.17.19",
-        "secp256k1": "^4.0.1",
-        "truffle": "^5.1.33",
+        "secp256k1": "^4.0.2",
+        "truffle": "^5.1.39",
         "truffle-flattener": "^1.4.4"
     }
 }

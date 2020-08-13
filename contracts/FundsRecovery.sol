@@ -1,22 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.5.12 <0.7.0;
 
-import { IERC777Recipient } from "@openzeppelin/contracts/token/ERC777/IERC777Recipient.sol";
 import { IERC20Token } from "./interfaces/IERC20Token.sol";
 import { Ownable } from "./Ownable.sol";
 
-contract FundsRecovery is Ownable, IERC777Recipient {
+contract FundsRecovery is Ownable {
     address payable internal fundsDestination;
     IERC20Token public token;
 
     event DestinationChanged(address indexed previousDestination, address indexed newDestination);
-
-    /**
-     * Callback for received ERC777 tokens
-     */
-    function tokensReceived(address, address, address, uint256, bytes calldata, bytes calldata) public override {
-        // Do nothing when tokens are received.
-    }
 
     /**
      * Setting new destination of funds recovery.
