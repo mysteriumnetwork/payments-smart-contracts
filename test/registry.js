@@ -34,16 +34,11 @@ contract('Registry', ([txMaker, minter, fundsDestination, ...otherAccounts]) => 
         dex = await MystDex.new()
         hermesImplementation = await HermesImplementation.new()
         channelImplementation = await ChannelImplementation.new()
-        registry = await Registry.new(token.address, dex.address, 0, 0, channelImplementation.address, hermesImplementation.address, ZeroAddress)
+        registry = await Registry.new(token.address, dex.address, 0, channelImplementation.address, hermesImplementation.address, ZeroAddress)
 
         // Topup some tokens into txMaker address so it could register hermes
         await topUpTokens(token, txMaker, 10)
         await token.approve(registry.address, 10)
-    })
-
-    it('should have zero registration fee', async () => {
-        const registrationFee = await registry.registrationFee()
-        expect(Number(registrationFee)).to.be.equal(0)
     })
 
     it('should register hermes', async () => {
@@ -116,30 +111,24 @@ contract('Registry', ([txMaker, minter, fundsDestination, ...otherAccounts]) => 
 
     // ==================== Paid registration ======================
 
-    it('should allow to change fee', async () => {
-        const newFee = 100
-        await registry.changeRegistrationFee(newFee)
-        const registrationFee = await registry.registrationFee()
-        expect(Number(registrationFee)).to.be.equal(newFee)
-    })
-
     it('should fail registering identity having 0 balance', async () => {
+        const txFee = 1
         const secondIdentity = identities[1]
         const secondIdentityHash = secondIdentity.address
         const channelAddress = await genCreate2Address(secondIdentityHash, hermesId, registry, channelImplementation.address)
         expect(Number(await token.balanceOf(channelAddress))).to.be.equal(0)
 
-        const signature = signIdentityRegistration(registry.address, hermesId, Zero, Zero, fundsDestination, secondIdentity)
-        await registry.registerIdentity(hermesId, Zero, Zero, fundsDestination, signature).should.be.rejected
+        const signature = signIdentityRegistration(registry.address, hermesId, Zero, txFee, fundsDestination, secondIdentity)
+        await registry.registerIdentity(hermesId, Zero, txFee, fundsDestination, signature).should.be.rejected
         expect(await registry.isRegistered(secondIdentityHash)).to.be.false
     })
 
     it('should register identity which has coins', async () => {
+        const txFee = 100
         const secondIdentity = identities[1]
         const secondIdentityHash = secondIdentity.address
         const channelAddress = await genCreate2Address(secondIdentityHash, hermesId, registry, channelImplementation.address)
-        const registratinoFee = 100
-        const balanceBefore = Number(await token.balanceOf(registry.address))
+        expect(Number(await token.balanceOf(channelAddress))).to.be.equal(0)
 
         // TopUp channel -> send or mint tokens into channel address
         const topUpAmount = 1000000
@@ -147,12 +136,9 @@ contract('Registry', ([txMaker, minter, fundsDestination, ...otherAccounts]) => 
         expect(Number(await token.balanceOf(channelAddress))).to.be.equal(topUpAmount)
 
         // Register identity
-        const signature = signIdentityRegistration(registry.address, hermesId, Zero, Zero, fundsDestination, secondIdentity)
-        await registry.registerIdentity(hermesId, Zero, Zero, fundsDestination, signature)
+        const signature = signIdentityRegistration(registry.address, hermesId, Zero, txFee, fundsDestination, secondIdentity)
+        await registry.registerIdentity(hermesId, Zero, txFee, fundsDestination, signature)
         expect(await registry.isRegistered(secondIdentityHash)).to.be.true
-
-        // Registry should own some tokens
-        expect(Number(await token.balanceOf(registry.address))).to.be.equal(balanceBefore + registratinoFee)
     })
 
     it("should send transaction fee for txMaker", async () => {

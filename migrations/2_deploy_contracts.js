@@ -18,7 +18,7 @@ module.exports = async function (deployer, network, accounts) {
         await deployer.deploy(DEXImplementation)
         await deployer.deploy(ChannelImplementation)
         await deployer.deploy(HermesImplementation)
-        await deployer.deploy(Registry, MystToken.address, DEXImplementation.address, 0, 0, ChannelImplementation.address, HermesImplementation.address, zeroAddress)
+        await deployer.deploy(Registry, MystToken.address, DEXImplementation.address, 0, ChannelImplementation.address, HermesImplementation.address, zeroAddress)
     } else {
         await deployer.deploy(SafeMathLib)
         await deployer.link(SafeMathLib, [OldMystToken])

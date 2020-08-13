@@ -33,7 +33,7 @@ contract('Multi hermeses', ([txMaker, ...beneficiaries]) => {
         dex = await MystDex.new()
         const hermesImplementation = await HermesImplementation.new()
         channelImplementation = await ChannelImplementation.new()
-        registry = await Registry.new(token.address, dex.address, 0, 0, channelImplementation.address, hermesImplementation.address, ZeroAddress)
+        registry = await Registry.new(token.address, dex.address, 0, channelImplementation.address, hermesImplementation.address, ZeroAddress)
 
         // Topup some tokens into txMaker address so it could register hermeses
         await topUpTokens(token, txMaker, 1000)

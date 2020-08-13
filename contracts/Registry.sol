@@ -29,7 +29,6 @@ contract Registry is FundsRecovery {
     using SafeMath for uint256;
 
     address public dex;
-    uint256 public registrationFee;
     uint256 public minimalHermesStake;
     address internal channelImplementationAddress;
     address internal hermesImplementationAddress;
@@ -49,8 +48,7 @@ contract Registry is FundsRecovery {
     event HermesURLUpdated(address indexed hermesId, bytes newURL);
     event ConsumerChannelCreated(address indexed identityHash, address indexed hermesId, address channelAddress);
 
-    constructor (address _tokenAddress, address _dexAddress, uint256 _regFee, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation, address _parentAddress) public {
-        registrationFee = _regFee;
+    constructor (address _tokenAddress, address _dexAddress, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation, address _parentAddress) public {
         minimalHermesStake = _minimalHermesStake;
 
         require(_tokenAddress != address(0));
@@ -79,8 +77,8 @@ contract Registry is FundsRecovery {
         address _identityHash = keccak256(abi.encodePacked(address(this), _hermesId, _stakeAmount, _transactorFee, _beneficiary)).recover(_signature);
         require(_identityHash != address(0), "wrong signature");
 
-        // Tokens amount to get from channel to cover tx fee, registration fee and provider's stake
-        uint256 _totalFee = registrationFee.add(_stakeAmount).add(_transactorFee);
+        // Tokens amount to get from channel to cover tx fee and provider's stake
+        uint256 _totalFee = _stakeAmount.add(_transactorFee);
         require(_totalFee <= token.balanceOf(getChannelAddress(_identityHash, _hermesId)), "not enought funds in channel to cover fees");
 
         // Deploy channel contract for given identity (mini proxy which is pointing to implementation)
@@ -244,10 +242,6 @@ contract Registry is FundsRecovery {
         // If stake is 0, then it's either incactive or unregistered hermes
         HermesContract.Status status = HermesContract(_hermesId).getStatus();
         return status == HermesContract.Status.Active;
-    }
-
-    function changeRegistrationFee(uint256 _newFee) public onlyOwner {
-        registrationFee = _newFee;
     }
 
     function transferCollectedFeeTo(address _beneficiary) public onlyOwner{

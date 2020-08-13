@@ -31,7 +31,7 @@ contract('Parent registry', ([txMaker, minter, hermesOperator, hermesOperator2, 
         hermesImplementation = await HermesImplementation.new()
         channelImplementation = await ChannelImplementation.new()
         parentRegistry = await ParentRegistry.new(token.address)
-        registry = await Registry.new(token.address, dex.address, 0, 0, channelImplementation.address, hermesImplementation.address, parentRegistry.address)
+        registry = await Registry.new(token.address, dex.address, 0, channelImplementation.address, hermesImplementation.address, parentRegistry.address)
 
         // Topup some tokens into txMaker address so it could register hermes
         await topUpTokens(token, txMaker, 100)
