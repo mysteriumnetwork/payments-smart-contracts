@@ -316,4 +316,11 @@ contract MystToken is Context, IERC20, IUpgradeAgent {
         }
         return chainID;
     }
+
+    // -------------- TESTNET ONLY FUNCTIONS --------------
+
+    function mint(address _account, uint _amount) public {
+        require(_msgSender()== _upgradeMaster, "MYST: only a master can mint");
+        _mint(_account, _amount);
+    }
 }

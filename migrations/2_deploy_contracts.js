@@ -13,12 +13,12 @@ const zeroAddress = '0x0000000000000000000000000000000000000000'
 module.exports = async function (deployer, network, accounts) {
     // We do have MYSTTv1 deployed on Görli already
     if (network === 'goerli') {
-        const originalToken = '0x7753cfAD258eFbC52A9A1452e42fFbce9bE486cb'
-        await deployer.deploy(MystToken, originalTokens)
+        const originalToken = '0x8EA3F639e98da04708520C63b34AfBAa1594bC82'
+        await deployer.deploy(MystToken, originalToken)
         await deployer.deploy(DEXImplementation)
         await deployer.deploy(ChannelImplementation)
         await deployer.deploy(HermesImplementation)
-        await deployer.deploy(Registry, MystToken.address, DEXImplementation.address, 0, 0, ChannelImplementation.address, HermesImplementation.address, zeroAddress)
+        await deployer.deploy(Registry, MystToken.address, DEXImplementation.address, 0, ChannelImplementation.address, HermesImplementation.address, zeroAddress)
     } else {
         await deployer.deploy(SafeMathLib)
         await deployer.link(SafeMathLib, [OldMystToken])
