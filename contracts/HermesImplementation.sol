@@ -94,7 +94,7 @@ contract HermesImplementation is FundsRecovery {
     event MinStakeValueUpdated(uint256 newMinStake);
     event MaxStakeValueUpdated(uint256 newMaxStake);
     event StakeGoalUpdated(bytes32 indexed channelId, uint256 newStakeGoal);
-    event PromiseSettled(bytes32 indexed channelId, address beneficiary, uint256 amount, uint256 totalSettled);
+    event PromiseSettled(bytes32 indexed channelId, address indexed beneficiary, uint256 sentToBeneficiary, uint256 fees, uint256 stakeInsceseAmount);
     event ChannelBeneficiaryChanged(bytes32 channelId, address newBeneficiary);
     event HermesFeeUpdated(uint16 newFee, uint64 validFromBlock);
     event HermesClosed(uint256 blockNumber);
@@ -195,10 +195,12 @@ contract HermesImplementation is FundsRecovery {
         uint256 _hermesFee = calculateHermesFee(_unpaidAmount);
 
         // Update channel balance and increase stake if min stake not reached yet.
-        uint256 _amountToSettle = _unpaidAmount.sub(_transactorFee).sub(_hermesFee);
+        uint256 _fees = _transactorFee.add(_hermesFee);
+        uint256 _amountToSettle = _unpaidAmount.sub(_fees);
+        uint256 _stakeIncrease;
         if (_channel.stake < _channel.stakeGoal) {
             // Calculate stake increase duties by adding 10% of _amountToSettle there, but new stake can't increase maxStake.
-            uint256 _stakeIncrease = min(_amountToSettle / 10, maxStake.sub(_channel.stake));
+            _stakeIncrease = min(_amountToSettle / 10, maxStake.sub(_channel.stake));
 
             _increaseStake(_channelId, _stakeIncrease, true);
             _amountToSettle = _amountToSettle.sub(_stakeIncrease);
@@ -216,7 +218,7 @@ contract HermesImplementation is FundsRecovery {
             token.transfer(msg.sender, _transactorFee);
         }
 
-        emit PromiseSettled(_channelId, _channel.beneficiary, _unpaidAmount, _channel.settled);
+        emit PromiseSettled(_channelId, _channel.beneficiary, _amountToSettle, _fees, _stakeIncrease);
     }
 
     function settlePromise(address _identity, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _signature) public {
@@ -372,17 +374,18 @@ contract HermesImplementation is FundsRecovery {
         require(_transactorFee <= _unpaidAmount, "transactor fee should be equal to or less than _unpaidAmount");
 
         // Use all _unpaidAmount to increase channel stake.
-        _increaseStake(_channelId, _unpaidAmount.sub(_transactorFee), true);
+        uint256 _stakeIncrease = _unpaidAmount.sub(_transactorFee);
+        _increaseStake(_channelId, _stakeIncrease, true);
 
         // Increase already paid amount.
         _channel.settled = _channel.settled.add(_unpaidAmount);
-
-        emit PromiseSettled(_channelId, _channel.beneficiary, _unpaidAmount, _channel.settled);
 
         // Pay fee
         if (_transactorFee > 0) {
             token.transfer(msg.sender, _transactorFee);
         }
+
+        emit PromiseSettled(_channelId, _channel.beneficiary, 0, _transactorFee, _stakeIncrease);
 
         // Rebalance channel with new state.
         rebalanceChannel(_channelId);
