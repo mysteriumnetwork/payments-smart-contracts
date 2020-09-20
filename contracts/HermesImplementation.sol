@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity >=0.5.12 <0.7.0;
+pragma solidity 0.7.1;
 
 import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { IUniswapV2Router } from "./uniswap/IUniswapV2Router.sol";
 import { IERC20Token } from "./interfaces/IERC20Token.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
 
@@ -12,12 +13,6 @@ interface IdentityRegistry {
     function getChannelAddress(address _identity, address _hermesId) external view returns (address);
 }
 
-interface IUniswapV2Router02 {
-    function WETH() external pure returns (address);
-    function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
-        external
-        returns (uint[] memory amounts);
-}
 
 // Uni-directional settle based hermes
 contract HermesImplementation is FundsRecovery {
@@ -37,7 +32,7 @@ contract HermesImplementation is FundsRecovery {
     uint256 internal maxStake;                 // maximal allowed provider's stake
     uint256 internal hermesStake;              // hermes stake is used to prove hermes' sustainability
     uint256 internal closingTimelock;          // blocknumber after which getting stake back will become possible
-    IUniswapV2Router02 internal uniswapRouter;
+    IUniswapV2Router internal dex;             // any uniswap v2 compatible dex router address
 
     enum Status { Active, Paused, Punishment, Closed } // hermes states
     Status internal status;
@@ -125,7 +120,7 @@ contract HermesImplementation is FundsRecovery {
 
     // Because of proxy pattern this function is used insted of constructor.
     // Have to be called right after proxy deployment.
-    function initialize(address _token, address _operator, uint16 _fee, uint256 _minStake, uint256 _maxStake, address _routerAddress) public virtual {
+    function initialize(address _token, address _operator, uint16 _fee, uint256 _minStake, uint256 _maxStake, address payable _dexAddress) public virtual {
         require(!isInitialized(), "have to be not initialized");
         require(_operator != address(0), "operator have to be set");
         require(_token != address(0), "token can't be deployd into zero address");
@@ -139,7 +134,9 @@ contract HermesImplementation is FundsRecovery {
         minStake = _minStake;
         maxStake = _maxStake;
         hermesStake = token.balanceOf(address(this));
-        uniswapRouter = IUniswapV2Router02(_routerAddress);
+
+        dex = IUniswapV2Router(_dexAddress);
+        token.approve(_dexAddress, uint(-1)); // MYST token's transfer from is cheaper when there is approval of uint(-1)
     }
 
     function isInitialized() public view returns (bool) {
@@ -218,14 +215,14 @@ contract HermesImplementation is FundsRecovery {
         // Decrease hermes locked funds.
         lockedFunds = lockedFunds.sub(min(_unpaidAmount, _channel.balance));
 
-        // Transfer tokens or eachange them into ETH via uniswap
+        // Transfer tokens or exchange them into ETH via uniswap (or compatible dex)
         if (_withDEX) {
             uint amountOutMin = 0;
             address[] memory path = new address[](2);
             path[0] = address(token);
-            path[1] = uniswapRouter.WETH();
+            path[1] = dex.WETH();
 
-            uniswapRouter.swapExactTokensForETH(_amountToSettle, amountOutMin, path, _channel.beneficiary, block.timestamp);
+            dex.swapExactTokensForETH(_amountToSettle, amountOutMin, path, _channel.beneficiary, block.timestamp);
         } else {
             token.transfer(_channel.beneficiary, _amountToSettle);
         }

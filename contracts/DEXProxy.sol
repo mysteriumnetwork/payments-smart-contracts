@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity >=0.5.12 <0.7.0;
+pragma solidity 0.7.1;
 
 contract DEXProxy {
     bytes32 constant IMPLEMENTATION_POSITION = keccak256("MysDEXProxy.implementation");
@@ -12,7 +12,7 @@ contract DEXProxy {
         _;
     }
 
-    constructor (address _implementation, address _owner) public {
+    constructor (address _implementation, address _owner) {
         require(_implementation != address(0x0));
 
         bytes32 _ownerPosition = OWNER_POSITION;

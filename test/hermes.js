@@ -8,7 +8,7 @@ const {
     generateChannelId,
     topUpTokens,
     topUpEthers,
-    setupConfig
+    setupDEX
 } = require('./utils/index.js')
 const wallet = require('./utils/wallet.js')
 const {
@@ -19,12 +19,11 @@ const {
 } = require('./utils/client.js')
 
 const MystToken = artifacts.require("TestMystToken")
-const MystDex = artifacts.require("MystDEX")
 const Registry = artifacts.require("Registry")
 const HermesImplementation = artifacts.require("TestHermesImplementation")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
 
-const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
+const OneToken = web3.utils.toWei(new BN('1000000000000000000'), 'wei')
 const OneEther = web3.utils.toWei(new BN(1), 'ether')
 const Zero = new BN(0)
 const ZeroAddress = '0x0000000000000000000000000000000000000000'
@@ -39,10 +38,10 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
     const identityC = wallet.generateAccount()
     const identityD = wallet.generateAccount()
 
-    let token, hermes, registry, promise
+    let token, dex, hermes, registry, promise
     before(async () => {
         token = await MystToken.new()
-        const dex = await MystDex.new()
+        dex = await setupDEX(token, txMaker)
         const hermesImplementation = await HermesImplementation.new(token.address, operator.address, 0, OneToken)
         const channelImplementation = await ChannelImplementation.new()
         registry = await Registry.new(token.address, dex.address, 1, channelImplementation.address, hermesImplementation.address, ZeroAddress)
@@ -243,6 +242,24 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
     })
 
     /**
+     * Testing promise settlement via uniswap
+     */
+
+    it("should settle into ETH", async () => {
+        const channelId = generateChannelId(identityC.address, hermes.address)
+        const channelState = Object.assign({}, { channelId }, await hermes.channels(channelId))
+        const amountToPay = new BN('100')
+        const expectedETHAmount = new BN('49') // 100 MYST --> 49 ETH given 10000000/5000000 liquidity pool.
+        const balanceBefore = new BN(await web3.eth.getBalance(beneficiaryC))
+
+        promise = generatePromise(amountToPay, new BN(0), channelState, operator)
+        await hermes.settleWithDEX(channelId, promise.amount, promise.fee, promise.lock, promise.signature)
+
+        const balanceAfter = new BN(await web3.eth.getBalance(beneficiaryC))
+        balanceAfter.should.be.bignumber.equal(balanceBefore.add(expectedETHAmount))
+    })
+
+    /**
      * Testing channel rebalance and stake management functionality
      */
 
@@ -346,7 +363,6 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
 
         // hermes abailable balance should be calculated properly
         const hermesAvailableBalance = await hermes.availableBalance()
-
         hermesAvailableBalance.should.be.bignumber.equal(hermesInitialAvailableBalace.sub(initialBalanceLoanDiff))
     })
 
@@ -403,7 +419,7 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
 
         // Ensure that amountToLend is bigger than stake + locked in channels funds
         let minimalExpectedBalance = await hermes.minimalExpectedBalance()
-        expect(minimalExpectedBalance.toNumber()).to.be.below(amountToLend.toNumber())
+        minimalExpectedBalance.should.be.bignumber.below(amountToLend)
 
         // Try getting stake back
         const currentBalance = await token.balanceOf(hermes.address)
@@ -414,8 +430,8 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
         minimalExpectedBalance = await hermes.minimalExpectedBalance()
         const availableToUse = currentBalance.sub(minimalExpectedBalance)
         const channel = await hermes.channels(channelId)
-        expect(channel.stake.toNumber()).to.be.equal(amountToLend.sub(availableToUse).toNumber())
-        expect(channel.balance.toNumber()).to.be.equal(0)
+        channel.stake.should.be.bignumber.equal(amountToLend.sub(availableToUse))
+        channel.balance.should.be.bignumber.equal(Zero)
 
         // Hermes should become not active
         expect(await hermes.isHermesActive()).to.be.false
@@ -474,8 +490,10 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
         expect(stakeAfter.toNumber()).to.be.equal(87654321)
     })
 
-    it("not hermes should be not able to set new minStake", async () => {
+    it("not hermes operator should be not able to set new minStake", async () => {
         const newMinStake = 1
         await hermes.setMinStake(newMinStake).should.be.rejected
     })
 })
+
+// TODO add test to recheck if PromiseSettled event shows proper values.

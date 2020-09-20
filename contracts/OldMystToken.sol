@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity >=0.5.12 <0.7.0;
+pragma solidity 0.7.1;
 
 import { SafeMathLib } from "./libs/SafeMathLib.sol";
 import { IUpgradeAgent } from "./interfaces/IUpgradeAgent.sol";
@@ -75,7 +75,7 @@ contract SafeMath {
 contract Ownable {
     address public owner;
 
-    constructor() public {
+    constructor() {
         owner = msg.sender;
     }
 
@@ -140,7 +140,7 @@ contract OldMystToken is ERC20, Ownable, SafeMath {
         _;
     }
 
-    constructor() public {
+    constructor() {
         upgradeMaster = msg.sender;
         owner = msg.sender;
         mintAgents[msg.sender] = true;

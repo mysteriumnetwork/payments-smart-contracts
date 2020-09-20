@@ -2,7 +2,8 @@ const { BN } = require('@openzeppelin/test-helpers')
 const {
     deriveContractAddress,
     topUpEthers,
-    topUpTokens
+    topUpTokens,
+    setupDEX
 } = require('./utils/index.js')
 
 const Registry = artifacts.require("Registry")
@@ -217,7 +218,7 @@ contract('Registry funds recovery', ([_, txMaker, identity, account, fundsDestin
     })
 })
 
-contract('Channel implementation funds recovery', ([_, txMaker, identity, fundsDestination, ...otherAccounts]) => {
+contract('Channel implementation funds recovery', ([_, txMaker, identity, identity2, fundsDestination, ...otherAccounts]) => {
     let token, nativeToken, channelImplementation, topupAmount, tokensToMint
     before(async () => {
         token = await Token.new()
@@ -272,10 +273,11 @@ contract('Channel implementation funds recovery', ([_, txMaker, identity, fundsD
 })
 
 contract('Hermes funds recovery', ([_, txMaker, account, fundsDestination, ...otherAccounts]) => {
-    let token, nativeToken, hermesImplementation, topupAmount, tokensToMint
+    let token, nativeToken, hermesImplementation, topupAmount, tokensToMint, dex
     before(async () => {
         token = await Token.new()
         nativeToken = await Token.new()
+        dex = await setupDEX(token, _)
     })
 
     it('should topup some ethers and tokens into future hermes smart contract address', async () => {
@@ -291,7 +293,7 @@ contract('Hermes funds recovery', ([_, txMaker, account, fundsDestination, ...ot
 
         // Deploy Hermes smart contract
         hermesImplementation = await TestHermesImplementation.new({ from: txMaker })
-        await hermesImplementation.initialize(nativeToken.address, account, 0, 25, OneToken)
+        await hermesImplementation.initialize(nativeToken.address, account, 0, 25, OneToken, dex.address)
         expect(hermesImplementation.address.toLowerCase()).to.be.equal(implementationAddress.toLowerCase())
 
         // Set funds destination
@@ -299,11 +301,12 @@ contract('Hermes funds recovery', ([_, txMaker, account, fundsDestination, ...ot
     })
 
     it('should recover ethers sent to hermes contract before its deployment', async () => {
-        const initialBalance = await web3.eth.getBalance(fundsDestination)
+        const initialBalance = new BN(await web3.eth.getBalance(fundsDestination))
 
+        topupAmount = new BN(topupAmount.toString())
         await hermesImplementation.claimEthers().should.be.fulfilled
 
-        const expectedBalance = Number(initialBalance) + topupAmount
+        const expectedBalance = topupAmount.add(new BN(initialBalance))
         expect(await web3.eth.getBalance(fundsDestination)).to.be.equal(expectedBalance.toString())
     })
 

@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity >=0.6.0 <0.7.0;
+pragma solidity 0.7.1;
 
 import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IERC20Token } from "./interfaces/IERC20Token.sol";
+import { IHermesContract } from "./interfaces/IHermesContract.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
-
-interface HermesContract {
-    function getOperator() external view returns (address);
-}
 
 contract ChannelImplementation is FundsRecovery {
     using ECDSA for bytes32;
@@ -66,7 +63,7 @@ contract ChannelImplementation is FundsRecovery {
 
         operator = _identityHash;
         transferOwnership(operator);
-        hermes = Hermes(HermesContract(_hermesId).getOperator(), _hermesId, 0);
+        hermes = Hermes(IHermesContract(_hermesId).getOperator(), _hermesId, 0);
 
         emit ChannelInitialised(_identityHash, _hermesId);
     }

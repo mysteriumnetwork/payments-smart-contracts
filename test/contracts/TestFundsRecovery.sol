@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity >=0.6.0 <0.7.0;
+pragma solidity >=0.7.0;
 
 import { IERC20Token } from "../../contracts/interfaces/IERC20Token.sol";
 import { FundsRecovery } from "../../contracts/FundsRecovery.sol";
