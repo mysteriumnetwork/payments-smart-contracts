@@ -2,9 +2,6 @@ const Registry = artifacts.require("Registry")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
 const HermesImplementation = artifacts.require("HermesImplementation")
 const MystToken = artifacts.require("MystToken")
-const OldMystToken = artifacts.require("OldMystToken")
-
-const SafeMathLib = artifacts.require("SafeMathLib")
 
 const uniswap = require("../scripts/deployUniswap")
 const WETH = require("../scripts/deployWETH")
@@ -21,9 +18,6 @@ module.exports = async function (deployer, network, accounts) {
         await deployer.deploy(HermesImplementation)
         await deployer.deploy(Registry, MystToken.address, deployRouter02.contractAddr, 0, ChannelImplementation.address, HermesImplementation.address, zeroAddress)
     } else {
-        await deployer.deploy(SafeMathLib)
-        await deployer.link(SafeMathLib, [OldMystToken])
-
         // Deploy WETH token
         await WETH.deploy(web3, accounts[0])
 

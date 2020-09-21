@@ -5,7 +5,7 @@ import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IERC20Token } from "./interfaces/IERC20Token.sol";
 import { IHermesContract } from "./interfaces/IHermesContract.sol";
-import { IUniswapV2Router } from "./uniswap/IUniswapV2Router.sol";
+import { IUniswapV2Router } from "./interfaces/IUniswapV2Router.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
 
 contract ChannelImplementation is FundsRecovery {
