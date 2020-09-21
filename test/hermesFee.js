@@ -3,7 +3,7 @@ require('chai')
     .should()
 const { BN } = require('@openzeppelin/test-helpers')
 const { randomBytes } = require('crypto')
-const { topUpTokens, generateChannelId, keccak, setupConfig } = require('./utils/index.js')
+const { topUpTokens, generateChannelId, keccak, setupDEX } = require('./utils/index.js')
 const {
     signIdentityRegistration,
     createPromise
@@ -11,7 +11,6 @@ const {
 const wallet = require('./utils/wallet.js')
 
 const MystToken = artifacts.require("TestMystToken")
-const MystDex = artifacts.require("MystDEX")
 const Registry = artifacts.require("Registry")
 const HermesImplementation = artifacts.require("TestHermesImplementation")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
@@ -29,7 +28,7 @@ contract('Hermes fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
     let token, channelImplementation, hermes, dex, registry
     before(async () => {
         token = await MystToken.new()
-        dex = await MystDex.new()
+        dex = await setupDEX(token, txMaker)
         const hermesImplementation = await HermesImplementation.new(token.address, hermesOperator.address, 0, OneToken)
         channelImplementation = await ChannelImplementation.new()
         registry = await Registry.new(token.address, dex.address, 0, channelImplementation.address, hermesImplementation.address, ZeroAddress)

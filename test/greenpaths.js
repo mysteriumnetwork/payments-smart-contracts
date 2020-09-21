@@ -7,6 +7,7 @@ const { BN } = require('@openzeppelin/test-helpers')
 const {
     topUpTokens,
     topUpEthers,
+    setupDEX,
     generateChannelId
 } = require('./utils/index.js')
 const {
@@ -19,7 +20,6 @@ const wallet = require('./utils/wallet.js')
 const { expect } = require('chai')
 
 const MystToken = artifacts.require("TestMystToken")
-const MystDex = artifacts.require("MystDEX")
 const Registry = artifacts.require("Registry")
 const HermesImplementation = artifacts.require("TestHermesImplementation")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
@@ -53,7 +53,7 @@ async function pay(consumer, provider, hermesService, amount, repetitions = 1) {
 contract('Green path tests', ([txMaker, ...beneficiaries]) => {
     before(async () => {
         token = await MystToken.new()
-        const dex = await MystDex.new()
+        const dex = await setupDEX(token, txMaker)
         const hermesImplementation = await HermesImplementation.new()
         const channelImplementation = await ChannelImplementation.new()
         registry = await Registry.new(token.address, dex.address, 1, channelImplementation.address, hermesImplementation.address, ZeroAddress)
