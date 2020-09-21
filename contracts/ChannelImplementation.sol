@@ -5,6 +5,7 @@ import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IERC20Token } from "./interfaces/IERC20Token.sol";
 import { IHermesContract } from "./interfaces/IHermesContract.sol";
+import { IUniswapV2Router } from "./uniswap/IUniswapV2Router.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
 
 contract ChannelImplementation is FundsRecovery {
@@ -28,7 +29,7 @@ contract ChannelImplementation is FundsRecovery {
     ExitRequest public exitRequest;
     Hermes public hermes;
     address public operator;          // channel operator = sha3(IdentityPublicKey)[:20]
-    address public dex;
+    IUniswapV2Router internal dex;    // any uniswap v2 compatible dex router address
 
     event PromiseSettled(address beneficiary, uint256 amount, uint256 totalSettled);
     event ChannelInitialised(address operator, address hermes);
@@ -39,22 +40,25 @@ contract ChannelImplementation is FundsRecovery {
       ------------------------------------------- SETUP -------------------------------------------
     */
 
-    // Fallback function - redirect ethers topup into DEX
+    // Fallback function - exchange received ETH into MYST
     receive() external payable {
-        (bool success, ) = address(dex).call{value: msg.value}(msg.data);
-        require(success, "Tx was rejected by DEX");
+        address[] memory path = new address[](2);
+        path[0] = dex.WETH();
+        path[1] = address(token);
+
+        dex.swapExactETHForTokens{value: msg.value}(0, path, address(this), block.timestamp);
     }
 
     // Because of proxy pattern this function is used insted of constructor.
     // Have to be called right after proxy deployment.
-    function initialize(address _token, address _dex, address _identityHash, address _hermesId, uint256 _fee) public {
+    function initialize(address _token, address _dexAddress, address _identityHash, address _hermesId, uint256 _fee) public {
         require(!isInitialized(), "Is already initialized");
         require(_identityHash != address(0), "Identity can't be zero");
         require(_hermesId != address(0), "HermesID can't be zero");
         require(_token != address(0), "Token can't be deployd into zero address");
 
         token = IERC20Token(_token);
-        dex = _dex;
+        dex = IUniswapV2Router(_dexAddress);
 
         // Transfer required fee to msg.sender (most probably Registry)
         if (_fee > 0) {

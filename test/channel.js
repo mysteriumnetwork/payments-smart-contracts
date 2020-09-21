@@ -6,7 +6,8 @@
 const { BN } = require('@openzeppelin/test-helpers')
 const {
     topUpTokens,
-    topUpEthers
+    topUpEthers,
+    setupDEX
 } = require('./utils/index.js')
 const wallet = require('./utils/wallet.js')
 const { generatePromise, signExitRequest, constructPayload } = require('./utils/client.js')
@@ -26,8 +27,9 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
     let token, channel
     before(async () => {
         token = await MystToken.new()
+        const dex = await setupDEX(token, txMaker)
         hermesImplementation = await TestHermesImplementation.new(token.address, hermes.address, 0, OneToken)
-        channel = await TestChannelImplementation.new(token.address, identityHash, hermesImplementation.address, Zero)
+        channel = await TestChannelImplementation.new(token.address, dex.address, identityHash, hermesImplementation.address, Zero)
 
         // Give some ethers for gas for hermes
         topUpEthers(txMaker, hermes.address, OneEther)
@@ -201,5 +203,25 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
 
         const exitRequest = await channel.exitRequest()
         expect(exitRequest.beneficiary).to.be.equal(beneficiary)
+    })
+
+    /**
+     * Testing topup with ETH via DEX
+     */
+    it('should exchange ethers into tokens', async () => {
+        const userAccount = otherAccounts[0]
+        const initialChannelBalance = await token.balanceOf(channel.address)
+        const ethersAmount = new BN('2000')
+        const expectedTokens = new BN('3987')
+
+        // Send some ethers into payment channel
+        await channel.sendTransaction({
+            from: userAccount,
+            value: ethersAmount,
+            gas: 200000
+        })
+
+        const channelBalance = await token.balanceOf(channel.address)
+        channelBalance.should.be.bignumber.equal(initialChannelBalance.add(expectedTokens))
     })
 })
