@@ -2,12 +2,11 @@ require('chai')
     .use(require('chai-as-promised'))
     .should()
 const { BN } = require('@openzeppelin/test-helpers')
-const { topUpTokens } = require('./utils/index.js')
+const { topUpTokens, setupDEX } = require('./utils/index.js')
 const { signIdentityRegistration } = require('./utils/client.js')
 const wallet = require('./utils/wallet.js')
 
 const MystToken = artifacts.require("TestMystToken")
-const MystDex = artifacts.require("MystDEX")
 const Registry = artifacts.require("Registry")
 const HermesImplementation = artifacts.require("HermesImplementation")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
@@ -30,7 +29,7 @@ contract('Multi hermeses', ([txMaker, ...beneficiaries]) => {
     let token, channelImplementation, hermeses, dex, registry
     before(async () => {
         token = await MystToken.new()
-        dex = await MystDex.new()
+        dex = await setupDEX(token, txMaker)
         const hermesImplementation = await HermesImplementation.new()
         channelImplementation = await ChannelImplementation.new()
         registry = await Registry.new(token.address, dex.address, 0, channelImplementation.address, hermesImplementation.address, ZeroAddress)

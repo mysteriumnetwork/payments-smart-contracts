@@ -4,6 +4,12 @@ const rlp = require('rlp')
 const { randomBytes } = require('crypto')
 const BN = require('bn.js')
 
+const IUniswapV2Router = artifacts.require("IUniswapV2Router")
+
+const deployRouter02Tx = require('../../scripts/UniswapV2Router02.json')
+const OneToken = web3.utils.toWei(new BN('1000000000000000000'), 'wei')
+const HalfETH = web3.utils.toWei(new BN('500000000000000000'), 'wei')
+
 // CREATE2 address is calculated this way:
 // keccak("0xff++msg.sender++salt++keccak(byteCode)")
 async function genCreate2Address(identityHash, hermesId, registry, implementationAddress) {
@@ -96,6 +102,25 @@ async function topUpTokens(token, to, amount) {
     expectedBalance.should.be.bignumber.equal(await token.balanceOf(to))
 }
 
+// Setup WETH-Token trading pair liquidity on uniswap compatible dex
+async function setupDEX(token, txMaker) {
+    // Map with abi
+    const dex = await IUniswapV2Router.at(deployRouter02Tx.contractAddr)
+
+    // Setup traiding pair and provide liquidity (if there is none)
+    if ((await token.balanceOf(deployRouter02Tx.contractAddr)).toNumber() === 0) {
+        const farFuture = 2147483646 // year 2038, end of unix time epoch
+        await topUpTokens(token, txMaker, OneToken)
+        await token.approve(dex.address, OneToken)
+
+        await dex.addLiquidityETH(token.address, OneToken, OneToken, HalfETH, txMaker, farFuture, {
+            from: txMaker,
+            value: HalfETH
+        })
+    }
+    return dex
+}
+
 function toBytes32Buffer(item, type) {
     if (type === 'address') {
         item = new BN(item.replace(/0x/, ''), 16)
@@ -145,6 +170,7 @@ module.exports = {
     deriveContractAddress,
     topUpEthers,
     topUpTokens,
+    setupDEX,
     keccak: ethUtils.keccak,
     setLengthLeft: ethUtils.setLengthLeft,
     to16BitsBuffer,

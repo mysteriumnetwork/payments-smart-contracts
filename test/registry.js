@@ -5,6 +5,7 @@ const { BN } = require('@openzeppelin/test-helpers')
 
 const genCreate2Address = require('./utils/index.js').genCreate2Address
 const topUpTokens = require('./utils/index.js').topUpTokens
+const setupDEX = require('./utils/index.js').setupDEX
 const { signIdentityRegistration, signUrlUpdate } = require('./utils/client.js')
 const generateAccount = require('./utils/wallet.js').generateAccount
 
@@ -12,7 +13,6 @@ const Registry = artifacts.require("Registry")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
 const HermesImplementation = artifacts.require("HermesImplementation")
 const MystToken = artifacts.require("TestMystToken")
-const MystDex = artifacts.require("MystDEX")
 
 const OneEther = web3.utils.toWei('1', 'ether')
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
@@ -31,7 +31,7 @@ contract('Registry', ([txMaker, minter, fundsDestination, ...otherAccounts]) => 
     let token, channelImplementation, hermesImplementation, hermesId, dex, registry
     before(async () => {
         token = await MystToken.new()
-        dex = await MystDex.new()
+        dex = await setupDEX(token, txMaker)
         hermesImplementation = await HermesImplementation.new()
         channelImplementation = await ChannelImplementation.new()
         registry = await Registry.new(token.address, dex.address, 0, channelImplementation.address, hermesImplementation.address, ZeroAddress)

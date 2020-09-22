@@ -5,10 +5,10 @@ const { BN } = require('@openzeppelin/test-helpers')
 
 const generateAccount = require('./utils/wallet.js').generateAccount
 const topUpTokens = require('./utils/index.js').topUpTokens
+const setupDEX = require('./utils/index.js').setupDEX
 const signIdentityRegistration = require('./utils/client.js').signIdentityRegistration
 
 const MystToken = artifacts.require("TestMystToken")
-const MystDex = artifacts.require("MystDEX")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
 const HermesImplementation = artifacts.require("HermesImplementation")
 const Registry = artifacts.require("Registry")
@@ -27,7 +27,7 @@ contract('Parent registry', ([txMaker, minter, hermesOperator, hermesOperator2, 
     let token, channelImplementation, hermesImplementation, accId, hermesId, registry, parentRegistry
     before(async () => {
         token = await MystToken.new()
-        dex = await MystDex.new()
+        dex = await setupDEX(token, txMaker)
         hermesImplementation = await HermesImplementation.new()
         channelImplementation = await ChannelImplementation.new()
         parentRegistry = await ParentRegistry.new(token.address)

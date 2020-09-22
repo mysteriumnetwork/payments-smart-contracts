@@ -4,7 +4,7 @@ require('chai')
 const { BN } = require('@openzeppelin/test-helpers')
 const { randomBytes } = require('crypto')
 
-const { topUpTokens, generateChannelId, keccak } = require('./utils/index.js')
+const { topUpTokens, setupDEX, generateChannelId, keccak } = require('./utils/index.js')
 const {
     signIdentityRegistration,
     signChannelLoanReturnRequest,
@@ -14,7 +14,6 @@ const wallet = require('./utils/wallet.js')
 
 
 const MystToken = artifacts.require("TestMystToken")
-const MystDex = artifacts.require("MystDEX")
 const Registry = artifacts.require("Registry")
 const HermesImplementation = artifacts.require("TestHermesImplementation")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
@@ -34,7 +33,7 @@ contract('Hermes punishment', ([txMaker, operatorAddress, ...beneficiaries]) => 
         stake = OneToken
 
         token = await MystToken.new()
-        const dex = await MystDex.new()
+        const dex = await setupDEX(token, txMaker)
         const hermesImplementation = await HermesImplementation.new(token.address, hermesOperator.address, 0, OneToken)
         const channelImplementation = await ChannelImplementation.new()
         registry = await Registry.new(token.address, dex.address, stake, channelImplementation.address, hermesImplementation.address, ZeroAddress)

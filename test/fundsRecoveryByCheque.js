@@ -2,11 +2,11 @@ const { BN } = require('@openzeppelin/test-helpers')
 const {
     genCreate2Address,
     signMessage,
+    setupDEX,
     verifySignature,
     topUpEthers,
     topUpTokens,
-    toBytes32Buffer,
-    setupConfig
+    toBytes32Buffer
 } = require('./utils/index.js')
 const wallet = require('./utils/wallet.js')
 const signIdentityRegistration = require('./utils/client.js').signIdentityRegistration
@@ -15,7 +15,6 @@ const Registry = artifacts.require("Registry")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
 const HermesImplementation = artifacts.require("HermesImplementation")
 const Token = artifacts.require("TestMystToken")
-const MystDex = artifacts.require("MystDEX")
 
 const OneEther = web3.utils.toWei('1', 'ether')
 const Zero = new BN(0)
@@ -46,7 +45,7 @@ contract('Full path (in channel using cheque) test for funds recovery', ([txMake
     before(async () => {
         token = await Token.new()
         nativeToken = await Token.new()
-        const dex = await MystDex.new()
+        const dex = await setupDEX(nativeToken, txMaker)
         const channelImplementation = await ChannelImplementation.new()
         const hermesImplementation = await HermesImplementation.new()
         registry = await Registry.new(nativeToken.address, dex.address, 0, channelImplementation.address, hermesImplementation.address, ZeroAddress)

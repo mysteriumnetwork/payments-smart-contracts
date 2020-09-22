@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity >=0.6.12;
+pragma solidity =0.7.1;
 
 /**
  * Upgrade agent interface inspired by Lunyr.

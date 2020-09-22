@@ -1,21 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity >=0.5.12 <0.7.0;
+pragma solidity 0.7.1;
 
 import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IERC20Token } from "./interfaces/IERC20Token.sol";
+import { IHermesContract } from "./interfaces/IHermesContract.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
 
 interface Channel {
     function initialize(address _token, address _dex, address _identityHash, address _hermesId, uint256 _fee) external;
-}
-
-interface HermesContract {
-    enum Status { Active, Paused, Punishment, Closed }
-    function initialize(address _token, address _operator, uint16 _hermesFee, uint256 _minStake, uint256 _maxStake) external;
-    function openChannel(address _party, address _beneficiary, uint256 _amountToLend) external;
-    function getStake() external view returns (uint256);
-    function getStatus() external view returns (Status);
 }
 
 interface ParentRegistry {
@@ -28,7 +21,7 @@ contract Registry is FundsRecovery {
     using ECDSA for bytes32;
     using SafeMath for uint256;
 
-    address public dex;
+    address payable public dex;  // Any uniswap v2 compatible DEX router address
     uint256 public minimalHermesStake;
     address internal channelImplementationAddress;
     address internal hermesImplementationAddress;
@@ -48,13 +41,13 @@ contract Registry is FundsRecovery {
     event HermesURLUpdated(address indexed hermesId, bytes newURL);
     event ConsumerChannelCreated(address indexed identityHash, address indexed hermesId, address channelAddress);
 
-    constructor (address _tokenAddress, address _dexAddress, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation, address _parentAddress) public {
+    constructor (address _tokenAddress, address payable _dexAddress, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation, address _parentAddress) {
         minimalHermesStake = _minimalHermesStake;
 
         require(_tokenAddress != address(0));
         token = IERC20Token(_tokenAddress);
 
-        require(_dexAddress != address(0));
+        require(_dexAddress != address(0)); // TODO add some check if this is actually RouterInterface DEX
         dex = _dexAddress;
 
         channelImplementationAddress = _channelImplementation;
@@ -90,7 +83,7 @@ contract Registry is FundsRecovery {
         // Opening incoming (provider's) channel
         if (_stakeAmount > 0 && _beneficiary != address(0)) {
             require(token.approve(_hermesId, _stakeAmount), "hermes should get approval to transfer tokens");
-            HermesContract(_hermesId).openChannel(_identityHash, _beneficiary, _stakeAmount);
+            IHermesContract(_hermesId).openChannel(_identityHash, _beneficiary, _stakeAmount);
         }
 
         // Pay fee for transaction maker
@@ -115,13 +108,13 @@ contract Registry is FundsRecovery {
         require(!isHermes(_hermesId), "hermes already registered");
 
         // Deploy hermes contract (mini proxy which is pointing to implementation)
-        HermesContract _hermes = HermesContract(deployMiniProxy(uint256(_hermesOperator), getProxyCode(getHermesImplementation())));
+        IHermesContract _hermes = IHermesContract(deployMiniProxy(uint256(_hermesOperator), getProxyCode(getHermesImplementation())));
 
         // Transfer stake into hermes smart contract
         token.transferFrom(msg.sender, address(_hermes), _hermesStake);
 
         // Initialise hermes
-        _hermes.initialize(address(token), _hermesOperator, _hermesFee, _minChannelStake, _maxChannelStake);
+        _hermes.initialize(address(token), _hermesOperator, _hermesFee, _minChannelStake, _maxChannelStake, dex);
 
         // Save info about newly created hermes
         hermeses[address(_hermes)] = Hermes(_hermesOperator, _hermes.getStake, _url);
@@ -240,8 +233,8 @@ contract Registry is FundsRecovery {
         }
 
         // If stake is 0, then it's either incactive or unregistered hermes
-        HermesContract.Status status = HermesContract(_hermesId).getStatus();
-        return status == HermesContract.Status.Active;
+        IHermesContract.Status status = IHermesContract(_hermesId).getStatus();
+        return status == IHermesContract.Status.Active;
     }
 
     function transferCollectedFeeTo(address _beneficiary) public onlyOwner{

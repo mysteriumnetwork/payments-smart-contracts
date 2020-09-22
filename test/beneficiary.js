@@ -7,7 +7,8 @@ const { BN } = require('@openzeppelin/test-helpers')
 const {
     generateChannelId,
     topUpTokens,
-    topUpEthers
+    topUpEthers,
+    setupDEX
 } = require('./utils/index.js')
 const wallet = require('./utils/wallet.js')
 const {
@@ -17,7 +18,6 @@ const {
 } = require('./utils/client.js')
 
 const MystToken = artifacts.require("TestMystToken")
-const MystDex = artifacts.require("MystDEX")
 const Registry = artifacts.require("Registry")
 const HermesImplementation = artifacts.require("TestHermesImplementation")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
@@ -36,7 +36,7 @@ contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, 
     let token, hermes, registry, beneficiaryChangeSignature
     before(async () => {
         token = await MystToken.new()
-        const dex = await MystDex.new()
+        const dex = await setupDEX(token, txMaker)
         const hermesImplementation = await HermesImplementation.new(token.address, operator.address, 0, OneToken)
         const channelImplementation = await ChannelImplementation.new()
         registry = await Registry.new(token.address, dex.address, 1, channelImplementation.address, hermesImplementation.address, zeroAddress)
