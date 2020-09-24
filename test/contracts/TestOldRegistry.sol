@@ -29,7 +29,7 @@ contract TestOldRegistry is FundsRecovery {
     event RegisteredIdentity(address indexed identityHash, address indexed accId);
     event RegisteredAccountant(address indexed accId, address accountantOperator);
 
-    constructor (address _tokenAddress) public {
+    constructor (address _tokenAddress) {
         require(_tokenAddress != address(0));
         token = IERC20Token(_tokenAddress);
     }
