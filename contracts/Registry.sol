@@ -23,12 +23,18 @@ contract Registry is FundsRecovery {
 
     address payable public dex;  // Any uniswap v2 compatible DEX router address
     uint256 public minimalHermesStake;
-    address internal channelImplementationAddress;
-    address internal hermesImplementationAddress;
+
+    struct Implementation {
+        address channelImplAddress;
+        address hermesImplAddress;
+    }
+    Implementation[] internal implementations;
+
     ParentRegistry internal parentRegistry;
 
     struct Hermes {
         address operator;   // hermes operator who will sign promises
+        uint256 implVer;    // version of hermes implementation smart contract
         function() external view returns(uint256) stake;
         bytes url;          // hermes service URL
     }
@@ -50,39 +56,39 @@ contract Registry is FundsRecovery {
         require(_dexAddress != address(0)); // TODO add some check if this is actually RouterInterface DEX
         dex = _dexAddress;
 
-        channelImplementationAddress = _channelImplementation;
-        hermesImplementationAddress = _hermesImplementation;
+        // Set initial channel implementations
+        setImplementations(_channelImplementation, _hermesImplementation);
 
         parentRegistry = ParentRegistry(_parentAddress);
     }
 
     // Reject any ethers sent to this smart-contract
     receive() external payable {
-        revert("Rejecting tx with ethers sent");
+        revert("Registry: Rejecting tx with ethers sent");
     }
 
     // Register identity and open spending and incomming channels with given hermes
     // _stakeAmount - it's amount of tokens staked into hermes to guarantee incomming channel's balance.
     function registerIdentity(address _hermesId, uint256 _stakeAmount, uint256 _transactorFee, address _beneficiary, bytes memory _signature) public {
-        require(isActiveHermes(_hermesId), "provided has have to be active");
+        require(isActiveHermes(_hermesId), "Registry: provided hermes have to be active");
 
         // Check if given signature is valid
         address _identityHash = keccak256(abi.encodePacked(address(this), _hermesId, _stakeAmount, _transactorFee, _beneficiary)).recover(_signature);
-        require(_identityHash != address(0), "wrong signature");
+        require(_identityHash != address(0), "Registry: wrong identity signature");
 
         // Tokens amount to get from channel to cover tx fee and provider's stake
         uint256 _totalFee = _stakeAmount.add(_transactorFee);
-        require(_totalFee <= token.balanceOf(getChannelAddress(_identityHash, _hermesId)), "not enought funds in channel to cover fees");
+        require(_totalFee <= token.balanceOf(getChannelAddress(_identityHash, _hermesId)), "Registry: not enought funds in channel to cover fees");
 
         // Deploy channel contract for given identity (mini proxy which is pointing to implementation)
         bytes32 _salt = keccak256(abi.encodePacked(_identityHash, _hermesId));
-        bytes memory _code = getProxyCode(getChannelImplementation());
+        bytes memory _code = getProxyCode(getChannelImplementation(hermeses[_hermesId].implVer));
         Channel _channel = Channel(deployMiniProxy(uint256(_salt), _code));
         _channel.initialize(address(token), dex, _identityHash, _hermesId, _totalFee);
 
         // Opening incoming (provider's) channel
         if (_stakeAmount > 0 && _beneficiary != address(0)) {
-            require(token.approve(_hermesId, _stakeAmount), "hermes should get approval to transfer tokens");
+            require(token.approve(_hermesId, _stakeAmount), "Registry: hermes should get approval to transfer tokens");
             IHermesContract(_hermesId).openChannel(_identityHash, _beneficiary, _stakeAmount);
         }
 
@@ -101,11 +107,11 @@ contract Registry is FundsRecovery {
     }
 
     function registerHermes(address _hermesOperator, uint256 _hermesStake, uint16 _hermesFee, uint256 _minChannelStake, uint256 _maxChannelStake, bytes memory _url) public {
-        require(_hermesOperator != address(0), "operator can't be zero address");
-        require(_hermesStake >= minimalHermesStake, "hermes have to stake at least minimal stake amount");
+        require(_hermesOperator != address(0), "Registry: hermes operator can't be zero address");
+        require(_hermesStake >= minimalHermesStake, "Registry: hermes have to stake at least minimal stake amount");
 
         address _hermesId = getHermesAddress(_hermesOperator);
-        require(!isHermes(_hermesId), "hermes already registered");
+        require(!isHermes(_hermesId), "Registry: hermes already registered");
 
         // Deploy hermes contract (mini proxy which is pointing to implementation)
         IHermesContract _hermes = IHermesContract(deployMiniProxy(uint256(_hermesOperator), getProxyCode(getHermesImplementation())));
@@ -117,7 +123,7 @@ contract Registry is FundsRecovery {
         _hermes.initialize(address(token), _hermesOperator, _hermesFee, _minChannelStake, _maxChannelStake, dex);
 
         // Save info about newly created hermes
-        hermeses[address(_hermes)] = Hermes(_hermesOperator, _hermes.getStake, _url);
+        hermeses[address(_hermes)] = Hermes(_hermesOperator, getLastImplVer(), _hermes.getStake, _url);
 
         emit RegisteredHermes(address(_hermes), _hermesOperator, _url);
     }
@@ -138,7 +144,7 @@ contract Registry is FundsRecovery {
     }
 
     function updateHermsURL(address _hermesId, bytes memory _url, bytes memory _signature) public {
-        require(isActiveHermes(_hermesId), "provided hermes has to be active");
+        require(isActiveHermes(_hermesId), "Registry: provided hermes has to be active");
 
         // Check if given signature is valid
         address _operator = keccak256(abi.encodePacked(address(this), _hermesId, _url)).recover(_signature);
@@ -188,12 +194,31 @@ contract Registry is FundsRecovery {
         return _addr;
     }
 
+    // -------- UTILS TO WORK WITH CHANNEL AND HERMES IMPLEMENTATIONS ---------
+
     function getChannelImplementation() public view returns (address) {
-        return channelImplementationAddress;
+        return implementations[getLastImplVer()].channelImplAddress;
+    }
+
+    function getChannelImplementation(uint256 _implVer) public view returns (address) {
+        return implementations[_implVer].channelImplAddress;
     }
 
     function getHermesImplementation() public view returns (address) {
-        return hermesImplementationAddress;
+        return implementations[getLastImplVer()].hermesImplAddress;
+    }
+
+    function getHermesImplementation(uint256 _implVer) public view returns (address) {
+        return implementations[_implVer].hermesImplAddress;
+    }
+
+    function setImplementations(address _newChannelImplAddress, address _newHermesImplAddress) public onlyOwner {
+        implementations.push(Implementation(_newChannelImplAddress, _newHermesImplAddress));
+    }
+
+    // Version of latest hermes and channel implementations
+    function getLastImplVer() public view returns (uint256) {
+        return implementations.length-1;
     }
 
     // ------------------------------------------------------------------------
