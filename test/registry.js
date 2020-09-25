@@ -35,7 +35,7 @@ contract('Registry', ([txMaker, minter, fundsDestination, ...otherAccounts]) => 
         dex = await setupDEX(token, txMaker)
         hermesImplementation = await HermesImplementation.new()
         channelImplementation = await ChannelImplementation.new()
-        registry = await Registry.new(token.address, dex.address, 0, channelImplementation.address, hermesImplementation.address, ZeroAddress)
+        registry = await Registry.new(token.address, dex.address, 0, channelImplementation.address, hermesImplementation.address)
 
         // Topup some tokens into txMaker address so it could register hermes
         await topUpTokens(token, txMaker, 10000)

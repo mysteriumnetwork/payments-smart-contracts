@@ -11,12 +11,6 @@ interface Channel {
     function initialize(address _token, address _dex, address _identityHash, address _hermesId, uint256 _fee) external;
 }
 
-interface ParentRegistry {
-    function isRegistered(address _identityHash) external view returns (bool);
-    function isAccountant(address _hermesId) external view returns (bool);
-    function isActiveAccountant(address _hermesId) external view returns (bool);
-}
-
 contract Registry is FundsRecovery {
     using ECDSA for bytes32;
     using SafeMath for uint256;
@@ -29,8 +23,6 @@ contract Registry is FundsRecovery {
         address hermesImplAddress;
     }
     Implementation[] internal implementations;
-
-    ParentRegistry internal parentRegistry;
 
     struct Hermes {
         address operator;   // hermes operator who will sign promises
@@ -47,7 +39,7 @@ contract Registry is FundsRecovery {
     event HermesURLUpdated(address indexed hermesId, bytes newURL);
     event ConsumerChannelCreated(address indexed identityHash, address indexed hermesId, address channelAddress);
 
-    constructor (address _tokenAddress, address payable _dexAddress, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation, address _parentAddress) {
+    constructor (address _tokenAddress, address payable _dexAddress, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation) {
         minimalHermesStake = _minimalHermesStake;
 
         require(_tokenAddress != address(0));
@@ -58,9 +50,6 @@ contract Registry is FundsRecovery {
 
         // Set initial channel implementations
         setImplementations(_channelImplementation, _hermesImplementation);
-
-        // Set parent address (can be also 0x0)
-        parentRegistry = ParentRegistry(_parentAddress);
 
         // Contract deployer is initial owner
         transferOwnership(msg.sender);
@@ -243,24 +232,16 @@ contract Registry is FundsRecovery {
         return _codeLength != 0;
     }
 
-    // Returns true when parent registry is set
+    // This is root registry, always return false
     function hasParentRegistry(address _parentAddress) public pure returns (bool) {
-        return _parentAddress != address(0x0);
+        return false;
     }
 
     function isRegistered(address _identity) public view returns (bool) {
-        if (hasParentRegistry(address(parentRegistry)) && parentRegistry.isRegistered(_identity)) {
-            return true;
-        }
-
         return identities[_identity];
     }
 
     function isHermes(address _hermesId) public view returns (bool) {
-        if (hasParentRegistry(address(parentRegistry)) && parentRegistry.isAccountant(_hermesId)) {
-            return true;
-        }
-
         // To check if it actually properly created hermes address, we need to check if he has operator
         // and if with that operator we'll get proper hermes address which has code deployed there.
         address _hermesOperator = hermeses[_hermesId].operator;
@@ -273,10 +254,6 @@ contract Registry is FundsRecovery {
     }
 
     function isActiveHermes(address _hermesId) internal view returns (bool) {
-        if (hasParentRegistry(address(parentRegistry)) && parentRegistry.isActiveAccountant(_hermesId)) {
-            return true;
-        }
-
         // First we have to ensure that given address is registered hermes and only then check its status
         require(isHermes(_hermesId), "Registry: hermes have to be registered");
 
