@@ -9,7 +9,7 @@ contract TestFundsRecovery is FundsRecovery {
     uint256 constant DELAY_BLOCKS = 4;
 
     // Constructor is needed only in tests
-    constructor (address _token) public {
+    constructor (address _token) {
         token = IERC20Token(_token);
         transferOwnership(msg.sender);
     }
