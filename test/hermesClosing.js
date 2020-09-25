@@ -34,7 +34,7 @@ contract('Hermes closing', ([txMaker, operatorAddress, ...beneficiaries]) => {
         const dex = await setupDEX(token, txMaker)
         const hermesImplementation = await HermesImplementation.new(token.address, hermesOperator.address, 0, OneToken)
         const channelImplementation = await ChannelImplementation.new()
-        registry = await Registry.new(token.address, dex.address, stake, channelImplementation.address, hermesImplementation.address, ZeroAddress)
+        registry = await Registry.new(token.address, dex.address, stake, channelImplementation.address, hermesImplementation.address)
 
         // Topup some tokens into txMaker address so it could register hermes
         await topUpTokens(token, txMaker, OneToken)
