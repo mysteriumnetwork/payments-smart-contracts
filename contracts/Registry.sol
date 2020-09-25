@@ -59,7 +59,11 @@ contract Registry is FundsRecovery {
         // Set initial channel implementations
         setImplementations(_channelImplementation, _hermesImplementation);
 
+        // Set parent address (can be also 0x0)
         parentRegistry = ParentRegistry(_parentAddress);
+
+        // Contract deployer is initial owner
+        transferOwnership(msg.sender);
     }
 
     // Reject any ethers sent to this smart-contract
@@ -129,7 +133,7 @@ contract Registry is FundsRecovery {
     }
 
     function getChannelAddress(address _identity, address _hermesId) public view returns (address) {
-        bytes32 _code = keccak256(getProxyCode(getChannelImplementation()));
+        bytes32 _code = keccak256(getProxyCode(getChannelImplementation(hermeses[_hermesId].implVer)));
         bytes32 _salt = keccak256(abi.encodePacked(_identity, _hermesId));
         return getCreate2Address(_salt, _code);
     }
@@ -139,11 +143,16 @@ contract Registry is FundsRecovery {
         return getCreate2Address(bytes32(uint256(_hermesOperator)), _code);
     }
 
+    function getHermesAddress(address _hermesOperator, uint256 _implVer) public view returns (address) {
+        bytes32 _code = keccak256(getProxyCode(getHermesImplementation(_implVer)));
+        return getCreate2Address(bytes32(uint256(_hermesOperator)), _code);
+    }
+
     function getHermesURL(address _hermesId) public view returns (bytes memory) {
         return hermeses[_hermesId].url;
     }
 
-    function updateHermsURL(address _hermesId, bytes memory _url, bytes memory _signature) public {
+    function updateHermesURL(address _hermesId, bytes memory _url, bytes memory _signature) public {
         require(isActiveHermes(_hermesId), "Registry: provided hermes has to be active");
 
         // Check if given signature is valid
@@ -213,6 +222,7 @@ contract Registry is FundsRecovery {
     }
 
     function setImplementations(address _newChannelImplAddress, address _newHermesImplAddress) public onlyOwner {
+        require(isSmartContract(_newChannelImplAddress) && isSmartContract(_newHermesImplAddress), "Registry: implementations have to be smart contracts");
         implementations.push(Implementation(_newChannelImplAddress, _newHermesImplAddress));
     }
 
@@ -222,6 +232,16 @@ contract Registry is FundsRecovery {
     }
 
     // ------------------------------------------------------------------------
+
+    function isSmartContract(address _addr) internal view returns (bool) {
+        uint _codeLength;
+
+        assembly {
+            _codeLength := extcodesize(_addr)
+        }
+
+        return _codeLength != 0;
+    }
 
     // Returns true when parent registry is set
     function hasParentRegistry(address _parentAddress) public pure returns (bool) {
@@ -241,15 +261,15 @@ contract Registry is FundsRecovery {
             return true;
         }
 
-        address hermesOperator = hermeses[_hermesId].operator;
-        address _addr = getHermesAddress(hermesOperator);
-        uint _codeLength;
+        // To check if it actually properly created hermes address, we need to check if he has operator
+        // and if with that operator we'll get proper hermes address which has code deployed there.
+        address _hermesOperator = hermeses[_hermesId].operator;
+        uint256 _implVer = hermeses[_hermesId].implVer;
+        address _addr = getHermesAddress(_hermesOperator, _implVer);
+        if (_addr != _hermesId)
+            return false; // hermesId should be same as generated address
 
-        assembly {
-            _codeLength := extcodesize(_addr)
-        }
-
-        return _codeLength != 0;
+        return isSmartContract(_addr);
     }
 
     function isActiveHermes(address _hermesId) internal view returns (bool) {
@@ -257,7 +277,9 @@ contract Registry is FundsRecovery {
             return true;
         }
 
-        // If stake is 0, then it's either incactive or unregistered hermes
+        // First we have to ensure that given address is registered hermes and only then check its status
+        require(isHermes(_hermesId), "Registry: hermes have to be registered");
+
         IHermesContract.Status status = IHermesContract(_hermesId).getStatus();
         return status == IHermesContract.Status.Active;
     }
