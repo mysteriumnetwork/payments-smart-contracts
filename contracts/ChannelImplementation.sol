@@ -15,6 +15,8 @@ contract ChannelImplementation is FundsRecovery {
     string constant EXIT_PREFIX = "Exit request:";
     uint256 constant DELAY_BLOCKS = 18000;  // +/- 4 days
 
+    uint256 internal lastNonce;
+
     struct ExitRequest {
         uint256 timelock;          // block number after which exit can be finalized
         address beneficiary;       // address where funds will be send after finalizing exit request
@@ -34,7 +36,7 @@ contract ChannelImplementation is FundsRecovery {
     event PromiseSettled(address beneficiary, uint256 amount, uint256 totalSettled);
     event ChannelInitialised(address operator, address hermes);
     event ExitRequested(uint256 timelock);
-    event FinalizeExit(uint256 amount);
+    event Withdraw(address beneficiary, uint256 amount);
 
     /*
       ------------------------------------------- SETUP -------------------------------------------
@@ -125,15 +127,15 @@ contract ChannelImplementation is FundsRecovery {
     function requestExit(address _beneficiary, uint256 _validUntil, bytes memory _signature) public {
         uint256 _timelock = getTimelock();
 
-        require(exitRequest.timelock == 0, "new exit can be requested only when old one was finalised");
-        require(_validUntil > block.number, "valid until have to be greater than current block number");
-        require(_timelock > _validUntil, "request have to be valid shorter than DELAY_BLOCKS");
-        require(_beneficiary != address(0), "beneficiary can't be zero address");
+        require(exitRequest.timelock == 0, "Channel: new exit can be requested only when old one was finalised");
+        require(_validUntil > block.number, "Channel: valid until have to be greater than current block number");
+        require(_timelock > _validUntil, "Channel: request have to be valid shorter than DELAY_BLOCKS");
+        require(_beneficiary != address(0), "Channel: beneficiary can't be zero address");
 
         if (msg.sender != operator) {
             address _channelId = address(this);
             address _signer = keccak256(abi.encodePacked(EXIT_PREFIX, _channelId, _beneficiary, _validUntil)).recover(_signature);
-            require(_signer == operator, "have to be signed by operator");
+            require(_signer == operator, "Channel: have to be signed by operator");
         }
 
         exitRequest = ExitRequest(_timelock, _beneficiary);
@@ -143,23 +145,46 @@ contract ChannelImplementation is FundsRecovery {
 
     // Anyone can finalize exit request after timelock block passed
     function finalizeExit() public {
-        require(exitRequest.timelock != 0 && block.number >= exitRequest.timelock, "exit have to be requested and timelock have to be in past");
+        require(exitRequest.timelock != 0 && block.number >= exitRequest.timelock, "Channel: exit have to be requested and timelock have to be in past");
 
         // Exit with all not settled funds
-        uint256 amount = token.balanceOf(address(this));
-        token.transfer(exitRequest.beneficiary, amount);
+        uint256 _amount = token.balanceOf(address(this));
+        token.transfer(exitRequest.beneficiary, _amount);
+        emit Withdraw(exitRequest.beneficiary, _amount);
 
         exitRequest = ExitRequest(0, address(0));  // deleting request
-        emit FinalizeExit(amount);
     }
 
+    // Fast funds withdrawal is possible when hermes agrees that given amount of funds can be withdrawn
+    function fastExit(uint256 _amount, uint256 _transactorFee, address _beneficiary, uint256 _validUntil, bytes memory _operatorSignature, bytes memory _hermesSignature) public {
+        require(_validUntil >= block.number, "Channel: _validUntil have to be greater than or equal to current block number");
+
+        address _channelId = address(this);
+        bytes32 _msgHash = keccak256(abi.encodePacked(EXIT_PREFIX, uint256(_channelId), _amount, _transactorFee, uint256(_beneficiary), _validUntil, lastNonce++));
+
+        address _firstSigner = _msgHash.recover(_operatorSignature);
+        require(_firstSigner == operator, "Channel: have to be signed by operator");
+
+        address _secondSigner = _msgHash.recover(_hermesSignature);
+        require(_secondSigner == hermes.operator, "Channel: have to be signed by hermes");
+
+        // Pay fee to transaction maker
+        if (_transactorFee > 0) {
+            require(_amount >= _transactorFee, "Channel: transactor fee can't be bigger that withdrawal amount");
+            token.transfer(msg.sender, _transactorFee);
+        }
+
+        // Withdraw agreed amount
+        uint256 _amountToSend = _amount.sub(_transactorFee);
+        token.transfer(_beneficiary, _amountToSend);
+        emit Withdraw(_beneficiary, _amountToSend);
+    }
     /*
       ------------------------------------------ HELPERS ------------------------------------------
     */
 
     // Setting new destination of funds recovery.
     string constant FUNDS_DESTINATION_PREFIX = "Set funds destination:";
-    uint256 internal lastNonce;
     function setFundsDestinationByCheque(address payable _newDestination, uint256 _nonce, bytes memory _signature) public {
         require(_newDestination != address(0));
         require(_nonce > lastNonce, "nonce have to be bigger than last one");

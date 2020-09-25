@@ -37,7 +37,8 @@ contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, 
     before(async () => {
         token = await MystToken.new()
         const dex = await setupDEX(token, txMaker)
-        const hermesImplementation = await HermesImplementation.new(token.address, operator.address, 0, OneToken)
+        const hermesImplementation = await HermesImplementation.new()
+        await hermesImplementation.initialize(token.address, operator.address, 0, 0, OneToken, dex.address)
         const channelImplementation = await ChannelImplementation.new()
         registry = await Registry.new(token.address, dex.address, 1, channelImplementation.address, hermesImplementation.address)
 

@@ -9,7 +9,6 @@ const { randomBytes } = require('crypto')
 const {
     signMessage,
     verifySignature,
-    to16BitsBuffer,
     toBytes32Buffer,
     toBuffer,
     keccak
@@ -284,6 +283,29 @@ async function signExitRequest(channel, beneficiary, operator) {
     }
 }
 
+function signFastWithdrawal(channelId, amount, fee, beneficiary, validUntil, nonce, identity, hermes) {
+    const EXIT_PREFIX = "Exit request:"
+
+    const message = Buffer.concat([
+        Buffer.from(EXIT_PREFIX),
+        toBytes32Buffer(channelId, 'address'),   // channelId = channel address
+        toBytes32Buffer(amount),                 // total promised amount in this channel
+        toBytes32Buffer(fee),                    // fee to transfer for msg.sender
+        toBytes32Buffer(beneficiary, 'address'), // address of funds beneficiary
+        toBytes32Buffer(validUntil),             // block number
+        toBytes32Buffer(nonce)                   // latest used nonce + 1 --> reply protection
+    ])
+
+    // sign and verify the signature
+    const identitySignature = signMessage(message, identity.privKey)
+    expect(verifySignature(message, identitySignature, identity.pubKey)).to.be.true
+
+    const hermesSignature = signMessage(message, hermes.privKey)
+    expect(verifySignature(message, hermesSignature, hermes.pubKey)).to.be.true
+
+    return { channelId, amount, fee, beneficiary, validUntil, nonce, identitySignature, hermesSignature }
+}
+
 function signChannelBeneficiaryChange(channelId, newBeneficiary, channelNonce, identity) {
     const message = Buffer.concat([
         Buffer.from(channelId.slice(2), 'hex'),
@@ -396,6 +418,7 @@ module.exports = {
     signChannelBeneficiaryChange,
     signChannelLoanReturnRequest,
     signExitRequest,
+    signFastWithdrawal,
     signIdentityRegistration,
     signStakeGoalUpdate,
     signUrlUpdate,

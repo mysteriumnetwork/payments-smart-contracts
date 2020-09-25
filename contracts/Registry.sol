@@ -233,7 +233,7 @@ contract Registry is FundsRecovery {
     }
 
     // This is root registry, always return false
-    function hasParentRegistry(address _parentAddress) public pure returns (bool) {
+    function hasParentRegistry(address) public pure returns (bool) {
         return false;
     }
 
