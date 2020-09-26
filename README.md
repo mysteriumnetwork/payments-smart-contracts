@@ -22,7 +22,7 @@ npm install
 2. Run local ethereum node, e.g. `ganache`. Make sure to use version greater than 6.9.1.
 
 ```bash
-npx ganache-cli --port 7545 --mnemonic "amused glory pen avocado toilet dragon entry kitchen cliff retreat canyon danger"
+npx ganache-cli --port 7545 --mnemonic "annual soul loop stay behave write peanut such laptop drum evoke few"
 ```
 
 3. Run tests
@@ -43,10 +43,10 @@ MYSTT ERC20 Token (Mintable a la myst token): [0x7753cfAD258eFbC52A9A1452e42fFbc
 MYSTTv2 Token: [0xf74a5ca65E4552CfF0f13b116113cCb493c580C5](https://goerli.etherscan.io/address/0xf74a5ca65E4552CfF0f13b116113cCb493c580C5)
 
 Registry smart contract:
-[0xc82Cc5B0bAe95F443e33FF053aAa70F1Eb7d312A](https://goerli.etherscan.io/address/0xc82Cc5B0bAe95F443e33FF053aAa70F1Eb7d312A)
+[0x3cDE3efdEbb688C81355910330A6624927C88597](https://goerli.etherscan.io/address/0x3cDE3efdEbb688C81355910330A6624927C88597)
 
 Hermes smart contract:
-[0x42a537D649d6853C0a866470f2d084DA0f73b5E4](https://goerli.etherscan.io/address/0x42a537D649d6853C0a866470f2d084DA0f73b5E4)
+[0xF2f4dA076c2AA3A26f71Eb172c34Cb425c2d5495](https://goerli.etherscan.io/address/0xF2f4dA076c2AA3A26f71Eb172c34Cb425c2d5495)
 
 ### Deloyment log:
 
@@ -66,66 +66,42 @@ Hermes smart contract:
     > value sent:          0 ETH
     > total cost:          0.01238372163 ETH
 
-    Deploying 'MystDEX'
-    -------------------
-    > transaction hash:    0x7b92491849c634d51921659a52aab79729de3808e1fc679d65e8c2751409c83b
-    > Blocks: 1            Seconds: 12
-    > contract address:    0x3D67671DEcE8052E550567e756522a5A5D47aC4E
-    > block number:        3221689
-    > block timestamp:     1597382128
-    > account:             0x4b902507cc9F6C18c2f0f1cb170315276D6a7eFe
-    > balance:             58.04870459055
-    > gas used:            852753 (0xd0311)
-    > gas price:           7.11 gwei
-    > value sent:          0 ETH
-    > total cost:          0.00606307383 ETH
 
     Deploying 'ChannelImplementation'
     ---------------------------------
-    > transaction hash:    0xf175d7722ded600278c8bba661078165200109af26db15ae8ea3ab9c171cd4c4
-    > Blocks: 0            Seconds: 12
-    > contract address:    0x29a615aA7E03D8c04B24cc91B2949447D3A10bD6
-    > block number:        3221691
-    > block timestamp:     1597382158
-    > account:             0x4b902507cc9F6C18c2f0f1cb170315276D6a7eFe
-    > balance:             58.04870459055
-    > gas used:            1695993 (0x19e0f9)
-    > gas price:           7.11 gwei
+    > transaction hash:    0x62fe01ae5a0ebaf03a99ec791c8ab5cf3aa7b7259cf08c97285b44f0188f8721
+    > contract address:    0x5135a9032acdEA1eD4E134aa0460Cf259D00F4a6
+    > block number:        3469791
+    > block timestamp:     1601118607
+    > account:             0x3D0A081720aC75fC8d66714F92f7ccc993EeB53D
+    > balance:             4.98748921775
+    > gas used:            2097142 (0x1ffff6)
+    > gas price:           1.11 gwei
     > value sent:          0 ETH
-    > total cost:          0.01205851023 ETH
+    > total cost:          0.00232782762 ETH
 
     Deploying 'HermesImplementation'
     --------------------------------
-    > transaction hash:    0x473aeb830e5717f25d551fb3ebb0abbc533839214dbb306a214bcae3f608639c
-    > Blocks: 1            Seconds: 20
-    > contract address:    0xD0DE507c2ea452f4c8CCa6244A5408bF7e2bB8ca
-    > block number:        3221694
-    > block timestamp:     1597382203
-    > account:             0x4b902507cc9F6C18c2f0f1cb170315276D6a7eFe
-    > balance:             58.00647829344
-    > gas used:            4243008 (0x40be40)
-    > gas price:           7.11 gwei
+    > transaction hash:    0xbee1004629586559459022f7de3406a78c190816bbce164477dcc292c2dc7911
+    > contract address:    0x656299Dee670940D4B5AE4e30eb3dA6AF997d2ff
+    > block number:        3469793
+    > block timestamp:     1601118637
+    > account:             0x3D0A081720aC75fC8d66714F92f7ccc993EeB53D
+    > balance:             4.98256376591
+    > gas used:            4437344 (0x43b560)
+    > gas price:           1.11 gwei
     > value sent:          0 ETH
-    > total cost:          0.03016778688 ETH
+    > total cost:          0.00492545184 ETH
 
     Deploying 'Registry'
     --------------------
-    > transaction hash:    0xfac5b69114e2f15288bdca381ed69dfef386cbd6323af89835b009f0c81a9dda
-    > Blocks: 1            Seconds: 12
-    > contract address:    0xc82Cc5B0bAe95F443e33FF053aAa70F1Eb7d312A
-    > block number:        3221696
-    > block timestamp:     1597382233
-    > account:             0x4b902507cc9F6C18c2f0f1cb170315276D6a7eFe
-    > balance:             58.00647829344
-    > gas used:            2177858 (0x213b42)
-    > gas price:           7.11 gwei
+    > transaction hash:    0xb387cb5267490f761acaa08649a6cb27a5a90915d0f7b02f3b581f553524b541
+    > contract address:    0x3cDE3efdEbb688C81355910330A6624927C88597
+    > block number:        3469795
+    > block timestamp:     1601118667
+    > account:             0x3D0A081720aC75fC8d66714F92f7ccc993EeB53D
+    > balance:             4.97986807097
+    > gas used:            2428554 (0x250e8a)
+    > gas price:           1.11 gwei
     > value sent:          0 ETH
-    > total cost:          0.01548457038 ETH
-
-## Ideas to discuss
-
-* Integration with Uniswap V2 (`settleToDEX` in hermes).
-* Stateless Proxy (mutates target's storage, avoids delegatecall)
-* Downvoting for provider identity (if client already paid some amount to identity) -> downvoting can take some funds from stake
-* Virtual channels (Counterfactually or Perun based).
-* GSN support.
+    > total cost:          0.00269569494 ETH
