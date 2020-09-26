@@ -26,7 +26,7 @@ const ChannelImplementation = artifacts.require("ChannelImplementation")
 const OneToken = web3.utils.toWei(new BN('1000000000000000000'), 'wei')
 const OneEther = web3.utils.toWei(new BN(1), 'ether')
 const Zero = new BN(0)
-const ZeroAddress = '0x0000000000000000000000000000000000000000'
+const One = new BN(1)
 const hermesURL = Buffer.from('http://test.hermes')
 
 const operatorPrivKey = Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8c26933e5d9f0cda92f3c3', 'hex')
@@ -369,10 +369,10 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
     it("party should be able to change beneficiary", async () => {
         const newBeneficiary = otherAccounts[0]
         const channelId = generateChannelId(identityB.address, hermes.address)
-        const nonce = new BN(3)
+        const nonce = (await hermes.channels(channelId)).lastUsedNonce.add(One)
         const signature = signChannelBeneficiaryChange(channelId, newBeneficiary, nonce, identityB)
 
-        await hermes.setBeneficiary(channelId, newBeneficiary, nonce, signature)
+        await hermes.setBeneficiary(channelId, newBeneficiary, signature)
 
         expect((await hermes.channels(channelId)).beneficiary).to.be.equal(newBeneficiary)
     })
@@ -382,11 +382,11 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
         const initialChannelState = await hermes.channels(channelId)
         const hermesInitialAvailableBalace = await hermes.availableBalance()
 
-        const nonce = new BN(4)
+        const nonce = initialChannelState.lastUsedNonce.add(One)
         const amount = initialChannelState.stake
         const signature = signChannelLoanReturnRequest(channelId, amount, Zero, nonce, identityB)
 
-        await hermes.decreaseStake(channelId, amount, Zero, nonce, signature)
+        await hermes.decreaseStake(channelId, amount, Zero, signature)
         const beneficiaryBalance = await token.balanceOf(otherAccounts[0])
         beneficiaryBalance.should.be.bignumber.equal(initialChannelState.stake)
 
@@ -423,9 +423,10 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
 
         // Try getting stake back
         const currentBalance = await token.balanceOf(hermes.address)
-        const nonce = new BN(5)
+        const nonce = channelState.lastUsedNonce.add(One)
+
         signature = signChannelLoanReturnRequest(channelId, amountToLend, Zero, nonce, identityD)
-        await hermes.decreaseStake(channelId, amountToLend, Zero, nonce, signature)
+        await hermes.decreaseStake(channelId, amountToLend, Zero, signature)
 
         minimalExpectedBalance = await hermes.minimalExpectedBalance()
         const availableToUse = currentBalance.sub(minimalExpectedBalance)

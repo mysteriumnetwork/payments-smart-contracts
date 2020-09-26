@@ -25,7 +25,7 @@ const ChannelImplementation = artifacts.require("ChannelImplementation")
 const OneToken = web3.utils.toWei(new BN('1000000000000000000'), 'wei')
 const OneEther = web3.utils.toWei(new BN(1), 'ether')
 const Zero = new BN(0)
-const zeroAddress = '0x0000000000000000000000000000000000000000'
+const One = new BN(1)
 const hermesURL = Buffer.from('http://test.hermes')
 
 // const operatorPrivKey = Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8c26933e5d9f0cda92f3c3', 'hex')
@@ -96,7 +96,7 @@ contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, 
         const signature = signChannelBeneficiaryChange(channelId, beneficiaryB, nonce, provider)
 
         // Set new beneficiary
-        await hermes.setBeneficiary(channelId, beneficiaryB, nonce, signature)
+        await hermes.setBeneficiary(channelId, beneficiaryB, signature)
         expect((await hermes.channels(channelId)).beneficiary).to.be.equal(beneficiaryB)
 
         // Settle into proper beneficiary address
@@ -120,7 +120,7 @@ contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, 
 
         beneficiaryChangeSignature = signChannelBeneficiaryChange(channelId, beneficiaryC, nonce, provider) // remember signature for the future
         const promise = generatePromise(amountToPay, Zero, channelState, operator, provider.address)
-        await hermes.settleWithBeneficiary(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature, beneficiaryC, nonce, beneficiaryChangeSignature)
+        await hermes.settleWithBeneficiary(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature, beneficiaryC, beneficiaryChangeSignature)
 
         expect((await hermes.channels(channelId)).beneficiary).to.be.equal(beneficiaryC)
 
@@ -139,7 +139,7 @@ contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, 
 
         const signature = signChannelBeneficiaryChange(channelId, beneficiaryA, nonce, provider)
         const promise = generatePromise(amountToPay, transactorFee, channelState, operator, provider.address)
-        await hermes.settleWithBeneficiary(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature, beneficiaryA, nonce, signature)
+        await hermes.settleWithBeneficiary(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature, beneficiaryA, signature)
 
         expect((await hermes.channels(channelId)).beneficiary).to.be.equal(beneficiaryA)
 
@@ -152,9 +152,8 @@ contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, 
 
     it("should not allow using same beneficiaryChange signature twice", async () => {
         const channelId = generateChannelId(provider.address, hermes.address)
-        const nonce = new BN(2)
 
-        await hermes.setBeneficiary(channelId, beneficiaryC, nonce, beneficiaryChangeSignature).should.be.rejected
+        await hermes.setBeneficiary(channelId, beneficiaryC, beneficiaryChangeSignature).should.be.rejected
         expect((await hermes.channels(channelId)).beneficiary).to.be.equal(beneficiaryA)
     })
 
@@ -164,7 +163,7 @@ contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, 
         const channelState = Object.assign({}, { channelId }, await hermes.channels(channelId))
         const initialBalance = await token.balanceOf(beneficiaryB)
         const amountToPay = new BN('20')
-        const nonce = new BN(4)
+        const nonce = channelState.lastUsedNonce.add(One)
 
         // Register identity and open channel with hermes
         const signature = signIdentityRegistration(registry.address, hermes.address, Zero, Zero, beneficiaryB, identity)
@@ -175,7 +174,7 @@ contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, 
         // Settle promise and open provider's channel
         promise = generatePromise(amountToPay, Zero, channelState, operator, identity.address)
         const beneficiaryChangeSignature = signChannelBeneficiaryChange(channelId, beneficiaryB, nonce, identity) // remember signature for the future
-        await hermes.settleWithBeneficiary(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature, beneficiaryB, nonce, beneficiaryChangeSignature)
+        await hermes.settleWithBeneficiary(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature, beneficiaryB, beneficiaryChangeSignature)
 
         expect(await hermes.isChannelOpened(channelId)).to.be.true
         expect((await hermes.channels(channelId)).beneficiary).to.be.equal(beneficiaryB)

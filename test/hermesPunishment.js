@@ -167,7 +167,7 @@ contract('Hermes punishment', ([txMaker, operatorAddress, ...beneficiaries]) => 
 
         const nonce = new BN(1)
         const signature = signChannelLoanReturnRequest(channelId, channelStakeAmount, Zero, nonce, provider)
-        await hermes.decreaseStake(channelId, channelStakeAmount, Zero, nonce, signature)
+        await hermes.decreaseStake(channelId, channelStakeAmount, Zero, signature)
 
         const channel = await hermes.channels(channelId)
         const beneficiaryBalance = await token.balanceOf(beneficiaries[0])
