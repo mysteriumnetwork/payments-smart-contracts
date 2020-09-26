@@ -567,8 +567,12 @@ contract HermesImplementation is FundsRecovery {
     }
 
     function calculateHermesFee(uint256 _amount) public view returns (uint256) {
+        return round((_amount * getActiveFee() / 100), 100) / 100;
+    }
+
+    function getActiveFee() public view returns (uint256) {
         HermesFee memory _activeFee = (block.number >= lastFee.validFrom) ? lastFee : previousFee;
-        return round((_amount * uint256(_activeFee.value) / 100), 100) / 100;
+        return uint256(_activeFee.value);
     }
 
     function increaseHermesStake(uint256 _additionalStake) public onlyOperator {
