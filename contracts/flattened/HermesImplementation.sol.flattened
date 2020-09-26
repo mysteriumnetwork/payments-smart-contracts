@@ -1,9 +1,8 @@
-
 // File: @openzeppelin/contracts/cryptography/ECDSA.sol
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.0;
+pragma solidity ^0.7.0;
 
 /**
  * @dev Elliptic Curve Digital Signature Algorithm (ECDSA) operations.
@@ -89,7 +88,7 @@ library ECDSA {
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.0;
+pragma solidity ^0.7.0;
 
 /**
  * @dev Wrappers over Solidity's arithmetic operations with added overflow
@@ -247,11 +246,110 @@ library SafeMath {
     }
 }
 
+// File: contracts/interfaces/IUniswapV2Router.sol
+
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity =0.7.1;
+
+interface IUniswapV2Router {
+    function factory() external pure returns (address);
+    function WETH() external pure returns (address);
+
+    function addLiquidity(
+        address tokenA,
+        address tokenB,
+        uint amountADesired,
+        uint amountBDesired,
+        uint amountAMin,
+        uint amountBMin,
+        address to,
+        uint deadline
+    ) external returns (uint amountA, uint amountB, uint liquidity);
+    function addLiquidityETH(
+        address token,
+        uint amountTokenDesired,
+        uint amountTokenMin,
+        uint amountETHMin,
+        address to,
+        uint deadline
+    ) external payable returns (uint amountToken, uint amountETH, uint liquidity);
+    function removeLiquidity(
+        address tokenA,
+        address tokenB,
+        uint liquidity,
+        uint amountAMin,
+        uint amountBMin,
+        address to,
+        uint deadline
+    ) external returns (uint amountA, uint amountB);
+    function removeLiquidityETH(
+        address token,
+        uint liquidity,
+        uint amountTokenMin,
+        uint amountETHMin,
+        address to,
+        uint deadline
+    ) external returns (uint amountToken, uint amountETH);
+    function removeLiquidityWithPermit(
+        address tokenA,
+        address tokenB,
+        uint liquidity,
+        uint amountAMin,
+        uint amountBMin,
+        address to,
+        uint deadline,
+        bool approveMax, uint8 v, bytes32 r, bytes32 s
+    ) external returns (uint amountA, uint amountB);
+    function removeLiquidityETHWithPermit(
+        address token,
+        uint liquidity,
+        uint amountTokenMin,
+        uint amountETHMin,
+        address to,
+        uint deadline,
+        bool approveMax, uint8 v, bytes32 r, bytes32 s
+    ) external returns (uint amountToken, uint amountETH);
+    function swapExactTokensForTokens(
+        uint amountIn,
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external returns (uint[] memory amounts);
+    function swapTokensForExactTokens(
+        uint amountOut,
+        uint amountInMax,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external returns (uint[] memory amounts);
+    function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
+        external
+        payable
+        returns (uint[] memory amounts);
+    function swapTokensForExactETH(uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline)
+        external
+        returns (uint[] memory amounts);
+    function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
+        external
+        returns (uint[] memory amounts);
+    function swapETHForExactTokens(uint amountOut, address[] calldata path, address to, uint deadline)
+        external
+        payable
+        returns (uint[] memory amounts);
+
+    function quote(uint amountA, uint reserveA, uint reserveB) external pure returns (uint amountB);
+    function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) external pure returns (uint amountOut);
+    function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut) external pure returns (uint amountIn);
+    function getAmountsOut(uint amountIn, address[] calldata path) external view returns (uint[] memory amounts);
+    function getAmountsIn(uint amountOut, address[] calldata path) external view returns (uint[] memory amounts);
+}
+
 // File: @openzeppelin/contracts/token/ERC20/IERC20.sol
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.0;
+pragma solidity ^0.7.0;
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
@@ -330,7 +428,7 @@ interface IERC20 {
 // File: contracts/interfaces/IERC20Token.sol
 
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity >=0.6.12;
+pragma solidity =0.7.1;
 
 
 abstract contract IERC20Token is IERC20 {
@@ -340,7 +438,7 @@ abstract contract IERC20Token is IERC20 {
 // File: contracts/Ownable.sol
 
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity >=0.6.0 <0.7.0;
+pragma solidity 0.7.1;
 
 contract Ownable {
     address private _owner;
@@ -371,7 +469,7 @@ contract Ownable {
 // File: contracts/FundsRecovery.sol
 
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity >=0.5.12 <0.7.0;
+pragma solidity 0.7.1;
 
 
 
@@ -420,7 +518,8 @@ contract FundsRecovery is Ownable {
 // File: contracts/HermesImplementation.sol
 
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity >=0.5.12 <0.7.0;
+pragma solidity 0.7.1;
+
 
 
 
@@ -431,6 +530,7 @@ interface IdentityRegistry {
     function minimalHermesStake() external view returns (uint256);
     function getChannelAddress(address _identity, address _hermesId) external view returns (address);
 }
+
 
 // Uni-directional settle based hermes
 contract HermesImplementation is FundsRecovery {
@@ -450,6 +550,7 @@ contract HermesImplementation is FundsRecovery {
     uint256 internal maxStake;                 // maximal allowed provider's stake
     uint256 internal hermesStake;              // hermes stake is used to prove hermes' sustainability
     uint256 internal closingTimelock;          // blocknumber after which getting stake back will become possible
+    IUniswapV2Router internal dex;             // any uniswap v2 compatible dex router address
 
     enum Status { Active, Paused, Punishment, Closed } // hermes states
     Status internal status;
@@ -514,7 +615,7 @@ contract HermesImplementation is FundsRecovery {
     event MinStakeValueUpdated(uint256 newMinStake);
     event MaxStakeValueUpdated(uint256 newMaxStake);
     event StakeGoalUpdated(bytes32 indexed channelId, uint256 newStakeGoal);
-    event PromiseSettled(bytes32 indexed channelId, address beneficiary, uint256 amount, uint256 totalSettled);
+    event PromiseSettled(bytes32 indexed channelId, address indexed beneficiary, uint256 sentToBeneficiary, uint256 fees, uint256 stakeInsceseAmount);
     event ChannelBeneficiaryChanged(bytes32 channelId, address newBeneficiary);
     event HermesFeeUpdated(uint16 newFee, uint64 validFromBlock);
     event HermesClosed(uint256 blockNumber);
@@ -537,7 +638,7 @@ contract HermesImplementation is FundsRecovery {
 
     // Because of proxy pattern this function is used insted of constructor.
     // Have to be called right after proxy deployment.
-    function initialize(address _token, address _operator, uint16 _fee, uint256 _minStake, uint256 _maxStake) public virtual {
+    function initialize(address _token, address _operator, uint16 _fee, uint256 _minStake, uint256 _maxStake, address payable _dexAddress) public virtual {
         require(!isInitialized(), "have to be not initialized");
         require(_operator != address(0), "operator have to be set");
         require(_token != address(0), "token can't be deployd into zero address");
@@ -551,6 +652,9 @@ contract HermesImplementation is FundsRecovery {
         minStake = _minStake;
         maxStake = _maxStake;
         hermesStake = token.balanceOf(address(this));
+
+        dex = IUniswapV2Router(_dexAddress);
+        token.approve(_dexAddress, uint(-1)); // MYST token's transfer from is cheaper when there is approval of uint(-1)
     }
 
     function isInitialized() public view returns (bool) {
@@ -588,7 +692,7 @@ contract HermesImplementation is FundsRecovery {
 
     // Settle promise
     // _lock is random number generated by receiver used in HTLC
-    function _settlePromise(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _signature) internal {
+    function _settlePromise(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _signature, bool _withDEX) internal {
         Channel storage _channel = channels[_channelId];
 
         bytes32 _hashlock = keccak256(abi.encodePacked(_lock));
@@ -615,10 +719,12 @@ contract HermesImplementation is FundsRecovery {
         uint256 _hermesFee = calculateHermesFee(_unpaidAmount);
 
         // Update channel balance and increase stake if min stake not reached yet.
-        uint256 _amountToSettle = _unpaidAmount.sub(_transactorFee).sub(_hermesFee);
+        uint256 _fees = _transactorFee.add(_hermesFee);
+        uint256 _amountToSettle = _unpaidAmount.sub(_fees);
+        uint256 _stakeIncrease;
         if (_channel.stake < _channel.stakeGoal) {
             // Calculate stake increase duties by adding 10% of _amountToSettle there, but new stake can't increase maxStake.
-            uint256 _stakeIncrease = min(_amountToSettle / 10, maxStake.sub(_channel.stake));
+            _stakeIncrease = min(_amountToSettle / 10, maxStake.sub(_channel.stake));
 
             _increaseStake(_channelId, _stakeIncrease, true);
             _amountToSettle = _amountToSettle.sub(_stakeIncrease);
@@ -627,8 +733,19 @@ contract HermesImplementation is FundsRecovery {
         // Decrease hermes locked funds.
         lockedFunds = lockedFunds.sub(min(_unpaidAmount, _channel.balance));
 
-        // Transfer tokens and update channel balance.
-        token.transfer(_channel.beneficiary, _amountToSettle);
+        // Transfer tokens or exchange them into ETH via uniswap (or compatible dex)
+        if (_withDEX) {
+            uint amountOutMin = 0;
+            address[] memory path = new address[](2);
+            path[0] = address(token);
+            path[1] = dex.WETH();
+
+            dex.swapExactTokensForETH(_amountToSettle, amountOutMin, path, _channel.beneficiary, block.timestamp);
+        } else {
+            token.transfer(_channel.beneficiary, _amountToSettle);
+        }
+
+        // Update channel balance
         _channel.balance = _channel.balance.sub(min(_unpaidAmount, _channel.balance));
 
         // Pay fee
@@ -636,7 +753,7 @@ contract HermesImplementation is FundsRecovery {
             token.transfer(msg.sender, _transactorFee);
         }
 
-        emit PromiseSettled(_channelId, _channel.beneficiary, _unpaidAmount, _channel.settled);
+        emit PromiseSettled(_channelId, _channel.beneficiary, _amountToSettle, _fees, _stakeIncrease);
     }
 
     function settlePromise(address _identity, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _signature) public {
@@ -648,7 +765,7 @@ contract HermesImplementation is FundsRecovery {
             _openChannel(_channelId, _beneficiary, 0);
         }
 
-        _settlePromise(_channelId, _amount, _transactorFee, _lock, _signature);
+        _settlePromise(_channelId, _amount, _transactorFee, _lock, _signature, false);
     }
 
     function settleAndRebalance(address _identity, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _signature) public {
@@ -660,11 +777,11 @@ contract HermesImplementation is FundsRecovery {
             _openChannel(_channelId, _beneficiary, 0);
         }
 
-        _settlePromise(_channelId, _amount, _transactorFee, _lock, _signature);
+        _settlePromise(_channelId, _amount, _transactorFee, _lock, _signature, false);
         rebalanceChannel(_channelId);
     }
 
-    function settleWithBeneficiary(address _identity, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _promiseSignature, address _newBeneficiary, uint256 _nonce, bytes memory _signature) public {
+    function settleWithBeneficiary(address _identity, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _promiseSignature, address _newBeneficiary, bytes memory _signature) public {
         bytes32 _channelId = getChannelId(_identity);
 
         // If channel isn't opened yet, open it
@@ -672,14 +789,19 @@ contract HermesImplementation is FundsRecovery {
             _openChannel(_channelId, _newBeneficiary, 0);
         }
 
-        setBeneficiary(_channelId, _newBeneficiary, _nonce, _signature);
-        _settlePromise(_channelId, _amount, _transactorFee, _lock, _promiseSignature);
+        setBeneficiary(_channelId, _newBeneficiary, _signature);
+        _settlePromise(_channelId, _amount, _transactorFee, _lock, _promiseSignature, false);
         rebalanceChannel(_channelId);
     }
 
-    function settleWithGoalIncrease(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _promiseSignature, uint256 _newStakeGoal, uint256 _nonce, bytes memory _goalChangeSignature) public {
-        updateStakeGoal(_channelId, _newStakeGoal, _nonce, _goalChangeSignature);
-        _settlePromise(_channelId, _amount, _transactorFee, _lock, _promiseSignature);
+    function settleWithGoalIncrease(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _promiseSignature, uint256 _newStakeGoal, bytes memory _goalChangeSignature) public {
+        updateStakeGoal(_channelId, _newStakeGoal, _goalChangeSignature);
+        _settlePromise(_channelId, _amount, _transactorFee, _lock, _promiseSignature, false);
+    }
+
+    function settleWithDEX(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _signature) public {
+        _settlePromise(_channelId, _amount, _transactorFee, _lock, _signature, true);
+        rebalanceChannel(_channelId);
     }
 
     // Hermes can update channel balance by himself. He can update into any amount size
@@ -792,17 +914,18 @@ contract HermesImplementation is FundsRecovery {
         require(_transactorFee <= _unpaidAmount, "transactor fee should be equal to or less than _unpaidAmount");
 
         // Use all _unpaidAmount to increase channel stake.
-        _increaseStake(_channelId, _unpaidAmount.sub(_transactorFee), true);
+        uint256 _stakeIncrease = _unpaidAmount.sub(_transactorFee);
+        _increaseStake(_channelId, _stakeIncrease, true);
 
         // Increase already paid amount.
         _channel.settled = _channel.settled.add(_unpaidAmount);
-
-        emit PromiseSettled(_channelId, _channel.beneficiary, _unpaidAmount, _channel.settled);
 
         // Pay fee
         if (_transactorFee > 0) {
             token.transfer(msg.sender, _transactorFee);
         }
+
+        emit PromiseSettled(_channelId, _channel.beneficiary, 0, _transactorFee, _stakeIncrease);
 
         // Rebalance channel with new state.
         rebalanceChannel(_channelId);
@@ -822,15 +945,13 @@ contract HermesImplementation is FundsRecovery {
     }
 
     // Withdraw part of stake. This will also decrease channel balance.
-    function decreaseStake(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, uint256 _nonce, bytes memory _signature) public {
-        address _signer = keccak256(abi.encodePacked(STAKE_RETURN_PREFIX, _channelId, _amount, _transactorFee, _nonce)).recover(_signature);
-        require(getChannelId(_signer) == _channelId, "have to be signed by channel party");
-
+    function decreaseStake(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, bytes memory _signature) public {
         require(isChannelOpened(_channelId), "channel has to be opened");
         Channel storage _channel = channels[_channelId];
 
-        require(_nonce > _channel.lastUsedNonce, "nonce has to be bigger than already used");
-        _channel.lastUsedNonce = _nonce;
+        _channel.lastUsedNonce = _channel.lastUsedNonce + 1;
+        address _signer = keccak256(abi.encodePacked(STAKE_RETURN_PREFIX, _channelId, _amount, _transactorFee, _channel.lastUsedNonce)).recover(_signature);
+        require(getChannelId(_signer) == _channelId, "have to be signed by channel party");
 
         require(_amount <= _channel.stake, "can't withdraw more than the current stake");
         require(_amount >= _transactorFee, "amount should be bigger than transactor fee");
@@ -869,17 +990,16 @@ contract HermesImplementation is FundsRecovery {
         emit NewStake(_channelId, _newStakeAmount);
     }
 
-    function updateStakeGoal(bytes32 _channelId, uint256 _newStakeGoal, uint256 _nonce, bytes memory _signature) public {
+    function updateStakeGoal(bytes32 _channelId, uint256 _newStakeGoal, bytes memory _signature) public {
         require(isChannelOpened(_channelId), "channel have to be opened");
         require(_newStakeGoal >= minStake, "stake goal can't be less than minimal stake");
 
         Channel storage _channel = channels[_channelId];
-        require(_nonce > _channel.lastUsedNonce, "nonce have to be bigger than already used");
 
-        address _signer = keccak256(abi.encodePacked(STAKE_GOAL_UPDATE_PREFIX, _channelId, _newStakeGoal, _nonce)).recover(_signature);
+        _channel.lastUsedNonce = _channel.lastUsedNonce + 1;
+        address _signer = keccak256(abi.encodePacked(STAKE_GOAL_UPDATE_PREFIX, _channelId, _newStakeGoal, _channel.lastUsedNonce)).recover(_signature);
         require(getChannelId(_signer) == _channelId, "have to be signed by channel party");
 
-        _channel.lastUsedNonce = _nonce;
         _channel.stakeGoal = _newStakeGoal;
 
         emit StakeGoalUpdated(_channelId, _newStakeGoal);
@@ -916,16 +1036,15 @@ contract HermesImplementation is FundsRecovery {
         emit HermesPunishmentDeactivated();
     }
 
-    function setBeneficiary(bytes32 _channelId, address _newBeneficiary, uint256 _nonce, bytes memory _signature) public {
+    function setBeneficiary(bytes32 _channelId, address _newBeneficiary, bytes memory _signature) public {
         require(isChannelOpened(_channelId), "channel has to be opened");
         require(_newBeneficiary != address(0), "beneficiary can't be zero address");
         Channel storage _channel = channels[_channelId];
-        require(_nonce > _channel.lastUsedNonce, "nonce have to be bigger than already used");
 
-        address _signer = keccak256(abi.encodePacked(_channelId, _newBeneficiary, _nonce)).recover(_signature);
+        _channel.lastUsedNonce = _channel.lastUsedNonce + 1;
+        address _signer = keccak256(abi.encodePacked(_channelId, _newBeneficiary, _channel.lastUsedNonce)).recover(_signature);
         require(getChannelId(_signer) == _channelId, "have to be signed by channel party");
 
-        _channel.lastUsedNonce = _nonce;
         _channel.beneficiary = _newBeneficiary;
 
         emit ChannelBeneficiaryChanged(_channelId, _newBeneficiary);
@@ -966,8 +1085,12 @@ contract HermesImplementation is FundsRecovery {
     }
 
     function calculateHermesFee(uint256 _amount) public view returns (uint256) {
+        return round((_amount * getActiveFee() / 100), 100) / 100;
+    }
+
+    function getActiveFee() public view returns (uint256) {
         HermesFee memory _activeFee = (block.number >= lastFee.validFrom) ? lastFee : previousFee;
-        return round((_amount * uint256(_activeFee.value) / 100), 100) / 100;
+        return uint256(_activeFee.value);
     }
 
     function increaseHermesStake(uint256 _additionalStake) public onlyOperator {
