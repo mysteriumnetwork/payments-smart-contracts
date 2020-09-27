@@ -421,7 +421,6 @@ contract FundsRecovery is Ownable {
     /**
        Transfers selected tokens into owner address.
     */
-    // TODO add reentrancy protection
     function claimTokens(address _token) public {
         require(fundsDestination != address(0));
         require(_token != address(token), "native token funds can't be recovered");

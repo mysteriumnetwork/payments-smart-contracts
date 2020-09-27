@@ -176,7 +176,6 @@ function validateExchangeMessage(state, receiver, exchangeMsg, payerPubKey) {
     if (state.invoices) validateInvoice(state.invoices, promise.hashlock, agreementId, agreementTotal)
 }
 
-// TODO Can we avoid payerPubKey as he already known from promise... ?
 async function exchangePromise(state, operator, exchangeMessage, payerPubKey, receiver) {
     validateExchangeMessage(state, receiver, exchangeMessage, payerPubKey)
 
