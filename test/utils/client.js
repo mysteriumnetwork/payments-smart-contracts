@@ -352,11 +352,12 @@ function signIdentityRegistration(registryAddress, hermesId, stake, fee, benefic
     return signature
 }
 
-function signUrlUpdate(registryAddress, hermesId, url, identity) {
+function signUrlUpdate(registryAddress, hermesId, url, nonce, identity) {
     const message = Buffer.concat([
         Buffer.from(registryAddress.slice(2), 'hex'),
         Buffer.from(hermesId.slice(2), 'hex'),
-        Buffer.from(url)
+        Buffer.from(url),
+        toBytes32Buffer(nonce)
     ])
 
     // sign and verify the signature
