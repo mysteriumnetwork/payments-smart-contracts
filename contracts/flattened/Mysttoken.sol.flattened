@@ -1,9 +1,8 @@
-
 // File: @openzeppelin/contracts/token/ERC20/IERC20.sol
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.0;
+pragma solidity ^0.7.0;
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
@@ -83,7 +82,7 @@ interface IERC20 {
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.0;
+pragma solidity ^0.7.0;
 
 /*
  * @dev Provides information about the current execution context, including the
@@ -110,7 +109,7 @@ abstract contract Context {
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.0;
+pragma solidity ^0.7.0;
 
 /**
  * @dev Wrappers over Solidity's arithmetic operations with added overflow
@@ -272,7 +271,7 @@ library SafeMath {
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.2;
+pragma solidity ^0.7.0;
 
 /**
  * @dev Collection of functions related to the address type
@@ -415,7 +414,7 @@ library Address {
 // File: contracts/interfaces/IUpgradeAgent.sol
 
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity >=0.6.12;
+pragma solidity =0.7.1;
 
 /**
  * Upgrade agent interface inspired by Lunyr.
@@ -433,7 +432,7 @@ abstract contract IUpgradeAgent {
 // File: contracts/MystToken.sol
 
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity >=0.6.12 <0.7.0;
+pragma solidity 0.7.1;
 
 
 
@@ -487,7 +486,7 @@ contract MystToken is Context, IERC20, IUpgradeAgent {
     event UpgradeAgentSet(address agent);
     event UpgradeMasterSet(address master);
 
-    constructor(address originalToken) public {
+    constructor(address originalToken) {
         // upgradability settings
         _originalToken  = originalToken;
         _originalSupply = IERC20(originalToken).totalSupply();

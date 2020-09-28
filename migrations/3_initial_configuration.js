@@ -7,22 +7,19 @@ module.exports = async function (deployer, network, accounts) {
         return
     }
 
-    const tokenAddress = "0x7753cfAD258eFbC52A9A1452e42fFbce9bE486cb"
-    const registryAddress = "0x3dD81545F3149538EdCb6691A4FfEE1898Bd2ef0"
-    const hermesOperator = "0xfb9cbd471f27e69f9ca94c7e804601a1f87d0569"
-    const transactorOperator = "0x0828d0386c1122e565f07dd28c7d1340ed5b3315"
-
+    const tokenAddress = "0xf74a5ca65E4552CfF0f13b116113cCb493c580C5"
+    const registryAddress = "0x3cDE3efdEbb688C81355910330A6624927C88597"
+    const hermesOperator = '0xbFD2D96259De92B5817c83b7E1b756Ba8df1D59D'
     const token = await MystToken.at(tokenAddress)
     const registry = await Registry.at(registryAddress)
 
-    // Mint tokens
-    // await token.mint(accounts[0], '2000000000000000')
-
-    // Topup transactor
-    await token.transfer(transactorOperator, '100000000000000')
-
-    // Register hermes with 100.000 tokens stake, 3% tx fee and 5000 max channel balance
-    await token.approve(registryAddress, '100000000000000')
-    await registry.registerHermes(hermesOperator, 10000000000000, 300, 100000000, 500000000000)
+    // Register hermes with 50.000 tokens stake, 15% tx fee and 5000 max channel balance
+    const hermesStake = web3.utils.toWei(new BN('50000'), 'ether') // 50.000 tokens
+    const hermesFee = 1500 // 15.00%
+    const minChannelStake = web3.utils.toWei(new BN('1'), 'ether') // 1 token
+    const maxChannelStake = web3.utils.toWei(new BN('1000'), 'ether') // 1000 tokens
+    const url = Buffer.from('68747470733a2f2f626574616e65742d6865726d65732e6d797374657269756d2e6e6574776f726b2f', 'hex') // https://betanet-hermes.mysterium.network/
+    await token.approve(registryAddress, hermesStake)
+    await registry.registerHermes(hermesOperator, hermesStake, hermesFee, minChannelStake, maxChannelStake, url)
     console.log('HermesID: ', await registry.getHermesAddress(hermesOperator))
 }
