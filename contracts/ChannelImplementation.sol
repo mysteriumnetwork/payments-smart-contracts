@@ -185,17 +185,16 @@ contract ChannelImplementation is FundsRecovery {
 
     // Setting new destination of funds recovery.
     string constant FUNDS_DESTINATION_PREFIX = "Set funds destination:";
-    function setFundsDestinationByCheque(address payable _newDestination, uint256 _nonce, bytes memory _signature) public {
+    function setFundsDestinationByCheque(address payable _newDestination, bytes memory _signature) public {
         require(_newDestination != address(0));
-        require(_nonce > lastNonce, "nonce have to be bigger than last one");
 
-        address _signer = keccak256(abi.encodePacked(FUNDS_DESTINATION_PREFIX, _newDestination, _nonce)).recover(_signature);
-        require(_signer == operator, "have to be signed by proper identity");
+        address _channelId = address(this);
+        address _signer = keccak256(abi.encodePacked(FUNDS_DESTINATION_PREFIX, _channelId, _newDestination, lastNonce++)).recover(_signature);
+        require(_signer == operator, "Channel: have to be signed by proper identity");
 
         emit DestinationChanged(fundsDestination, _newDestination);
 
         fundsDestination = _newDestination;
-        lastNonce = _nonce;
     }
 
 }
