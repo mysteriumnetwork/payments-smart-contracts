@@ -1,6 +1,6 @@
 {
     "name": "payments-smart-contracts",
-    "version": "0.10.0",
+    "version": "1.0.0-beta.1",
     "description": "Smart contracts for Mysterium Network payments flow",
     "main": "index.js",
     "scripts": {
@@ -23,24 +23,22 @@
     "homepage": "https://github.com/mysteriumnetwork/payments-smart-contracts#readme",
     "dependencies": {
         "@ethersproject/contracts": "^5.0.4",
-        "@ethersproject/providers": "^5.0.8",
+        "@ethersproject/providers": "^5.0.9",
         "@ethersproject/solidity": "^5.0.4",
-        "@openzeppelin/contracts": "3.2.0-solc-0.7",
+        "@openzeppelin/contracts": "3.2.1-solc-0.7",
         "@openzeppelin/test-helpers": "^0.5.6",
-        "@truffle/hdwallet-provider": "^1.0.44",
-        "@uniswap/v2-core": "^1.0.1",
-        "@uniswap/v2-periphery": "^1.1.0-beta.0",
+        "@truffle/hdwallet-provider": "^1.1.0",
         "chai": "^4.2.0",
         "chai-as-promised": "^7.1.1",
         "chai-bn": "^0.2.1",
         "diff": "^4.0.2",
-        "eth-json-rpc-filters": "^4.1.1",
+        "eth-json-rpc-filters": "^4.2.1",
         "ethereumjs-tx": "^2.1.2",
         "ethereumjs-util": "^7.0.5",
         "ganache-cli": "^6.10.2",
         "lodash": "^4.17.20",
         "secp256k1": "^4.0.2",
-        "truffle": "^5.1.44",
-        "truffle-flattener": "^1.4.4"
+        "truffle": "^5.1.46",
+        "truffle-flattener": "^1.5.0"
     }
 }

@@ -28,7 +28,8 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
     before(async () => {
         token = await MystToken.new()
         const dex = await setupDEX(token, txMaker)
-        hermesImplementation = await TestHermesImplementation.new(token.address, hermes.address, 0, OneToken)
+        hermesImplementation = await TestHermesImplementation.new()
+        await hermesImplementation.initialize(token.address, hermes.address, 0, 0, OneToken, dex.address)
         channel = await TestChannelImplementation.new(token.address, dex.address, identityHash, hermesImplementation.address, Zero)
 
         // Give some ethers for gas for hermes

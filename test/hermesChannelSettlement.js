@@ -224,7 +224,7 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
 
         const goalUpdateSignature = signStakeGoalUpdate(channelId, newStakeGoal, nonce, providerA)
         const promise = generatePromise(amountToPay, Zero, channelState, operator, providerA.address)
-        await hermes.settleWithGoalIncrease(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature, newStakeGoal, nonce, goalUpdateSignature)
+        await hermes.settleWithGoalIncrease(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature, newStakeGoal, goalUpdateSignature)
 
         const stakeGoal = (await hermes.channels(channelId)).stakeGoal
         stakeGoal.should.be.bignumber.equal(newStakeGoal)

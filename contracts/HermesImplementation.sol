@@ -263,7 +263,7 @@ contract HermesImplementation is FundsRecovery {
         rebalanceChannel(_channelId);
     }
 
-    function settleWithBeneficiary(address _identity, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _promiseSignature, address _newBeneficiary, uint256 _nonce, bytes memory _signature) public {
+    function settleWithBeneficiary(address _identity, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _promiseSignature, address _newBeneficiary, bytes memory _signature) public {
         bytes32 _channelId = getChannelId(_identity);
 
         // If channel isn't opened yet, open it
@@ -271,13 +271,13 @@ contract HermesImplementation is FundsRecovery {
             _openChannel(_channelId, _newBeneficiary, 0);
         }
 
-        setBeneficiary(_channelId, _newBeneficiary, _nonce, _signature);
+        setBeneficiary(_channelId, _newBeneficiary, _signature);
         _settlePromise(_channelId, _amount, _transactorFee, _lock, _promiseSignature, false);
         rebalanceChannel(_channelId);
     }
 
-    function settleWithGoalIncrease(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _promiseSignature, uint256 _newStakeGoal, uint256 _nonce, bytes memory _goalChangeSignature) public {
-        updateStakeGoal(_channelId, _newStakeGoal, _nonce, _goalChangeSignature);
+    function settleWithGoalIncrease(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _promiseSignature, uint256 _newStakeGoal, bytes memory _goalChangeSignature) public {
+        updateStakeGoal(_channelId, _newStakeGoal, _goalChangeSignature);
         _settlePromise(_channelId, _amount, _transactorFee, _lock, _promiseSignature, false);
     }
 
@@ -427,15 +427,13 @@ contract HermesImplementation is FundsRecovery {
     }
 
     // Withdraw part of stake. This will also decrease channel balance.
-    function decreaseStake(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, uint256 _nonce, bytes memory _signature) public {
-        address _signer = keccak256(abi.encodePacked(STAKE_RETURN_PREFIX, _channelId, _amount, _transactorFee, _nonce)).recover(_signature);
-        require(getChannelId(_signer) == _channelId, "have to be signed by channel party");
-
+    function decreaseStake(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, bytes memory _signature) public {
         require(isChannelOpened(_channelId), "channel has to be opened");
         Channel storage _channel = channels[_channelId];
 
-        require(_nonce > _channel.lastUsedNonce, "nonce has to be bigger than already used");
-        _channel.lastUsedNonce = _nonce;
+        _channel.lastUsedNonce = _channel.lastUsedNonce + 1;
+        address _signer = keccak256(abi.encodePacked(STAKE_RETURN_PREFIX, _channelId, _amount, _transactorFee, _channel.lastUsedNonce)).recover(_signature);
+        require(getChannelId(_signer) == _channelId, "have to be signed by channel party");
 
         require(_amount <= _channel.stake, "can't withdraw more than the current stake");
         require(_amount >= _transactorFee, "amount should be bigger than transactor fee");
@@ -474,17 +472,16 @@ contract HermesImplementation is FundsRecovery {
         emit NewStake(_channelId, _newStakeAmount);
     }
 
-    function updateStakeGoal(bytes32 _channelId, uint256 _newStakeGoal, uint256 _nonce, bytes memory _signature) public {
+    function updateStakeGoal(bytes32 _channelId, uint256 _newStakeGoal, bytes memory _signature) public {
         require(isChannelOpened(_channelId), "channel have to be opened");
         require(_newStakeGoal >= minStake, "stake goal can't be less than minimal stake");
 
         Channel storage _channel = channels[_channelId];
-        require(_nonce > _channel.lastUsedNonce, "nonce have to be bigger than already used");
 
-        address _signer = keccak256(abi.encodePacked(STAKE_GOAL_UPDATE_PREFIX, _channelId, _newStakeGoal, _nonce)).recover(_signature);
+        _channel.lastUsedNonce = _channel.lastUsedNonce + 1;
+        address _signer = keccak256(abi.encodePacked(STAKE_GOAL_UPDATE_PREFIX, _channelId, _newStakeGoal, _channel.lastUsedNonce)).recover(_signature);
         require(getChannelId(_signer) == _channelId, "have to be signed by channel party");
 
-        _channel.lastUsedNonce = _nonce;
         _channel.stakeGoal = _newStakeGoal;
 
         emit StakeGoalUpdated(_channelId, _newStakeGoal);
@@ -521,16 +518,15 @@ contract HermesImplementation is FundsRecovery {
         emit HermesPunishmentDeactivated();
     }
 
-    function setBeneficiary(bytes32 _channelId, address _newBeneficiary, uint256 _nonce, bytes memory _signature) public {
+    function setBeneficiary(bytes32 _channelId, address _newBeneficiary, bytes memory _signature) public {
         require(isChannelOpened(_channelId), "channel has to be opened");
         require(_newBeneficiary != address(0), "beneficiary can't be zero address");
         Channel storage _channel = channels[_channelId];
-        require(_nonce > _channel.lastUsedNonce, "nonce have to be bigger than already used");
 
-        address _signer = keccak256(abi.encodePacked(_channelId, _newBeneficiary, _nonce)).recover(_signature);
+        _channel.lastUsedNonce = _channel.lastUsedNonce + 1;
+        address _signer = keccak256(abi.encodePacked(_channelId, _newBeneficiary, _channel.lastUsedNonce)).recover(_signature);
         require(getChannelId(_signer) == _channelId, "have to be signed by channel party");
 
-        _channel.lastUsedNonce = _nonce;
         _channel.beneficiary = _newBeneficiary;
 
         emit ChannelBeneficiaryChanged(_channelId, _newBeneficiary);
@@ -571,8 +567,12 @@ contract HermesImplementation is FundsRecovery {
     }
 
     function calculateHermesFee(uint256 _amount) public view returns (uint256) {
+        return round((_amount * getActiveFee() / 100), 100) / 100;
+    }
+
+    function getActiveFee() public view returns (uint256) {
         HermesFee memory _activeFee = (block.number >= lastFee.validFrom) ? lastFee : previousFee;
-        return round((_amount * uint256(_activeFee.value) / 100), 100) / 100;
+        return uint256(_activeFee.value);
     }
 
     function increaseHermesStake(uint256 _additionalStake) public onlyOperator {

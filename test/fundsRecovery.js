@@ -109,11 +109,10 @@ contract('Registry funds recovery', ([_, txMaker, identity, account, fundsDestin
     })
 
     it('should recover ethers sent to registry before its deployment', async () => {
-        const initialBalance = await web3.eth.getBalance(fundsDestination)
-
+        const initialBalance = new BN(await web3.eth.getBalance(fundsDestination))
+        const amount = new BN(topupAmount.toString())
         await registry.claimEthers().should.be.fulfilled
-
-        const expectedBalance = Number(initialBalance) + topupAmount
+        const expectedBalance = initialBalance.add(amount)
         expect(await web3.eth.getBalance(fundsDestination)).to.be.equal(expectedBalance.toString())
     })
 
@@ -159,11 +158,11 @@ contract('Channel implementation funds recovery', ([_, txMaker, identity, identi
     })
 
     it('should recover ethers sent to identity implementation before its deployment', async () => {
-        const initialBalance = await web3.eth.getBalance(fundsDestination)
-
+        const initialBalance = new BN(await web3.eth.getBalance(fundsDestination))
+        const amount = new BN(topupAmount.toString())
         await channelImplementation.claimEthers().should.be.fulfilled
 
-        const expectedBalance = Number(initialBalance) + topupAmount
+        const expectedBalance = initialBalance.add(amount)
         expect(await web3.eth.getBalance(fundsDestination)).to.be.equal(expectedBalance.toString())
     })
 

@@ -66,7 +66,6 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
         await token.approve(registry.address, OneToken)
     })
 
-    // TODO Topup = Register
     // Ask tx-maker to make tx +  sign cheque for him for that. Works even with registration fee stuff.
     it("register and initialize hermes", async () => {
         await registry.registerHermes(operator.address, 10, 0, 25, OneToken, hermesURL)
