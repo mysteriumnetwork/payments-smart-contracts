@@ -56,7 +56,8 @@ contract('Registry', ([txMaker, minter, fundsDestination, ...otherAccounts]) => 
 
     it('should be possible to change hermes URL', async () => {
         const newURL = 'https://test.hermes/api/v2'
-        const signature = signUrlUpdate(registry.address, hermesId, newURL, operator)
+        const nonce = new BN(0)
+        const signature = signUrlUpdate(registry.address, hermesId, newURL, nonce, operator)
         await registry.updateHermesURL(hermesId, Buffer.from(newURL), signature)
 
         expect(Buffer.from((await registry.getHermesURL(hermesId)).slice(2), 'hex').toString()).to.be.equal(newURL)

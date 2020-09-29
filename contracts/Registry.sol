@@ -15,6 +15,7 @@ contract Registry is FundsRecovery {
     using ECDSA for bytes32;
     using SafeMath for uint256;
 
+    uint256 internal lastNonce;
     address payable public dex;  // Any uniswap v2 compatible DEX router address
     uint256 public minimalHermesStake;
 
@@ -145,7 +146,7 @@ contract Registry is FundsRecovery {
         require(isActiveHermes(_hermesId), "Registry: provided hermes has to be active");
 
         // Check if given signature is valid
-        address _operator = keccak256(abi.encodePacked(address(this), _hermesId, _url)).recover(_signature);
+        address _operator = keccak256(abi.encodePacked(address(this), _hermesId, _url, lastNonce++)).recover(_signature);
         require(_operator == hermeses[_hermesId].operator, "wrong signature");
 
         // Update URL
