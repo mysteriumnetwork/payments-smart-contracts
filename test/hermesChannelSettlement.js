@@ -26,7 +26,7 @@ const Registry = artifacts.require("Registry")
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const OneEther = web3.utils.toWei(new BN(1), 'ether')
 const Zero = new BN(0)
-const ZeroAddress = '0x0000000000000000000000000000000000000000'
+const ChainID = 1
 const hermesURL = Buffer.from('http://test.hermes')
 
 const operator = wallet.generateAccount(Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8c26933e5d9f0cda92f3c3', 'hex'))  // Generate hermes operator wallet
@@ -222,7 +222,7 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
         const nonce = new BN('1')
         const amountToPay = new BN('250')
 
-        const goalUpdateSignature = signStakeGoalUpdate(channelId, newStakeGoal, nonce, providerA)
+        const goalUpdateSignature = signStakeGoalUpdate(ChainID, channelId, newStakeGoal, nonce, providerA)
         const promise = generatePromise(amountToPay, Zero, channelState, operator, providerA.address)
         await hermes.settleWithGoalIncrease(promise.channelId, promise.amount, promise.fee, promise.lock, promise.signature, newStakeGoal, goalUpdateSignature)
 
