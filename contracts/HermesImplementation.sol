@@ -6,6 +6,7 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IUniswapV2Router } from "./interfaces/IUniswapV2Router.sol";
 import { IERC20Token } from "./interfaces/IERC20Token.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
+import { Helpers } from "./Helpers.sol";
 
 interface IdentityRegistry {
     function isRegistered(address _identity) external view returns (bool);
@@ -15,7 +16,7 @@ interface IdentityRegistry {
 
 
 // Uni-directional settle based hermes
-contract HermesImplementation is FundsRecovery {
+contract HermesImplementation is FundsRecovery, Helpers {
     using ECDSA for bytes32;
     using SafeMath for uint256;
 
@@ -178,7 +179,7 @@ contract HermesImplementation is FundsRecovery {
         Channel storage _channel = channels[_channelId];
 
         bytes32 _hashlock = keccak256(abi.encodePacked(_lock));
-        address _signer = keccak256(abi.encodePacked(_channelId, _amount, _transactorFee, _hashlock)).recover(_signature);
+        address _signer = keccak256(abi.encodePacked(getChainID(), _channelId, _amount, _transactorFee, _hashlock)).recover(_signature);
         require(_signer == operator, "have to be signed by operator");
 
         // Calculate amount of tokens to be claimed.
@@ -388,7 +389,7 @@ contract HermesImplementation is FundsRecovery {
 
         Channel storage _channel = channels[_channelId];
         bytes32 _hashlock = keccak256(abi.encodePacked(_lock));
-        address _signer = keccak256(abi.encodePacked(_channelId, _amount, _transactorFee, _hashlock)).recover(_signature);
+        address _signer = keccak256(abi.encodePacked(getChainID(), _channelId, _amount, _transactorFee, _hashlock)).recover(_signature);
         require(_signer == operator, "have to be signed by operator");
 
         // Calculate amount of tokens to be claimed.
@@ -432,7 +433,7 @@ contract HermesImplementation is FundsRecovery {
         Channel storage _channel = channels[_channelId];
 
         _channel.lastUsedNonce = _channel.lastUsedNonce + 1;
-        address _signer = keccak256(abi.encodePacked(STAKE_RETURN_PREFIX, _channelId, _amount, _transactorFee, _channel.lastUsedNonce)).recover(_signature);
+        address _signer = keccak256(abi.encodePacked(STAKE_RETURN_PREFIX, getChainID(), _channelId, _amount, _transactorFee, _channel.lastUsedNonce)).recover(_signature);
         require(getChannelId(_signer) == _channelId, "have to be signed by channel party");
 
         require(_amount <= _channel.stake, "can't withdraw more than the current stake");
@@ -479,7 +480,7 @@ contract HermesImplementation is FundsRecovery {
         Channel storage _channel = channels[_channelId];
 
         _channel.lastUsedNonce = _channel.lastUsedNonce + 1;
-        address _signer = keccak256(abi.encodePacked(STAKE_GOAL_UPDATE_PREFIX, _channelId, _newStakeGoal, _channel.lastUsedNonce)).recover(_signature);
+        address _signer = keccak256(abi.encodePacked(STAKE_GOAL_UPDATE_PREFIX, getChainID(), _channelId, _newStakeGoal, _channel.lastUsedNonce)).recover(_signature);
         require(getChannelId(_signer) == _channelId, "have to be signed by channel party");
 
         _channel.stakeGoal = _newStakeGoal;

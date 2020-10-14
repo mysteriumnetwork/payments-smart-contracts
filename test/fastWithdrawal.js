@@ -19,7 +19,7 @@ const TestHermesImplementation = artifacts.require("TestHermesImplementation")
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const OneEther = web3.utils.toWei(new BN(1), 'ether')
 const Zero = new BN(0)
-
+const ChainID = 1 // tests are run in ganache which uses 1 as chainId, same as mainnet
 
 contract('Fast withdrawal from consumer channel', ([txMaker, ...otherAccounts]) => {
     const identity = wallet.generateAccount()     // Generate identity
@@ -61,7 +61,7 @@ contract('Fast withdrawal from consumer channel', ([txMaker, ...otherAccounts]) 
         const remainingBalance = await token.balanceOf(channel.address)
         expect(remainingBalance.toNumber()).to.be.greaterThan(0)
 
-        const request = signFastWithdrawal(channel.address, OneToken, Zero, beneficiary, lastBlockNumber + 1, nonce, identity, hermes)
+        const request = signFastWithdrawal(ChainID, channel.address, OneToken, Zero, beneficiary, lastBlockNumber + 1, nonce, identity, hermes)
         await channel.fastExit(request.amount, request.fee, request.beneficiary, request.validUntil, request.identitySignature, request.hermesSignature)
 
         const beneficiaryBalance = await token.balanceOf(beneficiary)
@@ -77,7 +77,7 @@ contract('Fast withdrawal from consumer channel', ([txMaker, ...otherAccounts]) 
         const remainingBalance = await token.balanceOf(channel.address)
         expect(remainingBalance.toNumber()).to.be.greaterThan(0)
 
-        const request = signFastWithdrawal(channel.address, OneToken, Zero, beneficiary, lastBlockNumber + 1, nonce, identity, randomSigner)
+        const request = signFastWithdrawal(ChainID, channel.address, OneToken, Zero, beneficiary, lastBlockNumber + 1, nonce, identity, randomSigner)
         await channel.fastExit(request.amount, request.fee, request.beneficiary, request.validUntil, request.identitySignature, request.hermesSignature).should.be.rejected
     })
 
@@ -92,7 +92,7 @@ contract('Fast withdrawal from consumer channel', ([txMaker, ...otherAccounts]) 
         const remainingBalance = await token.balanceOf(channel.address)
         expect(remainingBalance.toNumber()).to.be.greaterThan(0)
 
-        const request = signFastWithdrawal(channel.address, amount, fee, beneficiary, lastBlockNumber + 10, nonce, identity, hermes)
+        const request = signFastWithdrawal(ChainID, channel.address, amount, fee, beneficiary, lastBlockNumber + 10, nonce, identity, hermes)
         await channel.fastExit(request.amount, request.fee, request.beneficiary, request.validUntil, request.identitySignature, request.hermesSignature)
 
         const channelBalance = await token.balanceOf(channel.address)
@@ -127,7 +127,7 @@ contract('Fast withdrawal from consumer channel', ([txMaker, ...otherAccounts]) 
         const remainingBalance = await token.balanceOf(channel.address)
         expect(remainingBalance.toNumber()).to.be.greaterThan(amount)
 
-        const request = signFastWithdrawal(channel.address, amount, Zero, beneficiary, lastBlockNumber, nonce, identity, hermes)
+        const request = signFastWithdrawal(ChainID, channel.address, amount, Zero, beneficiary, lastBlockNumber, nonce, identity, hermes)
         await channel.fastExit(request.amount,
             request.fee,
             request.beneficiary,

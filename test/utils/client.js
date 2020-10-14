@@ -140,7 +140,8 @@ function createExchangeMsg(state, operator, channelId, invoice, party) {
     const diff = agreementTotal.sub(channelState.agreements[agreementId] || new BN(0))
     const amount = channelState.promised.add(diff).add(fee) // we're signing always increasing amount to settle
     const hashlock = keccak(R)
-    const promise = createPromise(channelId, amount, fee, hashlock, operator)
+    const chainId = 1
+    const promise = createPromise(chainId, channelId, amount, fee, hashlock, operator)
 
     // Create and sign exchange message
     const message = Buffer.concat([
@@ -200,21 +201,23 @@ async function exchangePromise(state, operator, exchangeMessage, payerPubKey, re
     outgoingChannelState.promised = promiseAmount
 
     // Issue new payment promise for `amount` value
-    return createPromise(outgoingChannelId, promiseAmount, new BN(0), promise.hashlock, operator, receiver)
+    return createPromise(promise.chainId, outgoingChannelId, promiseAmount, new BN(0), promise.hashlock, operator, receiver)
 }
 
 function generatePromise(amountToPay, fee, channelState, operator, receiver) {
     const amount = channelState.settled.add(amountToPay).add(fee) // we're signing always increasing amount to settle
     const R = randomBytes(32)
     const hashlock = keccak(R)
+    const chainId = 1  // 1 - mainnet or ganache, 5 - goerli
     return Object.assign({},
-        createPromise(channelState.channelId, amount, fee, hashlock, operator, receiver),
+        createPromise(chainId, channelState.channelId, amount, fee, hashlock, operator, receiver),
         { lock: R }
     )
 }
 
-function createPromise(channelId, amount, fee, hashlock, operator, receiver) {
+function createPromise(chainId, channelId, amount, fee, hashlock, operator, receiver) {
     const message = Buffer.concat([
+        toBytes32Buffer(chainId),  // chainId, 1 - mainnet or ganache, 5 - goerli
         toBytes32Buffer(channelId, 'address'),  // channelId = channel address
         toBytes32Buffer(amount),   // total promised amount in this channel
         toBytes32Buffer(fee),      // fee to transfer for msg.sender
@@ -225,11 +228,12 @@ function createPromise(channelId, amount, fee, hashlock, operator, receiver) {
     const signature = signMessage(message, operator.privKey)
     expect(verifySignature(message, signature, operator.pubKey)).to.be.true
 
-    return { channelId, amount, fee, hashlock, hash: keccak(message), signature, identity: receiver }
+    return { chainId, channelId, amount, fee, hashlock, hash: keccak(message), signature, identity: receiver }
 }
 
 function validatePromise(promise, pubKey) {
     const message = Buffer.concat([
+        toBytes32Buffer(promise.chainId),  // network specific chainId
         toBytes32Buffer(promise.channelId, 'address'), // channelId = channel address
         toBytes32Buffer(promise.amount),   // total promised amount in this channel
         toBytes32Buffer(promise.fee),      // fee to transfer for msg.sender
@@ -282,11 +286,12 @@ async function signExitRequest(channel, beneficiary, operator) {
     }
 }
 
-function signFastWithdrawal(channelId, amount, fee, beneficiary, validUntil, nonce, identity, hermes) {
+function signFastWithdrawal(chainId, channelId, amount, fee, beneficiary, validUntil, nonce, identity, hermes) {
     const EXIT_PREFIX = "Exit request:"
 
     const message = Buffer.concat([
         Buffer.from(EXIT_PREFIX),
+        toBytes32Buffer(chainId),                // chainId represents blockchain on which this channel is created
         toBytes32Buffer(channelId, 'address'),   // channelId = channel address
         toBytes32Buffer(amount),                 // total promised amount in this channel
         toBytes32Buffer(fee),                    // fee to transfer for msg.sender
@@ -319,10 +324,11 @@ function signChannelBeneficiaryChange(channelId, newBeneficiary, channelNonce, i
     return signature
 }
 
-function signChannelLoanReturnRequest(channelId, amount, fee, channelNonce, identity) {
+function signChannelLoanReturnRequest(channelId, amount, fee, channelNonce, identity, chainId = 1) {
     const LOAN_RETURN_PREFIX = "Stake return request"
     const message = Buffer.concat([
         Buffer.from(LOAN_RETURN_PREFIX),
+        toBytes32Buffer(chainId),
         Buffer.from(channelId.slice(2), 'hex'),
         toBytes32Buffer(amount),
         toBytes32Buffer(fee),
@@ -367,11 +373,12 @@ function signUrlUpdate(registryAddress, hermesId, url, nonce, identity) {
     return signature
 }
 
-function signStakeGoalUpdate(channelId, stakeGoal, channelNonce, identity) {
+function signStakeGoalUpdate(chainId, channelId, stakeGoal, channelNonce, identity) {
     const STAKE_GOAL_UPDATE_PREFIX = "Stake goal update request"
 
     const message = Buffer.concat([
         Buffer.from(STAKE_GOAL_UPDATE_PREFIX),
+        toBytes32Buffer(chainId),
         Buffer.from(channelId.slice(2), 'hex'),
         toBytes32Buffer(stakeGoal),
         toBytes32Buffer(channelNonce)

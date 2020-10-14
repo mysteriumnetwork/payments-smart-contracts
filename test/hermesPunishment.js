@@ -20,7 +20,7 @@ const ChannelImplementation = artifacts.require("ChannelImplementation")
 
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const Zero = new BN(0)
-const ZeroAddress = '0x0000000000000000000000000000000000000000'
+const ChainID = 1
 const hermesURL = Buffer.from('http://test.hermes')
 
 const provider = wallet.generateAccount()
@@ -86,7 +86,7 @@ contract('Hermes punishment', ([txMaker, operatorAddress, ...beneficiaries]) => 
         const hashlock = keccak(R)
 
         // Create hermes promise
-        const promise = createPromise(channelId, amount, Zero, hashlock, hermesOperator)
+        const promise = createPromise(ChainID, channelId, amount, Zero, hashlock, hermesOperator)
 
         // Settle promise
         const initialChannelBalance = (await hermes.channels(channelId)).balance
@@ -249,7 +249,7 @@ contract('Hermes punishment', ([txMaker, operatorAddress, ...beneficiaries]) => 
         const R = randomBytes(32)
         const hashlock = keccak(R)
 
-        const promise = createPromise(channelId, amount, Zero, hashlock, hermesOperator)
+        const promise = createPromise(ChainID, channelId, amount, Zero, hashlock, hermesOperator)
 
         // Settle promise
         await hermes.settlePromise(provider.address, promise.amount, promise.fee, R, promise.signature)
