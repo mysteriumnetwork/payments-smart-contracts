@@ -24,10 +24,6 @@ contract TestHermesImplementation is HermesImplementation {
         return block.timestamp;
     }
 
-    function getLockedFunds() public view returns (uint256) {
-        return lockedFunds;
-    }
-
     function getTotalStake() public view returns (uint256) {
         return totalStake;
     }

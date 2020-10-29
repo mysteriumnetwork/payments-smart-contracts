@@ -8,9 +8,11 @@ const { topUpTokens, setupDEX, generateChannelId, keccak } = require('./utils/in
 const {
     signIdentityRegistration,
     signChannelLoanReturnRequest,
-    createPromise
+    createPromise,
+    generatePromise
 } = require('./utils/client.js')
 const wallet = require('./utils/wallet.js')
+const balance = require('@openzeppelin/test-helpers/src/balance')
 
 
 const MystToken = artifacts.require("TestMystToken")
@@ -20,6 +22,7 @@ const ChannelImplementation = artifacts.require("ChannelImplementation")
 
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const Zero = new BN(0)
+const Thousand = new BN(1000)
 const ChainID = 1
 const hermesURL = Buffer.from('http://test.hermes')
 
@@ -27,7 +30,7 @@ const provider = wallet.generateAccount()
 const operatorPrivKey = Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8c26933e5d9f0cda92f3c3', 'hex')
 const hermesOperator = wallet.generateAccount(operatorPrivKey)
 
-contract('Hermes punishment', ([txMaker, operatorAddress, ...beneficiaries]) => {
+contract('Hermes stake and punishment management', ([txMaker, operatorAddress, ...beneficiaries]) => {
     let token, hermes, registry, stake
     before(async () => {
         stake = OneToken
@@ -40,19 +43,36 @@ contract('Hermes punishment', ([txMaker, operatorAddress, ...beneficiaries]) => 
 
         // Topup some tokens into txMaker address so it could register hermes
         await topUpTokens(token, txMaker, OneToken)
-        await token.approve(registry.address, OneToken)
+        await token.approve(registry.address, OneToken)   // approve a lot so it would enought for any case
     })
 
-    it('should register hermes', async () => {
+    it('should reject hermes registration if he do not pay enought stake', async () => {
+        const stateAmount = stake - 1
+        await registry.registerHermes(hermesOperator.address, stateAmount, Zero, 25, OneToken, hermesURL).should.be.rejected
+    })
+
+    it('should register hermes when stake is ok', async () => {
         await registry.registerHermes(hermesOperator.address, stake, Zero, 25, OneToken, hermesURL)
         const hermesId = await registry.getHermesAddress(hermesOperator.address)
         hermes = await HermesImplementation.at(hermesId)
         expect(await registry.isHermes(hermes.address)).to.be.true
     })
 
+    it('hermes should have available balance after sending some tokens into him', async () => {
+        let availableBalance = await hermes.availableBalance()
+        availableBalance.should.be.bignumber.equal(Zero)
+
+        const amount = new BN(1000)
+        await topUpTokens(token, hermes.address, amount)
+
+        availableBalance = await hermes.availableBalance()
+        availableBalance.should.be.bignumber.equal(amount)
+    })
+
     it('should open provider channel and calculate zero available balance', async () => {
         const expectedChannelId = generateChannelId(provider.address, hermes.address)
         const initialHermesBalance = await token.balanceOf(hermes.address)
+        const initialAvailableBalance = await hermes.availableBalance()
 
         // Guaranteed incomming channel size
         const channelStake = new BN(1000)
@@ -72,56 +92,59 @@ contract('Hermes punishment', ([txMaker, operatorAddress, ...beneficiaries]) => 
         hermesTokenBalance.should.be.bignumber.equal(initialHermesBalance.add(channelStake))
 
         const channel = await hermes.channels(expectedChannelId)
-        expect(channel.balance.toNumber()).to.be.equal(channelStake.toNumber())
+        expect(channel.stake.toNumber()).to.be.equal(channelStake.toNumber())
 
-        // Hermes should still not have available balance
+        // Hermes available balance should stay unchanged
         const availableBalance = await hermes.availableBalance()
-        availableBalance.should.be.bignumber.equal(Zero)
+        availableBalance.should.be.bignumber.equal(initialAvailableBalance)
     })
 
-    it('should settle promise and decrease channel balance', async () => {
+    it('should settle promise', async () => {
         const channelId = generateChannelId(provider.address, hermes.address)
         const amount = new BN(250)
         const R = randomBytes(32)
         const hashlock = keccak(R)
 
-        // Create hermes promise
+        // Create hermes promise and settle it
         const promise = createPromise(ChainID, channelId, amount, Zero, hashlock, hermesOperator)
-
-        // Settle promise
-        const initialChannelBalance = (await hermes.channels(channelId)).balance
-        const expectedChannelBalance = initialChannelBalance.sub(amount)
-
         await hermes.settlePromise(provider.address, promise.amount, promise.fee, R, promise.signature)
 
-        const channelBalance = (await hermes.channels(channelId)).balance
-        channelBalance.should.be.bignumber.equal(expectedChannelBalance)
+        const beneficiaryBalance = await token.balanceOf(beneficiaries[0])
+        beneficiaryBalance.should.be.bignumber.equal(amount)
     })
 
-    it('should rebalance channel only with available balance and enable punishment mode', async () => {
+    it('settle more than hermes available balance and enable punishment mode', async () => {
+        const initialAvailableBalance = await hermes.availableBalance()
+        initialAvailableBalance.should.be.bignumber.greaterThan(Zero)
+
         const channelId = generateChannelId(provider.address, hermes.address)
-        const channel = await hermes.channels(channelId)
-        const rebalanceAmount = channel.stake.sub(channel.balance)
-        const initialStake = await hermes.getHermesStake()
+        const channelState = Object.assign({}, { channelId }, await hermes.channels(channelId))
+        const amountToPay = initialAvailableBalance.add(Thousand) // promise amount should be bigger that available hermes balance
 
-        // Make hermes available balance to be half of needed
-        await topUpTokens(token, hermes.address, rebalanceAmount / 2)
+        // Settle promise
+        const promise = generatePromise(amountToPay, Zero, channelState, hermesOperator, provider.address)
+        await hermes.settlePromise(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
 
-        // Rebalance channel
-        await hermes.rebalanceChannel(channelId)
-
-        // Stake should remain untouched
-        const hermesStake = await hermes.getHermesStake()
-        expect(hermesStake.toNumber()).to.be.equal(initialStake.toNumber())
-
-        // There should be zero available balance
-        expect((await hermes.availableBalance()).toNumber()).to.be.equal(0)
+        // There should be zoro available hermes balance
+        const availableBalance = await hermes.availableBalance()
+        availableBalance.should.be.bignumber.equal(Zero)
 
         // Because of not getting all expected balance, there should be enabled punishment mode
         const hermesStatus = await hermes.getStatus() // 0 - Active, 1 - Paused, 2 - Punishment, 3 - Closed
         expect(hermesStatus.toNumber()).to.be.equal(2)
         expect(await hermes.isHermesActive()).to.be.false
     })
+
+    it('hermes stake should remain untouched', async () => {
+        const hermesStake = await hermes.getHermesStake()
+        hermesStake.should.be.bignumber.equal(stake)
+
+        const hermesBalance = await token.balanceOf(hermes.address)
+        hermesBalance.should.be.bignumber.equal(await hermes.minimalExpectedBalance())
+    })
+
+
+    // -------------- Testing punishment mode --------------
 
     it('should not allow to register new identity with hermes in punishment mode', async () => {
         const newProvider = wallet.generateAccount()
@@ -157,7 +180,6 @@ contract('Hermes punishment', ([txMaker, operatorAddress, ...beneficiaries]) => 
 
         const channel = await hermes.channels(channelId)
         channel.stake.should.be.bignumber.equal(initialChannelStake.add(amountToStake))
-        channel.balance.should.be.bignumber.equal(initialChannelStake.add(amountToStake))
     })
 
     it('provider should be able to get his stake back (at least part of it)', async () => {
@@ -175,15 +197,8 @@ contract('Hermes punishment', ([txMaker, operatorAddress, ...beneficiaries]) => 
         channel.stake.should.be.bignumber.lessThan(channelStakeAmount)
     })
 
-    it('hermes operator should not be able to update channel balance', async () => {
-        const newBalance = new BN('10')
-        await topUpTokens(token, txMaker, newBalance)
-
-        const channelId = generateChannelId(provider.address, hermes.address)
-        await hermes.updateChannelBalance(channelId, newBalance, { from: operatorAddress }).should.be.rejected
-    })
-
     it('should fail resolving emergency when txMaker balance is not enough', async () => {
+        expect(await hermes.isHermesActive()).to.be.false
         await hermes.resolveEmergency().should.be.rejected
     })
 
@@ -223,44 +238,40 @@ contract('Hermes punishment', ([txMaker, operatorAddress, ...beneficiaries]) => 
         let signature = signIdentityRegistration(registry.address, hermes.address, channelStake, Zero, beneficiaries[1], newProvider)
         await registry.registerIdentity(hermes.address, channelStake, Zero, beneficiaries[1], signature)
 
-        // Should fully rebalance channel
-        const channelId = generateChannelId(provider.address, hermes.address)
-        await hermes.rebalanceChannel(channelId)
-        let channel = await hermes.channels(channelId)
-        channel.balance.should.be.bignumber.equal(channel.stake)
+        // Ensure that hermes has enought funds
+        await topUpTokens(token, hermes.address, OneToken)
 
-        // Operator should be able to update channel balance
-        const newBalance = new BN(70000)
-        await topUpTokens(token, hermes.address, newBalance)
-        await hermes.updateChannelBalance(channelId, newBalance, { from: operatorAddress })
-        channel = await hermes.channels(channelId)
-        channel.balance.should.be.bignumber.equal(newBalance)
+        // Should be able to settle promise
+        const channelId = generateChannelId(newProvider.address, hermes.address)
+        const R = randomBytes(32)
+        const hashlock = keccak(R)
+        const promiseAmount = channelStake
+
+        const promise = createPromise(ChainID, channelId, promiseAmount, Zero, hashlock, hermesOperator)
+        await hermes.settlePromise(newProvider.address, promise.amount, promise.fee, R, promise.signature)
 
         expect(await hermes.isHermesActive()).to.be.true
     })
 
     it('should enable punishment mode again', async () => {
         const channelId = generateChannelId(provider.address, hermes.address)
-        const channel = await hermes.channels(channelId)
 
         // Withdraw available balance
         const availableBalance = await hermes.availableBalance()
         await hermes.withdraw(beneficiaries[3], availableBalance, { from: operatorAddress })
 
-        // Create hermes promise
-        const amount = channel.settled.add(channel.balance)
-        const R = randomBytes(32)
-        const hashlock = keccak(R)
+        // Ensure channel's stake
+        const amount = new BN(1000)
+        await topUpTokens(token, txMaker, amount)
+        await token.approve(hermes.address, amount)
+        await hermes.increaseStake(channelId, amount, { from: txMaker })
 
-        const promise = createPromise(ChainID, channelId, amount, Zero, hashlock, hermesOperator)
+        // Create and settle promise
+        const channelState = Object.assign({}, { channelId }, await hermes.channels(channelId))
+        const promise = generatePromise(amount, Zero, channelState, hermesOperator, provider.address)
+        await hermes.settlePromise(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
 
-        // Settle promise
-        await hermes.settlePromise(provider.address, promise.amount, promise.fee, R, promise.signature)
-        const channelBalance = (await hermes.channels(channelId)).balance
-        channelBalance.should.be.bignumber.equal(Zero)
-
-        // Rebalance channel and move status into punishment mode
-        await hermes.rebalanceChannel(channelId)
+        // Status should be in punishment mode
         const hermesStatus = await hermes.getStatus() // 0 - Active, 1 - Paused, 2 - Punishment, 3 - Closed
         expect(hermesStatus.toNumber()).to.be.equal(2)
         expect(await hermes.isHermesActive()).to.be.false
@@ -272,12 +283,16 @@ contract('Hermes punishment', ([txMaker, operatorAddress, ...beneficiaries]) => 
     })
 
     it('hermes should be punished for not resolving emergency on time', async () => {
-        const initialLockedFunds = await hermes.getLockedFunds()
+        const totalStake = await hermes.getTotalStake()
 
         // Move blockchain forward
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 8; i++) {
             await hermes.moveBlock()
         }
+
+        // Topup tokens into txMaker and approve hermes to use them during resolveEmergency call.
+        await topUpTokens(token, txMaker, OneToken, { from: txMaker })
+        await token.approve(hermes.address, OneToken)
 
         await hermes.resolveEmergency()
 
@@ -285,34 +300,12 @@ contract('Hermes punishment', ([txMaker, operatorAddress, ...beneficiaries]) => 
         expect(hermesStatus.toNumber()).to.be.equal(0)
 
         // Emergency was resolved after 10 blocks (within 2 unit of time),
-        // punishment amount should be 0.08% of locked in channel funds.
-        const expectedPunishment = initialLockedFunds * 0.04 * 2
+        // punishment amount should be 0.08% of locked in channels funds.
+        const expectedPunishment = totalStake * 0.04 * 2
         const punishmentAmount = (await hermes.punishment()).amount.toNumber()
         expect(punishmentAmount).to.be.equal(expectedPunishment)
 
         expect(await hermes.isHermesActive()).to.be.true
-    })
-
-    it('should reduce stake return by punishment amount', async () => {
-        const initialHermesBalance = await token.balanceOf(hermes.address)
-        const expectedBlockNumber = (await web3.eth.getBlock('latest')).number + 4
-        const punishmentAmount = (await hermes.punishment()).amount
-
-        await hermes.closeHermes({ from: operatorAddress })
-        expect((await hermes.getStatus()).toNumber()).to.be.equal(3)  // 0 - Active, 1 - Paused, 2 - Punishment, 3 - Closed
-
-        // Move blockchain forward
-        for (let i = 0; i < 5; i++) {
-            await hermes.moveBlock()
-        }
-        expect((await web3.eth.getBlock('latest')).number).to.be.above(expectedBlockNumber)
-
-        await hermes.getStakeBack(beneficiaries[4], { from: operatorAddress })
-
-        const currentHermesBalance = await token.balanceOf(hermes.address)
-        const beneficiaryBalance = await token.balanceOf(beneficiaries[4])
-        beneficiaryBalance.should.be.bignumber.equal(initialHermesBalance.sub(punishmentAmount))
-        currentHermesBalance.should.be.bignumber.equal(punishmentAmount)
     })
 
 })

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity >=0.7.0;
+pragma solidity >=0.7.4;
 
 interface IHermesContract {
     enum Status { Active, Paused, Punishment, Closed }

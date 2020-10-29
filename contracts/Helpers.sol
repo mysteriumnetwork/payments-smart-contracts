@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.7.1;
+pragma solidity 0.7.4;
 
 contract Helpers {
     function getChainID() internal pure returns (uint256) {
@@ -10,5 +10,15 @@ contract Helpers {
         return chainID;
     }
 
-    // Validate ...
+    function max(uint a, uint b) internal pure returns (uint) {
+        return a > b ? a : b;
+    }
+
+    function min(uint a, uint b) internal pure returns (uint) {
+        return a < b ? a : b;
+    }
+
+    function round(uint a, uint m) internal pure returns (uint ) {
+        return ((a + m - 1) / m) * m;
+    }
 }

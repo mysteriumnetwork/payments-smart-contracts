@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.7.1;
+pragma solidity 0.7.4;
 
 import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IERC20Token } from "./interfaces/IERC20Token.sol";
 import { IHermesContract } from "./interfaces/IHermesContract.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
+import { Helpers } from "./Helpers.sol";
 
 interface Channel {
     function initialize(address _token, address _dex, address _identityHash, address _hermesId, uint256 _fee) external;
 }
 
-contract Registry is FundsRecovery {
+contract Registry is FundsRecovery, Helpers {
     using ECDSA for bytes32;
     using SafeMath for uint256;
 
@@ -35,10 +36,11 @@ contract Registry is FundsRecovery {
 
     mapping(address => bool) private identities;
 
-    event RegisteredIdentity(address indexed identityHash, address indexed hermesId);
+    event RegisteredIdentity(address indexed identity, address indexed hermesId);
     event RegisteredHermes(address indexed hermesId, address hermesOperator, bytes ur);
     event HermesURLUpdated(address indexed hermesId, bytes newURL);
-    event ConsumerChannelCreated(address indexed identityHash, address indexed hermesId, address channelAddress);
+    event ConsumerChannelCreated(address indexed identity, address indexed hermesId, address channelAddress);
+    // event BeneficiaryChanged(address indexed identity, address newBeneficiary);
 
     constructor (address _tokenAddress, address payable _dexAddress, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation) {
         minimalHermesStake = _minimalHermesStake;
@@ -67,23 +69,23 @@ contract Registry is FundsRecovery {
         require(isActiveHermes(_hermesId), "Registry: provided hermes have to be active");
 
         // Check if given signature is valid
-        address _identityHash = keccak256(abi.encodePacked(address(this), _hermesId, _stakeAmount, _transactorFee, _beneficiary)).recover(_signature);
-        require(_identityHash != address(0), "Registry: wrong identity signature");
+        address _identity = keccak256(abi.encodePacked(address(this), _hermesId, _stakeAmount, _transactorFee, _beneficiary)).recover(_signature);
+        require(_identity != address(0), "Registry: wrong identity signature");
 
         // Tokens amount to get from channel to cover tx fee and provider's stake
         uint256 _totalFee = _stakeAmount.add(_transactorFee);
-        require(_totalFee <= token.balanceOf(getChannelAddress(_identityHash, _hermesId)), "Registry: not enought funds in channel to cover fees");
+        require(_totalFee <= token.balanceOf(getChannelAddress(_identity, _hermesId)), "Registry: not enought funds in channel to cover fees");
 
         // Deploy channel contract for given identity (mini proxy which is pointing to implementation)
-        bytes32 _salt = keccak256(abi.encodePacked(_identityHash, _hermesId));
+        bytes32 _salt = keccak256(abi.encodePacked(_identity, _hermesId));
         bytes memory _code = getProxyCode(getChannelImplementation(hermeses[_hermesId].implVer));
         Channel _channel = Channel(deployMiniProxy(uint256(_salt), _code));
-        _channel.initialize(address(token), dex, _identityHash, _hermesId, _totalFee);
+        _channel.initialize(address(token), dex, _identity, _hermesId, _totalFee);
 
         // Opening incoming (provider's) channel
         if (_stakeAmount > 0 && _beneficiary != address(0)) {
             require(token.approve(_hermesId, _stakeAmount), "Registry: hermes should get approval to transfer tokens");
-            IHermesContract(_hermesId).openChannel(_identityHash, _beneficiary, _stakeAmount);
+            IHermesContract(_hermesId).openChannel(_identity, _beneficiary, _stakeAmount);
         }
 
         // Pay fee for transaction maker
@@ -91,12 +93,12 @@ contract Registry is FundsRecovery {
             token.transfer(msg.sender, _transactorFee);
         }
 
-        emit ConsumerChannelCreated(_identityHash, _hermesId, address(_channel));
+        emit ConsumerChannelCreated(_identity, _hermesId, address(_channel));
 
         // Mark identity as registered if this is first registration attempt / first channel opened
-        if (!isRegistered(_identityHash)) {
-            identities[_identityHash] = true;
-            emit RegisteredIdentity(_identityHash, _hermesId);
+        if (!isRegistered(_identity)) {
+            identities[_identity] = true;
+            emit RegisteredIdentity(_identity, _hermesId);
         }
     }
 
@@ -192,6 +194,23 @@ contract Registry is FundsRecovery {
 
         return _addr;
     }
+
+    // function getBeneficiary(address _identity) public view returns (address) {
+    //     return identities[_identity];
+    // }
+
+    // function setBeneficiary(address _identity, address _newBeneficiary, bytes memory _signature) public {
+    //     require(isRegistered(_identity), "Registry: identity have to be registered");
+    //     require(_newBeneficiary != address(0), "Registry: beneficiary can't be zero address");
+
+    //     lastNonce = lastNonce + 1;
+    //     address _signer = keccak256(abi.encodePacked(getChainID(), address(this), _identity, _newBeneficiary, lastNonce)).recover(_signature);
+    //     require(_signer == _identity, "Registry: have to be signed by identity owner");
+
+    //     identities[_identity] = _newBeneficiary;
+
+    //     emit BeneficiaryChanged(_identity, _newBeneficiary);
+    // }
 
     // -------- UTILS TO WORK WITH CHANNEL AND HERMES IMPLEMENTATIONS ---------
 

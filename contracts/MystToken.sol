@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.7.1;
+pragma solidity 0.7.4;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Context } from "@openzeppelin/contracts/GSN/Context.sol";
@@ -54,10 +54,10 @@ contract MystToken is Context, IERC20, IUpgradeAgent {
     event UpgradeAgentSet(address agent);
     event UpgradeMasterSet(address master);
 
-    constructor(address originalToken) {
+    constructor(address tokenAddress) {
         // upgradability settings
-        _originalToken  = originalToken;
-        _originalSupply = IERC20(originalToken).totalSupply();
+        _originalToken  = tokenAddress;
+        _originalSupply = IERC20(tokenAddress).totalSupply();
 
         // set upgrade master
         _upgradeMaster = _msgSender();
