@@ -16,7 +16,7 @@ contract Registry is FundsRecovery, Helpers {
     using ECDSA for bytes32;
     using SafeMath for uint256;
 
-    uint256 internal lastNonce;
+    uint256 public lastNonce;
     address payable public dex;  // Any uniswap v2 compatible DEX router address
     uint256 public minimalHermesStake;
 
@@ -34,13 +34,13 @@ contract Registry is FundsRecovery, Helpers {
     }
     mapping(address => Hermes) public hermeses;
 
-    mapping(address => bool) private identities;
+    mapping(address => address) private identities;   // key: identity, value: beneficiary wallet address
 
-    event RegisteredIdentity(address indexed identity, address indexed hermesId);
+    event RegisteredIdentity(address indexed identity, address beneficiary);
     event RegisteredHermes(address indexed hermesId, address hermesOperator, bytes ur);
     event HermesURLUpdated(address indexed hermesId, bytes newURL);
     event ConsumerChannelCreated(address indexed identity, address indexed hermesId, address channelAddress);
-    // event BeneficiaryChanged(address indexed identity, address newBeneficiary);
+    event BeneficiaryChanged(address indexed identity, address newBeneficiary);
 
     constructor (address _tokenAddress, address payable _dexAddress, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation) {
         minimalHermesStake = _minimalHermesStake;
@@ -85,7 +85,7 @@ contract Registry is FundsRecovery, Helpers {
         // Opening incoming (provider's) channel
         if (_stakeAmount > 0 && _beneficiary != address(0)) {
             require(token.approve(_hermesId, _stakeAmount), "Registry: hermes should get approval to transfer tokens");
-            IHermesContract(_hermesId).openChannel(_identity, _beneficiary, _stakeAmount);
+            IHermesContract(_hermesId).openChannel(_identity, _stakeAmount);
         }
 
         // Pay fee for transaction maker
@@ -97,8 +97,8 @@ contract Registry is FundsRecovery, Helpers {
 
         // Mark identity as registered if this is first registration attempt / first channel opened
         if (!isRegistered(_identity)) {
-            identities[_identity] = true;
-            emit RegisteredIdentity(_identity, _hermesId);
+            identities[_identity] = _beneficiary;
+            emit RegisteredIdentity(_identity, _beneficiary);
         }
     }
 
@@ -195,22 +195,21 @@ contract Registry is FundsRecovery, Helpers {
         return _addr;
     }
 
-    // function getBeneficiary(address _identity) public view returns (address) {
-    //     return identities[_identity];
-    // }
+    function getBeneficiary(address _identity) public view returns (address) {
+        return identities[_identity];
+    }
 
-    // function setBeneficiary(address _identity, address _newBeneficiary, bytes memory _signature) public {
-    //     require(isRegistered(_identity), "Registry: identity have to be registered");
-    //     require(_newBeneficiary != address(0), "Registry: beneficiary can't be zero address");
+    function setBeneficiary(address _identity, address _newBeneficiary, bytes memory _signature) public {
+        require(_newBeneficiary != address(0), "Registry: beneficiary can't be zero address");
 
-    //     lastNonce = lastNonce + 1;
-    //     address _signer = keccak256(abi.encodePacked(getChainID(), address(this), _identity, _newBeneficiary, lastNonce)).recover(_signature);
-    //     require(_signer == _identity, "Registry: have to be signed by identity owner");
+        lastNonce = lastNonce + 1;
+        address _signer = keccak256(abi.encodePacked(getChainID(), address(this), _identity, _newBeneficiary, lastNonce)).recover(_signature);
+        require(_signer == _identity, "Registry: have to be signed by identity owner");
 
-    //     identities[_identity] = _newBeneficiary;
+        identities[_identity] = _newBeneficiary;
 
-    //     emit BeneficiaryChanged(_identity, _newBeneficiary);
-    // }
+        emit BeneficiaryChanged(_identity, _newBeneficiary);
+    }
 
     // -------- UTILS TO WORK WITH CHANNEL AND HERMES IMPLEMENTATIONS ---------
 
@@ -258,7 +257,7 @@ contract Registry is FundsRecovery, Helpers {
     }
 
     function isRegistered(address _identity) public view returns (bool) {
-        return identities[_identity];
+        return identities[_identity] != address(0);
     }
 
     function isHermes(address _hermesId) public view returns (bool) {

@@ -13,7 +13,6 @@ const ChannelImplementation = artifacts.require("ChannelImplementation")
 
 const Zero = new BN(0)
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
-const ZeroAddress = '0x0000000000000000000000000000000000000000'
 const hermesURL = Buffer.from('http://test.hermes')
 
 // Generate private keys for hermes operators

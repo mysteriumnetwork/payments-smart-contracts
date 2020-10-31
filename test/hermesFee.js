@@ -45,6 +45,9 @@ contract('Hermes fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
         const hermesId = await registry.getHermesAddress(hermesOperator.address)
         hermes = await HermesImplementation.at(hermesId)
 
+        // Ensure hermes available balance for first settlements
+        await topUpTokens(token, hermes.address, OneToken)
+
         // Fee of settling one token should be 0.025 token
         const oneTokenSettleFee = await hermes.calculateHermesFee(OneToken)
         let fee = oneTokenSettleFee / OneToken
@@ -78,7 +81,7 @@ contract('Hermes fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
         hermesTokenBalance.should.be.bignumber.equal(initialHermesBalance.add(channelStake))
 
         const channel = await hermes.channels(expectedChannelId)
-        expect(channel.balance.toNumber()).to.be.equal(channelStake.toNumber())
+        expect(channel.stake.toNumber()).to.be.equal(channelStake.toNumber())
     })
 
     it('should properly charge hermes fee', async () => {
@@ -96,13 +99,8 @@ contract('Hermes fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
         // Settle promise
         const initialHermesBalance = await token.balanceOf(hermes.address)
         const expectedHermesBalance = initialHermesBalance.sub(amount).add(fee)
-        const initialChannelBalance = (await hermes.channels(channelId)).balance
-        const expectedChannelBalance = initialChannelBalance.sub(amount)
 
         await hermes.settlePromise(provider.address, promise.amount, promise.fee, R, promise.signature)
-
-        const channelBalance = (await hermes.channels(channelId)).balance
-        channelBalance.should.be.bignumber.equal(expectedChannelBalance)
 
         const hermesBalance = await token.balanceOf(hermes.address)
         hermesBalance.should.be.bignumber.equal(expectedHermesBalance)

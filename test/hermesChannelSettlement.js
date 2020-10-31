@@ -84,12 +84,15 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
         const balanceBefore = await token.balanceOf(beneficiaryA)
 
         // To open channel during settlement we must call `settleWithBeneficiary` instead of `settlePromise`
-        const beneficiaryChangeSignature = signChannelBeneficiaryChange(ChainID, channelId, beneficiaryA, nonce, providerA)
+        const beneficiaryChangeSignature = signChannelBeneficiaryChange(ChainID, registry.address, beneficiaryA, nonce, providerA)
         const promise = generatePromise(amountToPay, Zero, channelState, operator, providerA.address)
         await hermes.settleWithBeneficiary(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature, beneficiaryA, beneficiaryChangeSignature)
 
         const balanceAfter = await token.balanceOf(beneficiaryA)
         balanceAfter.should.be.bignumber.equal(balanceBefore.add(amountToPay))
+
+        const channelBeneficiary = await registry.getBeneficiary(providerA.address)
+        expect(channelBeneficiary).to.be.equal(beneficiaryA)
 
         expect(await hermes.isChannelOpened(channelId)).to.be.true
     })
@@ -158,41 +161,4 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
         const transactorBalanceAfter = await token.balanceOf(txMaker)
         transactorBalanceAfter.should.be.bignumber.equal(transactorBalanceBefore.add(transactorFee))
     })
-
-    it("simple settlement should decrease balance for provider with partial stake", async () => {
-        const identity = wallet.generateAccount()
-        const channelId = generateChannelId(identity.address, hermes.address)
-        const channelState = Object.assign({}, { channelId }, await hermes.channels(channelId))
-        const initialBalance = await token.balanceOf(beneficiaryC)
-        const amountToPay = new BN('20')
-        const amountToStake = new BN('10')
-
-        // Topup stake needed during registration
-        const topupAddress = await registry.getChannelAddress(identity.address, hermes.address)  // User's topup channes is used as beneficiary when channel opening during settlement is used.
-        await topUpTokens(token, topupAddress, amountToStake)
-
-        // Register identity and open channel with hermes
-        const signature = signIdentityRegistration(registry.address, hermes.address, amountToStake, Zero, beneficiaryC, identity)
-        await registry.registerIdentity(hermes.address, amountToStake, Zero, beneficiaryC, signature)
-        expect(await registry.isRegistered(identity.address)).to.be.true
-        expect(await hermes.isChannelOpened(channelId)).to.be.true
-
-        // Remember hermes available balance and channel balance before settlement
-        const initialHermesAvailableBalance = await hermes.availableBalance()
-
-        // Settle promise
-        promise = generatePromise(amountToPay, Zero, channelState, operator, identity.address)
-        await hermes.settlePromise(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
-
-        // Check correctness of all the things
-        const channel = await hermes.channels(channelId)
-        expect(channel.beneficiary).to.be.equal(beneficiaryC)
-
-        const balanceAfter = await token.balanceOf(beneficiaryC)
-        balanceAfter.should.be.bignumber.equal(initialBalance.add(amountToPay))
-
-        const hermesAvailableBalance = await hermes.availableBalance()
-        hermesAvailableBalance.should.be.bignumber.equal(initialHermesAvailableBalance.sub(amountToPay))
-    })
-
 })

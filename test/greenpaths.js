@@ -72,8 +72,9 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
         const hermesId = await registry.getHermesAddress(operator.address)
         expect(await registry.isHermes(hermesId)).to.be.true
 
-        // Initialise hermes object
+        // Initialise hermes object and give initial available balance
         hermes = await HermesImplementation.at(hermesId)
+        await topUpTokens(token, hermesId, OneToken)
     })
 
     it("register consumer identities", async () => {
@@ -106,9 +107,6 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
         // Channel stake have to be transfered to hermes
         const hermesTokenBalance = await token.balanceOf(hermes.address)
         hermesTokenBalance.should.be.bignumber.equal(initialHermesBalance.add(channelStake))
-
-        const channel = await hermes.channels(expectedChannelId)
-        expect(channel.balance.toNumber()).to.be.equal(channelStake.toNumber())
     })
 
     it("register provider identity and transfer fee to transactor", async () => {
@@ -136,9 +134,6 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
         // Channel stake have to be transfered to hermes
         const hermesTokenBalance = await token.balanceOf(hermes.address)
         hermesTokenBalance.should.be.bignumber.equal(initialHermesBalance.add(channelStake))
-
-        const channel = await hermes.channels(expectedChannelId)
-        expect(channel.balance.toNumber()).to.be.equal(channelStake.toNumber())
 
         const newTxMakerTokenBalance = await token.balanceOf(txMaker)
         expect(newTxMakerTokenBalance.toNumber()).to.be.equal(txMakerTokenBalance.toNumber() + fee.toNumber())
@@ -197,13 +192,10 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
         provider.getBiggestPromise().amount.should.be.bignumber.equal('1161')
 
         // settle biggest promise
-        await provider.settleAndRebalance()
+        await provider.settlePromise()
 
         const beneficiaryBalance = await token.balanceOf(beneficiaries[4])
         beneficiaryBalance.should.be.bignumber.equal('1161')
-
-        const channel = await hermes.channels(generateChannelId(provider.identity.address, hermes.address))
-        channel.balance.should.be.bignumber.equal(channel.stake)
     })
 
     it('should register second hermes', async () => {
@@ -245,12 +237,11 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
         const promise = await hermesService.exchangePromise(exchangeMsg, consumer.identity.pubKey, provider.identity.address)
 
         // settle promise on-chain
-        await provider.settleAndRebalance(promise)
+        await provider.settlePromise(promise)
 
-        const providerBeneficiary = await registry.getChannelAddress(identities[1].address, hermes2.address) // With fast channel opening beneficiary is topup channel address
+        const providerBeneficiary = await registry.getBeneficiary(identities[1].address)
         const beneficiaryBalance = await token.balanceOf(providerBeneficiary)
-        const amountToSettle = amountToPay.sub(amountToPay.div(new BN(10))) // amountToPay - 10% which will be used as stake
-        beneficiaryBalance.should.be.bignumber.equal(amountToSettle)
+        beneficiaryBalance.should.be.bignumber.equal(amountToPay)
     })
 
 })

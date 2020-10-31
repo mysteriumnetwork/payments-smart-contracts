@@ -12,6 +12,8 @@ interface IdentityRegistry {
     function isRegistered(address _identity) external view returns (bool);
     function minimalHermesStake() external view returns (uint256);
     function getChannelAddress(address _identity, address _hermesId) external view returns (address);
+    function getBeneficiary(address _identity) external view returns (address);
+    function setBeneficiary(address _identity, address _newBeneficiary, bytes memory _signature) external;
 }
 
 // Hermes (channel balance provided by Herms, no staking/loans)
@@ -51,7 +53,6 @@ contract HermesImplementation is FundsRecovery, Helpers {
         uint256 stake;              // amount staked by identity to guarante channel size, it also serves as channel balance
         uint256 lastUsedNonce;      // last known nonce, is used to protect signature based calls from replay attack
         uint256 timelock;           // blocknumber after which channel balance can be decreased
-        address beneficiary;        // address where settled funds will be send
     }
     mapping(bytes32 => Channel) public channels;
 
@@ -95,7 +96,6 @@ contract HermesImplementation is FundsRecovery, Helpers {
         return status;
     }
 
-    event ChannelOpened(bytes32 channelId, uint256 initialStake, address beneficiary);
     event PromiseSettled(bytes32 indexed channelId, address indexed beneficiary, uint256 amountSentToBeneficiary, uint256 fees);
     event NewStake(bytes32 indexed channelId, uint256 stakeAmount);
     event MinStakeValueUpdated(uint256 newMinStake);
@@ -149,25 +149,10 @@ contract HermesImplementation is FundsRecovery, Helpers {
     */
 
     // Open incoming payments (also known as provider) channel. Can be called only by Registry.
-    function openChannel(address _identity, address _beneficiary, uint256 _amountToStake) public {
+    function openChannel(address _identity, uint256 _amountToStake) public {
         require(msg.sender == address(registry), "Hermes: only registry can open channels");
         require(getStatus() == Status.Active, "Hermes: have to be in active state");
-        bytes32 _channelId = getChannelId(_identity);
-        _openChannel(_channelId, _beneficiary, _amountToStake);
-    }
-
-    // Open incoming payments (also known as provider) channel.
-    function _openChannel(bytes32 _channelId, address _beneficiary, uint256 _amountToStake) internal {
-        require(!isChannelOpened(_channelId), "Hermes: channel have to be not opened yet");
-
-        // During opening new channel user can stake some funds to be guaranteed on channels size
-        if (_amountToStake > 0) {
-            _increaseStake(_channelId, _amountToStake, false);
-        }
-
-        channels[_channelId].beneficiary = _beneficiary;
-
-        emit ChannelOpened(_channelId, _amountToStake, _beneficiary);
+        _increaseStake(getChannelId(_identity), _amountToStake, false);
     }
 
     // Settle promise
@@ -218,44 +203,31 @@ contract HermesImplementation is FundsRecovery, Helpers {
     }
 
     function settlePromise(address _identity, uint256 _amount, uint256 _transactorFee, bytes32 _preimage, bytes memory _signature) public {
-        bytes32 _channelId = getChannelId(_identity);
-        require(isChannelOpened(_channelId), "Hermes: during settlement, channel have to be already opened");
+        address _beneficiary = registry.getBeneficiary(_identity);
+        require(_beneficiary != address(0), "Hermes: identity have to be registered, beneficiary have to be set");
 
         // Settle promise and transfer calculated amount into beneficiary wallet
-        address _beneficiary = channels[_channelId].beneficiary;
+        bytes32 _channelId = getChannelId(_identity);
         uint256 _amountToTransfer = _settlePromise(_channelId, _beneficiary, _amount, _transactorFee, _preimage, _signature);
         token.transfer(_beneficiary, _amountToTransfer);
     }
 
     function settleWithBeneficiary(address _identity, uint256 _amount, uint256 _transactorFee, bytes32 _preimage, bytes memory _promiseSignature, address _newBeneficiary, bytes memory _beneficiarySignature) public {
-        require(_newBeneficiary != address(0), "Hermes: beneficiary can't be zero address");
-
-        bytes32 _channelId = getChannelId(_identity);
-        Channel storage _channel = channels[_channelId];
-
-        // Check signature proving that beneficiary is set by provider
-        _channel.lastUsedNonce = _channel.lastUsedNonce + 1;
-        address _signer = keccak256(abi.encodePacked(getChainID(), _channelId, _newBeneficiary, _channel.lastUsedNonce)).recover(_beneficiarySignature);
-        require(_signer == _identity, "Hermes: have to be signed by channel owner");
-
-        // If channel isn't opened yet, open it
-        if (!isChannelOpened(_channelId)) {
-            _openChannel(_channelId, _newBeneficiary, 0);
-        } else {
-            _channel.beneficiary = _newBeneficiary;
-        }
+        // Update beneficiary address
+        registry.setBeneficiary(_identity, _newBeneficiary, _beneficiarySignature);
 
         // Settle promise and transfer calculated amount into beneficiary wallet
+        bytes32 _channelId = getChannelId(_identity);
         uint256 _amountToTransfer = _settlePromise(_channelId, _newBeneficiary, _amount, _transactorFee, _preimage, _promiseSignature);
         token.transfer(_newBeneficiary, _amountToTransfer);
     }
 
     function settleWithDEX(address _identity, uint256 _amount, uint256 _transactorFee, bytes32 _preimage, bytes memory _signature) public {
-        bytes32 _channelId = getChannelId(_identity);
-        require(isChannelOpened(_channelId), "Hermes: channel have to be opened during settlement");
+        address _beneficiary = registry.getBeneficiary(_identity);
+        require(_beneficiary != address(0), "Hermes: identity have to be registered, beneficiary have to be set");
 
         // Calculate amount to transfer and settle promise
-        address _beneficiary = channels[_channelId].beneficiary;
+        bytes32 _channelId = getChannelId(_identity);
         uint256 _amountToTransfer = _settlePromise(_channelId, _beneficiary, _amount, _transactorFee, _preimage, _signature);
 
         // Transfer funds into beneficiary wallet via DEX
@@ -303,7 +275,8 @@ contract HermesImplementation is FundsRecovery, Helpers {
     }
 
     // Withdraw part of stake. This will also decrease channel balance.
-    function decreaseStake(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, bytes memory _signature) public {
+    function decreaseStake(address _identity, uint256 _amount, uint256 _transactorFee, bytes memory _signature) public {
+        bytes32 _channelId = getChannelId(_identity);
         require(isChannelOpened(_channelId), "Hermes: channel has to be opened");
         require(_amount >= _transactorFee, "Hermes: amount should be bigger than transactor fee");
 
@@ -322,7 +295,8 @@ contract HermesImplementation is FundsRecovery, Helpers {
             token.transfer(msg.sender, _transactorFee);
         }
 
-        token.transfer(_channel.beneficiary, _amount.sub(_transactorFee));
+        address _beneficiary = registry.getBeneficiary(_identity);
+        token.transfer(_beneficiary, _amount.sub(_transactorFee));
 
         // Update channel state
         _channel.stake = _newStakeAmount;
@@ -433,8 +407,9 @@ contract HermesImplementation is FundsRecovery, Helpers {
         return _currentBalance.sub(_totalLockedAmount);
     }
 
+    // Returns true if channel is opened.
     function isChannelOpened(bytes32 _channelId) public view returns (bool) {
-        return channels[_channelId].beneficiary != address(0);
+        return channels[_channelId].settled != 0 || channels[_channelId].stake != 0;
     }
 
     // If Hermes is not closed and is not in punishment mode, he is active.

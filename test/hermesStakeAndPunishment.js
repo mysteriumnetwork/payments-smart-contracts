@@ -12,8 +12,6 @@ const {
     generatePromise
 } = require('./utils/client.js')
 const wallet = require('./utils/wallet.js')
-const balance = require('@openzeppelin/test-helpers/src/balance')
-
 
 const MystToken = artifacts.require("TestMystToken")
 const Registry = artifacts.require("Registry")
@@ -189,7 +187,7 @@ contract('Hermes stake and punishment management', ([txMaker, operatorAddress, .
 
         const nonce = new BN(1)
         const signature = signChannelLoanReturnRequest(channelId, channelStakeAmount, Zero, nonce, provider)
-        await hermes.decreaseStake(channelId, channelStakeAmount, Zero, signature)
+        await hermes.decreaseStake(provider.address, channelStakeAmount, Zero, signature)
 
         const channel = await hermes.channels(channelId)
         const beneficiaryBalance = await token.balanceOf(beneficiaries[0])
