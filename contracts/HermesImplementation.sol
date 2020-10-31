@@ -6,7 +6,7 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IUniswapV2Router } from "./interfaces/IUniswapV2Router.sol";
 import { IERC20Token } from "./interfaces/IERC20Token.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
-import { Helpers } from "./Helpers.sol";
+import { Utils } from "./Utils.sol";
 
 interface IdentityRegistry {
     function isRegistered(address _identity) external view returns (bool);
@@ -17,7 +17,7 @@ interface IdentityRegistry {
 }
 
 // Hermes (channel balance provided by Herms, no staking/loans)
-contract HermesImplementation is FundsRecovery, Helpers {
+contract HermesImplementation is FundsRecovery, Utils {
     using ECDSA for bytes32;
     using SafeMath for uint256;
 

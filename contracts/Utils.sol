@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.7.4;
 
-contract Helpers {
+contract Utils {
     function getChainID() internal pure returns (uint256) {
         uint256 chainID;
         assembly {

@@ -6,13 +6,13 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IERC20Token } from "./interfaces/IERC20Token.sol";
 import { IHermesContract } from "./interfaces/IHermesContract.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
-import { Helpers } from "./Helpers.sol";
+import { Utils } from "./Utils.sol";
 
 interface Channel {
     function initialize(address _token, address _dex, address _identityHash, address _hermesId, uint256 _fee) external;
 }
 
-contract Registry is FundsRecovery, Helpers {
+contract Registry is FundsRecovery, Utils {
     using ECDSA for bytes32;
     using SafeMath for uint256;
 

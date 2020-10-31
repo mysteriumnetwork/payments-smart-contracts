@@ -7,14 +7,14 @@ import { IERC20Token } from "./interfaces/IERC20Token.sol";
 import { IHermesContract } from "./interfaces/IHermesContract.sol";
 import { IUniswapV2Router } from "./interfaces/IUniswapV2Router.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
-import { Helpers } from "./Helpers.sol";
+import { Utils } from "./Utils.sol";
 
 interface IdentityRegistry {
     function getBeneficiary(address _identity) external view returns (address);
     function setBeneficiary(address _identity, address _newBeneficiary, bytes memory _signature) external;
 }
 
-contract ChannelImplementation is FundsRecovery, Helpers {
+contract ChannelImplementation is FundsRecovery, Utils {
     using ECDSA for bytes32;
     using SafeMath for uint256;
 
