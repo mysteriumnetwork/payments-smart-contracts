@@ -17,7 +17,6 @@ const MystToken = artifacts.require("TestMystToken")
 const OneEther = web3.utils.toWei('1', 'ether')
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const Zero = new BN(0)
-const ZeroAddress = '0x0000000000000000000000000000000000000000'
 
 function generateIdentities(amount) {
     return (amount <= 0) ? [generateAccount()] : [generateAccount(), ...generateIdentities(amount - 1)]
@@ -240,16 +239,13 @@ contract('Registry', ([txMaker, minter, fundsDestination, ...otherAccounts]) => 
         // Anyone else except owner should be rejected
         await registry.setImplementations(
             channelImplementation3.address,
-            hermesImplementation3.address, {
-                from: otherAccounts[0]
-            }
+            hermesImplementation3.address,
+            { from: otherAccounts[0] }
         ).should.be.rejected
 
         await registry.setImplementations(
             channelImplementation3.address,
-            hermesImplementation3.address, {
-                from: await registry.owner() // this is our txMaker, but here we visualise why it will work
-            }
+            hermesImplementation3.address, { from: await registry.owner() }
         )
         expect((await registry.getLastImplVer()).toNumber()).to.be.equal(2)
     })

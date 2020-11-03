@@ -8,7 +8,7 @@ module.exports = async function (deployer, network, accounts) {
     }
 
     const tokenAddress = "0xf74a5ca65E4552CfF0f13b116113cCb493c580C5"
-    const registryAddress = "0x3cDE3efdEbb688C81355910330A6624927C88597"
+    const registryAddress = "0x15B1281F4e58215b2c3243d864BdF8b9ddDc0DA2"
     const hermesOperator = '0xbFD2D96259De92B5817c83b7E1b756Ba8df1D59D'
     const token = await MystToken.at(tokenAddress)
     const registry = await Registry.at(registryAddress)

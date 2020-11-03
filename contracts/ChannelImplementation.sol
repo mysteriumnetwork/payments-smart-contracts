@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.7.1;
+pragma solidity 0.7.4;
 
 import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
@@ -7,9 +7,14 @@ import { IERC20Token } from "./interfaces/IERC20Token.sol";
 import { IHermesContract } from "./interfaces/IHermesContract.sol";
 import { IUniswapV2Router } from "./interfaces/IUniswapV2Router.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
-import { Helpers } from "./Helpers.sol";
+import { Utils } from "./Utils.sol";
 
-contract ChannelImplementation is FundsRecovery, Helpers {
+interface IdentityRegistry {
+    function getBeneficiary(address _identity) external view returns (address);
+    function setBeneficiary(address _identity, address _newBeneficiary, bytes memory _signature) external;
+}
+
+contract ChannelImplementation is FundsRecovery, Utils {
     using ECDSA for bytes32;
     using SafeMath for uint256;
 
@@ -30,12 +35,12 @@ contract ChannelImplementation is FundsRecovery, Helpers {
     }
 
     ExitRequest public exitRequest;
+    IdentityRegistry internal registry;
     Hermes public hermes;
     address public operator;          // channel operator = sha3(IdentityPublicKey)[:20]
     IUniswapV2Router internal dex;    // any uniswap v2 compatible dex router address
 
     event PromiseSettled(address beneficiary, uint256 amount, uint256 totalSettled);
-    event ChannelInitialised(address operator, address hermes);
     event ExitRequested(uint256 timelock);
     event Withdraw(address beneficiary, uint256 amount);
 
@@ -71,8 +76,6 @@ contract ChannelImplementation is FundsRecovery, Helpers {
         operator = _identityHash;
         transferOwnership(operator);
         hermes = Hermes(IHermesContract(_hermesId).getOperator(), _hermesId, 0);
-
-        emit ChannelInitialised(_identityHash, _hermesId);
     }
 
     function isInitialized() public view returns (bool) {

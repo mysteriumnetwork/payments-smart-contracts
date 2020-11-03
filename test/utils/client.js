@@ -64,7 +64,6 @@ function createProvider(identity, hermes) {
         validateExchangeMessage: validateExchangeMessage.bind(null, state, identity.address),
         savePromise: promise => state.promises.push(promise),
         settlePromise: settlePromise.bind(null, state, hermes),
-        settleAndRebalance: settleAndRebalance.bind(null, state, hermes),
         getBiggestPromise: () => state.promises.reduce((promise, acc) => promise.amount.gt(acc) ? acc : promise, state.promises[0])
     }
 }
@@ -221,7 +220,7 @@ function createPromise(chainId, channelId, amount, fee, hashlock, operator, rece
         toBytes32Buffer(channelId, 'address'),  // channelId = channel address
         toBytes32Buffer(amount),   // total promised amount in this channel
         toBytes32Buffer(fee),      // fee to transfer for msg.sender
-        hashlock     // hashlock needed for HTLC scheme
+        hashlock                   // hashlock needed for HTLC scheme
     ])
 
     // sign and verify the signature
@@ -251,15 +250,6 @@ async function settlePromise(state, hermes, promise) {
 
     const invoice = state.invoices[promise.hashlock]
     await hermes.settlePromise(promise.identity, promise.amount, promise.fee, invoice.R, promise.signature)
-}
-
-async function settleAndRebalance(state, hermes, promise) {
-    if (!promise) {
-        promise = state.promises.sort((a, b) => b.amount.sub(a.amount).toNumber())[0]
-    }
-
-    const invoice = state.invoices[promise.hashlock]
-    await hermes.settleAndRebalance(promise.identity, promise.amount, promise.fee, invoice.R, promise.signature)
 }
 
 async function signExitRequest(channel, beneficiary, operator) {
@@ -310,11 +300,13 @@ function signFastWithdrawal(chainId, channelId, amount, fee, beneficiary, validU
     return { channelId, amount, fee, beneficiary, validUntil, nonce, identitySignature, hermesSignature }
 }
 
-function signChannelBeneficiaryChange(channelId, newBeneficiary, channelNonce, identity) {
+function signChannelBeneficiaryChange(chainId, registry, newBeneficiary, registryNonce, identity) {
     const message = Buffer.concat([
-        Buffer.from(channelId.slice(2), 'hex'),
+        toBytes32Buffer(chainId),
+        Buffer.from(registry.slice(2), 'hex'),
+        Buffer.from(identity.address.slice(2), 'hex'),
         Buffer.from(newBeneficiary.slice(2), 'hex'),
-        toBytes32Buffer(channelNonce),
+        toBytes32Buffer(registryNonce),
     ])
 
     // sign and verify the signature
