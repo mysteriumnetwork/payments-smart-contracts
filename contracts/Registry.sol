@@ -41,9 +41,18 @@ contract Registry is FundsRecovery, Utils {
     event HermesURLUpdated(address indexed hermesId, bytes newURL);
     event ConsumerChannelCreated(address indexed identity, address indexed hermesId, address channelAddress);
     event BeneficiaryChanged(address indexed identity, address newBeneficiary);
+    event MinimalHermesStakeChanged(uint256 newMinimalStake);
 
-    constructor (address _tokenAddress, address payable _dexAddress, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation) {
-        minimalHermesStake = _minimalHermesStake;
+    // Reject any ethers sent to this smart-contract
+    receive() external payable {
+        revert("Registry: Rejecting tx with ethers sent");
+    }
+
+    function initialize(address _tokenAddress, address payable _dexAddress, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation) public onlyOwner {
+        // TODO implement additional protection so only Mysterium official multisig signed tx could initialize registry
+        require(!isInitialized(), "Registry: is already initialized");
+
+        minimalHermesStake = 0;
 
         require(_tokenAddress != address(0));
         token = IERC20Token(_tokenAddress);
@@ -54,13 +63,12 @@ contract Registry is FundsRecovery, Utils {
         // Set initial channel implementations
         setImplementations(_channelImplementation, _hermesImplementation);
 
-        // Contract deployer is initial owner
+        // We set initial owner to be sure
         transferOwnership(msg.sender);
     }
 
-    // Reject any ethers sent to this smart-contract
-    receive() external payable {
-        revert("Registry: Rejecting tx with ethers sent");
+    function isInitialized() public view returns (bool) {
+        return address(token) != address(0);
     }
 
     // Register identity and open spending and incomming channels with given hermes
@@ -103,6 +111,7 @@ contract Registry is FundsRecovery, Utils {
     }
 
     function registerHermes(address _hermesOperator, uint256 _hermesStake, uint16 _hermesFee, uint256 _minChannelStake, uint256 _maxChannelStake, bytes memory _url) public {
+        require(isInitialized(), "Registry: only initialized registry can register hermeses");
         require(_hermesOperator != address(0), "Registry: hermes operator can't be zero address");
         require(_hermesStake >= minimalHermesStake, "Registry: hermes have to stake at least minimal stake amount");
 
@@ -211,6 +220,12 @@ contract Registry is FundsRecovery, Utils {
         emit BeneficiaryChanged(_identity, _newBeneficiary);
     }
 
+    function setMinimalHermesStake(uint256 _newMinimalStake) public onlyOwner {
+        require(isInitialized(), "Registry: only initialized registry can set new minimal hermes stake");
+        minimalHermesStake = _newMinimalStake;
+        emit MinimalHermesStakeChanged(_newMinimalStake);
+    }
+
     // -------- UTILS TO WORK WITH CHANNEL AND HERMES IMPLEMENTATIONS ---------
 
     function getChannelImplementation() public view returns (address) {
@@ -230,6 +245,7 @@ contract Registry is FundsRecovery, Utils {
     }
 
     function setImplementations(address _newChannelImplAddress, address _newHermesImplAddress) public onlyOwner {
+        require(isInitialized(), "Registry: only initialized registry can set new implementations");
         require(isSmartContract(_newChannelImplAddress) && isSmartContract(_newHermesImplAddress), "Registry: implementations have to be smart contracts");
         implementations.push(Implementation(_newChannelImplAddress, _newHermesImplAddress));
     }

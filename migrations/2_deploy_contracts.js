@@ -1,29 +1,25 @@
-const { BN } = require('@openzeppelin/test-helpers')
-
-const Registry = artifacts.require("Registry")
-const ChannelImplementation = artifacts.require("ChannelImplementation")
-const HermesImplementation = artifacts.require("HermesImplementation")
 const MystToken = artifacts.require("MystToken")
-
-const uniswap = require("../scripts/deployUniswap")
-const WETH = require("../scripts/deployWETH")
-const uniswapRouter = require('../scripts/UniswapV2Router02.json')
-
-const zeroAddress = '0x0000000000000000000000000000000000000000'
+const Registry = artifacts.require("Registry")
 
 module.exports = async function (deployer, network, accounts) {
-    if (network === 'goerli') {
-        // We do have MYSTTv2 deployed on Görli already
-        const tokenAddress = '0xf74a5ca65E4552CfF0f13b116113cCb493c580C5'
-
-        await deployer.deploy(ChannelImplementation)
-        await deployer.deploy(HermesImplementation)
-        await deployer.deploy(Registry, tokenAddress, uniswapRouter.contractAddr, 0, ChannelImplementation.address, HermesImplementation.address)
-    } else {
-        // Deploy WETH token
-        await WETH.deploy(web3, accounts[0])
-
-        // Deploy Uniswap smart contracts: Factory, Router, Migrator
-        await uniswap.deploy(web3, accounts[0])
+    // Run this configurations only on Görli testnet
+    if (network !== 'goerli') {
+        return
     }
+
+    const tokenAddress = "0xf74a5ca65E4552CfF0f13b116113cCb493c580C5"
+    const registryAddress = "0x15B1281F4e58215b2c3243d864BdF8b9ddDc0DA2"
+    const hermesOperator = '0xbFD2D96259De92B5817c83b7E1b756Ba8df1D59D'
+    const token = await MystToken.at(tokenAddress)
+    const registry = await Registry.at(registryAddress)
+
+    // Register hermes with 50.000 tokens stake, 15% tx fee and 5000 max channel balance
+    const hermesStake = web3.utils.toWei(new BN('50000'), 'ether') // 50.000 tokens
+    const hermesFee = 1500 // 15.00%
+    const minChannelStake = web3.utils.toWei(new BN('1'), 'ether') // 1 token
+    const maxChannelStake = web3.utils.toWei(new BN('1000'), 'ether') // 1000 tokens
+    const url = Buffer.from('68747470733a2f2f626574616e65742d6865726d65732e6d797374657269756d2e6e6574776f726b2f', 'hex') // https://betanet-hermes.mysterium.network/
+    await token.approve(registryAddress, hermesStake)
+    await registry.registerHermes(hermesOperator, hermesStake, hermesFee, minChannelStake, maxChannelStake, url)
+    console.log('HermesID: ', await registry.getHermesAddress(hermesOperator))
 }
