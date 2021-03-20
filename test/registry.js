@@ -30,7 +30,7 @@ const operator = generateAccount()
 const hermesOperator = operator.address
 const hermesOperator2 = generateAccount().address
 
-contract.only('Deterministic registry', ([txMaker, ...otherAccounts]) => {
+contract('Deterministic registry', ([txMaker, ...otherAccounts]) => {
     let token, channelImplementation, hermesImplementation, dex, registry
     before(async () => {
         token = await MystToken.new()
@@ -67,7 +67,7 @@ contract.only('Deterministic registry', ([txMaker, ...otherAccounts]) => {
     })
 })
 
-contract.only('Registry', ([txMaker, minter, fundsDestination, ...otherAccounts]) => {
+contract('Registry', ([txMaker, minter, fundsDestination, ...otherAccounts]) => {
     let token, channelImplementation, hermesImplementation, hermesId, dex, registry
     before(async () => {
         token = await MystToken.new()
