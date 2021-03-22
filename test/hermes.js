@@ -48,7 +48,8 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
         dex = await setupDEX(token, txMaker)
         const hermesImplementation = await HermesImplementation.new(token.address, operator.address, 0, OneToken)
         const channelImplementation = await ChannelImplementation.new()
-        registry = await Registry.new(token.address, dex.address, 1, channelImplementation.address, hermesImplementation.address)
+        registry = await Registry.new()
+        await registry.initialize(token.address, dex.address, 1, channelImplementation.address, hermesImplementation.address)
 
         // Give some ethers for gas for operator
         await topUpEthers(txMaker, operator.address, OneEther)

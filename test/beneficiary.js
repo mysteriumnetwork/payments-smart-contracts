@@ -35,7 +35,7 @@ const hermesURL = Buffer.from('http://test.hermes')
 const operator = wallet.generateAccount(Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8c26933e5d9f0cda92f3c3', 'hex'))  // Generate hermes operator wallet
 const provider = wallet.generateAccount()
 
-contract.only("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
+contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
     let token, hermes, registry, beneficiaryChangeSignature
     before(async () => {
         token = await MystToken.new()

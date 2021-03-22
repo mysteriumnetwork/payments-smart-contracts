@@ -52,7 +52,7 @@ contract Registry is FundsRecovery, Utils {
         // TODO implement additional protection so only Mysterium official multisig signed tx could initialize registry
         require(!isInitialized(), "Registry: is already initialized");
 
-        minimalHermesStake = 0;
+        minimalHermesStake = _minimalHermesStake;
 
         require(_tokenAddress != address(0));
         token = IERC20Token(_tokenAddress);

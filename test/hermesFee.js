@@ -31,7 +31,8 @@ contract('Hermes fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
         dex = await setupDEX(token, txMaker)
         const hermesImplementation = await HermesImplementation.new(token.address, hermesOperator.address, 0, OneToken)
         channelImplementation = await ChannelImplementation.new()
-        registry = await Registry.new(token.address, dex.address, 0, channelImplementation.address, hermesImplementation.address)
+        registry = await Registry.new()
+        await registry.initialize(token.address, dex.address, 0, channelImplementation.address, hermesImplementation.address)
 
         // Topup some tokens into txMaker address so it could register hermes
         await topUpTokens(token, txMaker, 1000)

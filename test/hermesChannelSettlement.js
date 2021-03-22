@@ -44,7 +44,8 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
         const dex = await setupDEX(token, txMaker)
         const hermesImplementation = await HermesImplementation.new()
         const channelImplementation = await ChannelImplementation.new()
-        registry = await Registry.new(token.address, dex.address, 100, channelImplementation.address, hermesImplementation.address)
+        registry = await Registry.new()
+        await registry.initialize(token.address, dex.address, 100, channelImplementation.address, hermesImplementation.address)
 
         // Give some ethers for gas for operator
         await topUpEthers(txMaker, operator.address, OneEther)

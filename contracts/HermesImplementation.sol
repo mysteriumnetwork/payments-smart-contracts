@@ -75,7 +75,7 @@ contract HermesImplementation is FundsRecovery, Utils {
         return keccak256(abi.encodePacked(_identity, address(this), _channelType));
     }
 
-    // XXX Alternative implementation, but may require more changes. 
+    // XXX Alternative implementation, but may require more changes.
     // Need sugestion if this would not require network fork.
     // function getChannelId(address _identity, string _type) public view returns (bytes32) {
     //     return keccak256(abi.encodePacked(_identity, address(this), _channelType));
@@ -149,6 +149,8 @@ contract HermesImplementation is FundsRecovery, Utils {
         // Approving all myst for dex, because MYST token's `transferFrom` is cheaper when there is approval of uint(-1)
         token.approve(_dexAddress, uint(-1));
         dex = IUniswapV2Router(_dexAddress);
+
+        // TODO transfer ownership
     }
 
     function isInitialized() public view returns (bool) {
