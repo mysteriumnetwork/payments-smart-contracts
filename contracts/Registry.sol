@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.7.6;
+pragma abicoder v2;
 
 import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
@@ -17,8 +18,9 @@ contract Registry is FundsRecovery, Utils {
     using SafeMath for uint256;
 
     uint256 public lastNonce;
-    address payable public dex;  // Any uniswap v2 compatible DEX router address
+    address payable public dex;    // Any uniswap v2 compatible DEX router address
     uint256 public minimalHermesStake;
+    Registry public parentRegistry; // If there is parent registry, we will check for
 
     struct Implementation {
         address channelImplAddress;
@@ -32,7 +34,13 @@ contract Registry is FundsRecovery, Utils {
         function() external view returns(uint256) stake;
         bytes url;          // hermes service URL
     }
-    mapping(address => Hermes) public hermeses;
+    mapping(address => Hermes) internal hubs;
+
+    // NOTE this function is left here for backward compatibility
+    // It will return hermes data registered here or in parent registry
+    function hermeses(address _hermesId) public view returns (Hermes memory) {
+        return getHermes(_hermesId);
+    }
 
     mapping(address => address) private identities;   // key: identity, value: beneficiary wallet address
 
@@ -48,7 +56,7 @@ contract Registry is FundsRecovery, Utils {
         revert("Registry: Rejecting tx with ethers sent");
     }
 
-    function initialize(address _tokenAddress, address payable _dexAddress, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation) public onlyOwner {
+    function initialize(address _tokenAddress, address payable _dexAddress, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation, address payable _parentRegistry) public onlyOwner {
         // TODO implement additional protection so only Mysterium official multisig signed tx could initialize registry
         require(!isInitialized(), "Registry: is already initialized");
 
@@ -65,6 +73,9 @@ contract Registry is FundsRecovery, Utils {
 
         // We set initial owner to be sure
         transferOwnership(msg.sender);
+
+        // Set parent registry, if `0x0` then this is root registry
+        parentRegistry = Registry(_parentRegistry);
     }
 
     function isInitialized() public view returns (bool) {
@@ -128,15 +139,19 @@ contract Registry is FundsRecovery, Utils {
         _hermes.initialize(address(token), _hermesOperator, _hermesFee, _minChannelStake, _maxChannelStake, dex);
 
         // Save info about newly created hermes
-        hermeses[address(_hermes)] = Hermes(_hermesOperator, getLastImplVer(), _hermes.getStake, _url);
+        hubs[_hermesId] = Hermes(_hermesOperator, getLastImplVer(), _hermes.getStake, _url);
 
         emit RegisteredHermes(address(_hermes), _hermesOperator, _url);
     }
 
     function getChannelAddress(address _identity, address _hermesId) public view returns (address) {
-        bytes32 _code = keccak256(getProxyCode(getChannelImplementation(hermeses[_hermesId].implVer)));
+        bytes32 _code = keccak256(getProxyCode(getChannelImplementation(hubs[_hermesId].implVer)));
         bytes32 _salt = keccak256(abi.encodePacked(_identity, _hermesId));
         return getCreate2Address(_salt, _code);
+    }
+
+    function getHermes(address _hermesId) public view returns (Hermes memory) {
+        return isHermes(_hermesId) || !hasParentRegistry() ? hubs[_hermesId] : parentRegistry.hermeses(_hermesId);
     }
 
     function getHermesAddress(address _hermesOperator) public view returns (address) {
@@ -150,7 +165,7 @@ contract Registry is FundsRecovery, Utils {
     }
 
     function getHermesURL(address _hermesId) public view returns (bytes memory) {
-        return hermeses[_hermesId].url;
+        return hubs[_hermesId].url;
     }
 
     function updateHermesURL(address _hermesId, bytes memory _url, bytes memory _signature) public {
@@ -158,10 +173,10 @@ contract Registry is FundsRecovery, Utils {
 
         // Check if given signature is valid
         address _operator = keccak256(abi.encodePacked(address(this), _hermesId, _url, lastNonce++)).recover(_signature);
-        require(_operator == hermeses[_hermesId].operator, "wrong signature");
+        require(_operator == hubs[_hermesId].operator, "wrong signature");
 
         // Update URL
-        hermeses[_hermesId].url = _url;
+        hubs[_hermesId].url = _url;
 
         emit HermesURLUpdated(_hermesId, _url);
     }
@@ -267,9 +282,9 @@ contract Registry is FundsRecovery, Utils {
         return _codeLength != 0;
     }
 
-    // This is root registry, always return false
-    function hasParentRegistry(address) public pure returns (bool) {
-        return false;
+    // If `parentRegistry` is not set, this is root registry and should return false
+    function hasParentRegistry() public view returns (bool) {
+        return address(parentRegistry) != address(0x0);
     }
 
     function isRegistered(address _identity) public view returns (bool) {
@@ -279,8 +294,8 @@ contract Registry is FundsRecovery, Utils {
     function isHermes(address _hermesId) public view returns (bool) {
         // To check if it actually properly created hermes address, we need to check if he has operator
         // and if with that operator we'll get proper hermes address which has code deployed there.
-        address _hermesOperator = hermeses[_hermesId].operator;
-        uint256 _implVer = hermeses[_hermesId].implVer;
+        address _hermesOperator = hubs[_hermesId].operator;
+        uint256 _implVer = hubs[_hermesId].implVer;
         address _addr = getHermesAddress(_hermesOperator, _implVer);
         if (_addr != _hermesId)
             return false; // hermesId should be same as generated address

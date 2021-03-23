@@ -57,7 +57,7 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
         const hermesImplementation = await HermesImplementation.new()
         const channelImplementation = await ChannelImplementation.new()
         registry = await Registry.new()
-        await registry.initialize(token.address, dex.address, 1, channelImplementation.address, hermesImplementation.address)
+        await registry.initialize(token.address, dex.address, 1, channelImplementation.address, hermesImplementation.address, ZeroAddress)
 
         // Give some ethers for gas for operator
         await topUpEthers(txMaker, operator.address, OneEther)

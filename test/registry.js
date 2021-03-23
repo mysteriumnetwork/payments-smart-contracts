@@ -20,7 +20,6 @@ const OneEther = web3.utils.toWei('1', 'ether')
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const Zero = new BN(0)
 const ZeroAddress = '0x0000000000000000000000000000000000000000'
-
 function generateIdentities(amount) {
     return (amount <= 0) ? [generateAccount()] : [generateAccount(), ...generateIdentities(amount - 1)]
 }
@@ -49,7 +48,7 @@ contract('Deterministic registry', ([txMaker, ...otherAccounts]) => {
     it('should allow to initialize not initialized registry', async () => {
         if (! await registry.isInitialized()) {
             expect(await registry.token()).to.be.equal(ZeroAddress)
-            await registry.initialize(token.address, dex.address, 0, channelImplementation.address, hermesImplementation.address)
+            await registry.initialize(token.address, dex.address, 0, channelImplementation.address, hermesImplementation.address, ZeroAddress)
 
             expect(await registry.token()).to.be.equal(token.address)
             expect(await registry.dex()).to.be.equal(dex.address)
@@ -63,7 +62,7 @@ contract('Deterministic registry', ([txMaker, ...otherAccounts]) => {
 
     it('should reject attempt to initialize already initialized registry', async () => {
         expect(await registry.isInitialized()).to.be.true
-        await registry.initialize(token.address, dex.address, 10, channelImplementation.address, hermesImplementation.address).should.be.rejected
+        await registry.initialize(token.address, dex.address, 10, channelImplementation.address, hermesImplementation.address, ZeroAddress).should.be.rejected
     })
 })
 
@@ -76,7 +75,7 @@ contract('Registry', ([txMaker, minter, fundsDestination, ...otherAccounts]) => 
         channelImplementation = await ChannelImplementation.new()
 
         registry = await Registry.new()
-        await registry.initialize(token.address, dex.address, 0, channelImplementation.address, hermesImplementation.address)
+        await registry.initialize(token.address, dex.address, 0, channelImplementation.address, hermesImplementation.address, ZeroAddress)
 
         // Topup some tokens into txMaker address so it could register hermes
         await topUpTokens(token, txMaker, 10000)

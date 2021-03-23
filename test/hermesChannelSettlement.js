@@ -27,6 +27,7 @@ const Registry = artifacts.require("Registry")
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const OneEther = web3.utils.toWei(new BN(1), 'ether')
 const Zero = new BN(0)
+const ZeroAddress = '0x0000000000000000000000000000000000000000'
 const Five = new BN(5)
 const ChainID = 1
 const hermesURL = Buffer.from('http://test.hermes')
@@ -45,7 +46,7 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
         const hermesImplementation = await HermesImplementation.new()
         const channelImplementation = await ChannelImplementation.new()
         registry = await Registry.new()
-        await registry.initialize(token.address, dex.address, 100, channelImplementation.address, hermesImplementation.address)
+        await registry.initialize(token.address, dex.address, 100, channelImplementation.address, hermesImplementation.address, ZeroAddress)
 
         // Give some ethers for gas for operator
         await topUpEthers(txMaker, operator.address, OneEther)

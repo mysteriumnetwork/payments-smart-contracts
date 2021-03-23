@@ -102,7 +102,7 @@ contract('Registry funds recovery', ([_, txMaker, identity, account, fundsDestin
         const nativeToken = await Token.new() // Native token is used as main unit of value in channels. We're recovering any other tokens but not this.
         dex = await setupDEX(nativeToken, _)
         registry = await Registry.new({ from: txMaker })
-        await registry.initialize(nativeToken.address, dex.address, 0, channelImplementation.address, hermesImplementation.address, { from: txMaker })
+        await registry.initialize(nativeToken.address, dex.address, 0, channelImplementation.address, hermesImplementation.address, ZeroAddress, { from: txMaker })
         expect(registry.address.toLowerCase()).to.be.equal(registryAddress.toLowerCase())
 
         // Set funds destination
