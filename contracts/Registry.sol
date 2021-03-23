@@ -56,6 +56,9 @@ contract Registry is FundsRecovery, Utils {
         revert("Registry: Rejecting tx with ethers sent");
     }
 
+    // We're using `initialize` instead of `constructor` to ensure easy way to deploy Registry into
+    // deterministic address on any EVM compatible chain. Registry should be first be deployed using
+    // `deployRegistry` scripts and then initialized with wanted token and implementations.
     function initialize(address _tokenAddress, address payable _dexAddress, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation, address payable _parentRegistry) public onlyOwner {
         // TODO implement additional protection so only Mysterium official multisig signed tx could initialize registry
         require(!isInitialized(), "Registry: is already initialized");
