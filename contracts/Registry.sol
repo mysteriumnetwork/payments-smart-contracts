@@ -98,15 +98,11 @@ contract Registry is FundsRecovery, Utils {
         uint256 _totalFee = _stakeAmount.add(_transactorFee);
         require(_totalFee <= token.balanceOf(getChannelAddress(_identity, _hermesId)), "Registry: not enought funds in channel to cover fees");
 
-        // Deploy channel contract for given identity (mini proxy which is pointing to implementation)
-        bytes32 _salt = keccak256(abi.encodePacked(_identity, _hermesId));
-        bytes memory _code = getProxyCode(getChannelImplementation(hermeses[_hermesId].implVer));
-        Channel _channel = Channel(deployMiniProxy(uint256(_salt), _code));
-        _channel.initialize(address(token), dex, _identity, _hermesId, _totalFee);
+        // Open consumer channel
+        _openChannel(_identity, _hermesId, _beneficiary, _totalFee);
 
-        // Opening incoming (provider's) channel
-        if (_stakeAmount > 0 && _beneficiary != address(0)) {
-            require(token.approve(_hermesId, _stakeAmount), "Registry: hermes should get approval to transfer tokens");
+        // When stake is providet we're opening channel with hermes (a.k.a provider channel)
+        if (_stakeAmount > 0) {
             IHermesContract(_hermesId).openChannel(_identity, _stakeAmount);
         }
 
@@ -114,14 +110,38 @@ contract Registry is FundsRecovery, Utils {
         if (_transactorFee > 0) {
             token.transfer(msg.sender, _transactorFee);
         }
+    }
+
+    // Allows to securely deploy channel's smart contract without consumer signature
+    function openConsumerChannel(address _identity, address _hermesId) public {
+        require(isActiveHermes(_hermesId), "Registry: provided hermes have to be active");
+        require(!isChannelOpened(_identity, _hermesId), "Registry: such consumer channel is already opened");
+
+        _openChannel(_identity, _hermesId, address(0), 0);
+    }
+
+    // Deploy payment channel for given consumer identity
+    // We're using minimal proxy (EIP1167) to save on gas cost and blockchain space.
+    function _openChannel(address _identity, address _hermesId, address _beneficiary, uint256 _fee) internal returns (address) {
+        bytes32 _salt = keccak256(abi.encodePacked(_identity, _hermesId));
+        bytes memory _code = getProxyCode(getChannelImplementation(hubs[_hermesId].implVer));
+        Channel _channel = Channel(deployMiniProxy(uint256(_salt), _code));
+        _channel.initialize(address(token), dex, _identity, _hermesId, _fee);
 
         emit ConsumerChannelCreated(_identity, _hermesId, address(_channel));
 
-        // Mark identity as registered if this is first registration attempt / first channel opened
+        // If beneficiary was not provided, then we're going to use consumer channel for that
+        if (_beneficiary == address(0)) {
+            _beneficiary = address(_channel);
+        }
+
+        // Mark identity as registered (only during first channel opening)
         if (!isRegistered(_identity)) {
             identities[_identity] = _beneficiary;
             emit RegisteredIdentity(_identity, _beneficiary);
         }
+
+        return address(_channel);
     }
 
     function registerHermes(address _hermesOperator, uint256 _hermesStake, uint16 _hermesFee, uint256 _minChannelStake, uint256 _maxChannelStake, bytes memory _url) public {
@@ -144,7 +164,10 @@ contract Registry is FundsRecovery, Utils {
         // Save info about newly created hermes
         hubs[_hermesId] = Hermes(_hermesOperator, getLastImplVer(), _hermes.getStake, _url);
 
-        emit RegisteredHermes(address(_hermes), _hermesOperator, _url);
+        // Approve hermes contract to `transferFrom` registry (used during hermes channel openings)
+        token.approve(_hermesId, uint256(-1));
+
+        emit RegisteredHermes(_hermesId, _hermesOperator, _url);
     }
 
     function getChannelAddress(address _identity, address _hermesId) public view returns (address) {
@@ -223,7 +246,7 @@ contract Registry is FundsRecovery, Utils {
     }
 
     function getBeneficiary(address _identity) public view returns (address) {
-        return identities[_identity];
+        return identities[_identity] || parentRegistry.getBeneficiary();
     }
 
     function setBeneficiary(address _identity, address _newBeneficiary, bytes memory _signature) public {
@@ -303,7 +326,7 @@ contract Registry is FundsRecovery, Utils {
         if (_addr != _hermesId)
             return false; // hermesId should be same as generated address
 
-        return isSmartContract(_addr);
+        return isSmartContract(_addr) || parentRegistry.isHermes(_hermesId);
     }
 
     function isActiveHermes(address _hermesId) internal view returns (bool) {
@@ -312,6 +335,10 @@ contract Registry is FundsRecovery, Utils {
 
         IHermesContract.Status status = IHermesContract(_hermesId).getStatus();
         return status == IHermesContract.Status.Active;
+    }
+
+    function isChannelOpened(address _identity, address _hermesId) public view returns (bool) {
+        return isSmartContract(getChannelAddress(_identity, _hermesId)) || isSmartContract(parentRegistry.getChannelAddress(_identity, _hermesId));
     }
 
     function transferCollectedFeeTo(address _beneficiary) public onlyOwner{
