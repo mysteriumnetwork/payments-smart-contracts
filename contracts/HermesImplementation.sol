@@ -70,16 +70,9 @@ contract HermesImplementation is FundsRecovery, Utils {
         return keccak256(abi.encodePacked(_identity, address(this)));
     }
 
-    function getWithdrawalChannelId(address _identity) public view returns (bytes32) {
-        string memory _channelType = "withdrawal";
-        return keccak256(abi.encodePacked(_identity, address(this), _channelType));
+    function getChannelId(address _identity, string memory _type) public view returns (bytes32) {
+        return keccak256(abi.encodePacked(_identity, address(this), _type));
     }
-
-    // XXX Alternative implementation, but may require more changes.
-    // Need sugestion if this would not require network fork.
-    // function getChannelId(address _identity, string _type) public view returns (bytes32) {
-    //     return keccak256(abi.encodePacked(_identity, address(this), _channelType));
-    // }
 
     function getRegistry() public view returns (address) {
         return address(registry);
@@ -226,7 +219,7 @@ contract HermesImplementation is FundsRecovery, Utils {
     }
 
     function payAndSettle(address _identity, uint256 _amount, uint256 _transactorFee, bytes32 _preimage, bytes memory _signature, address _beneficiary, bytes memory _beneficiarySignature) public {
-        bytes32 _channelId = getWithdrawalChannelId(_identity);
+        bytes32 _channelId = getChannelId(_identity, "withdrawal");
 
         // Validate beneficiary to be signed by identity and be attached to given promise
         address _signer = keccak256(abi.encodePacked(getChainID(), _channelId, _amount, _preimage, _beneficiary)).recover(_beneficiarySignature);
