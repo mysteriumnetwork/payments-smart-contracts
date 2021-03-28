@@ -143,7 +143,7 @@ contract HermesImplementation is FundsRecovery, Utils {
         token.approve(_dexAddress, uint(-1));
         dex = IUniswapV2Router(_dexAddress);
 
-        // TODO transfer ownership
+        transferOwnership(_operator);
     }
 
     function isInitialized() public view returns (bool) {
