@@ -3,13 +3,10 @@ const { BN } = require('@openzeppelin/test-helpers')
 const Registry = artifacts.require("Registry")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
 const HermesImplementation = artifacts.require("HermesImplementation")
-const MystToken = artifacts.require("MystToken")
 
 const uniswap = require("../scripts/deployUniswap")
 const WETH = require("../scripts/deployWETH")
 const uniswapRouter = require('../scripts/UniswapV2Router02.json')
-
-const zeroAddress = '0x0000000000000000000000000000000000000000'
 
 const deployRegistry = require("../scripts/deployRegistry")
 
