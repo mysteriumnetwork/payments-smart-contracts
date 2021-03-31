@@ -7,7 +7,7 @@ const registryBytecode = require('../build/contracts/Registry.json').bytecode
 const rawTransaction = {
     nonce: 0,
     gasPrice: 10000000000,        // 100 Gwei
-    gasLimit: 3000000,
+    gasLimit: 3300000,
     value: 0,
     data: registryBytecode,
     v: 27,
