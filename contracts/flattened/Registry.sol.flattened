@@ -2,7 +2,7 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.0;
+pragma solidity >=0.6.0 <0.8.0;
 
 /**
  * @dev Elliptic Curve Digital Signature Algorithm (ECDSA) operations.
@@ -45,6 +45,14 @@ library ECDSA {
             v := byte(0, mload(add(signature, 0x60)))
         }
 
+        return recover(hash, v, r, s);
+    }
+
+    /**
+     * @dev Overload of {ECDSA-recover-bytes32-bytes-} that receives the `v`,
+     * `r` and `s` signature fields separately.
+     */
+    function recover(bytes32 hash, uint8 v, bytes32 r, bytes32 s) internal pure returns (address) {
         // EIP-2 still allows signature malleability for ecrecover(). Remove this possibility and make the signature
         // unique. Appendix F in the Ethereum Yellow paper (https://ethereum.github.io/yellowpaper/paper.pdf), defines
         // the valid range for s in (281): 0 < s < secp256k1n ÷ 2 + 1, and for v in (282): v ∈ {27, 28}. Most
@@ -54,13 +62,8 @@ library ECDSA {
         // with 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141 - s1 and flip v from 27 to 28 or
         // vice versa. If your library also generates signatures with 0/1 for v instead 27/28, add 27 to v to accept
         // these malleable signatures as well.
-        if (uint256(s) > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0) {
-            revert("ECDSA: invalid signature 's' value");
-        }
-
-        if (v != 27 && v != 28) {
-            revert("ECDSA: invalid signature 'v' value");
-        }
+        require(uint256(s) <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0, "ECDSA: invalid signature 's' value");
+        require(v == 27 || v == 28, "ECDSA: invalid signature 'v' value");
 
         // If the signature is valid (and not malleable), return the signer address
         address signer = ecrecover(hash, v, r, s);
@@ -88,7 +91,7 @@ library ECDSA {
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.0;
+pragma solidity >=0.6.0 <0.8.0;
 
 /**
  * @dev Wrappers over Solidity's arithmetic operations with added overflow
@@ -105,6 +108,62 @@ pragma solidity ^0.7.0;
  */
 library SafeMath {
     /**
+     * @dev Returns the addition of two unsigned integers, with an overflow flag.
+     *
+     * _Available since v3.4._
+     */
+    function tryAdd(uint256 a, uint256 b) internal pure returns (bool, uint256) {
+        uint256 c = a + b;
+        if (c < a) return (false, 0);
+        return (true, c);
+    }
+
+    /**
+     * @dev Returns the substraction of two unsigned integers, with an overflow flag.
+     *
+     * _Available since v3.4._
+     */
+    function trySub(uint256 a, uint256 b) internal pure returns (bool, uint256) {
+        if (b > a) return (false, 0);
+        return (true, a - b);
+    }
+
+    /**
+     * @dev Returns the multiplication of two unsigned integers, with an overflow flag.
+     *
+     * _Available since v3.4._
+     */
+    function tryMul(uint256 a, uint256 b) internal pure returns (bool, uint256) {
+        // Gas optimization: this is cheaper than requiring 'a' not being zero, but the
+        // benefit is lost if 'b' is also tested.
+        // See: https://github.com/OpenZeppelin/openzeppelin-contracts/pull/522
+        if (a == 0) return (true, 0);
+        uint256 c = a * b;
+        if (c / a != b) return (false, 0);
+        return (true, c);
+    }
+
+    /**
+     * @dev Returns the division of two unsigned integers, with a division by zero flag.
+     *
+     * _Available since v3.4._
+     */
+    function tryDiv(uint256 a, uint256 b) internal pure returns (bool, uint256) {
+        if (b == 0) return (false, 0);
+        return (true, a / b);
+    }
+
+    /**
+     * @dev Returns the remainder of dividing two unsigned integers, with a division by zero flag.
+     *
+     * _Available since v3.4._
+     */
+    function tryMod(uint256 a, uint256 b) internal pure returns (bool, uint256) {
+        if (b == 0) return (false, 0);
+        return (true, a % b);
+    }
+
+    /**
      * @dev Returns the addition of two unsigned integers, reverting on
      * overflow.
      *
@@ -117,7 +176,6 @@ library SafeMath {
     function add(uint256 a, uint256 b) internal pure returns (uint256) {
         uint256 c = a + b;
         require(c >= a, "SafeMath: addition overflow");
-
         return c;
     }
 
@@ -132,24 +190,8 @@ library SafeMath {
      * - Subtraction cannot overflow.
      */
     function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        return sub(a, b, "SafeMath: subtraction overflow");
-    }
-
-    /**
-     * @dev Returns the subtraction of two unsigned integers, reverting with custom message on
-     * overflow (when the result is negative).
-     *
-     * Counterpart to Solidity's `-` operator.
-     *
-     * Requirements:
-     *
-     * - Subtraction cannot overflow.
-     */
-    function sub(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
-        require(b <= a, errorMessage);
-        uint256 c = a - b;
-
-        return c;
+        require(b <= a, "SafeMath: subtraction overflow");
+        return a - b;
     }
 
     /**
@@ -163,21 +205,14 @@ library SafeMath {
      * - Multiplication cannot overflow.
      */
     function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-        // Gas optimization: this is cheaper than requiring 'a' not being zero, but the
-        // benefit is lost if 'b' is also tested.
-        // See: https://github.com/OpenZeppelin/openzeppelin-contracts/pull/522
-        if (a == 0) {
-            return 0;
-        }
-
+        if (a == 0) return 0;
         uint256 c = a * b;
         require(c / a == b, "SafeMath: multiplication overflow");
-
         return c;
     }
 
     /**
-     * @dev Returns the integer division of two unsigned integers. Reverts on
+     * @dev Returns the integer division of two unsigned integers, reverting on
      * division by zero. The result is rounded towards zero.
      *
      * Counterpart to Solidity's `/` operator. Note: this function uses a
@@ -189,12 +224,51 @@ library SafeMath {
      * - The divisor cannot be zero.
      */
     function div(uint256 a, uint256 b) internal pure returns (uint256) {
-        return div(a, b, "SafeMath: division by zero");
+        require(b > 0, "SafeMath: division by zero");
+        return a / b;
     }
 
     /**
-     * @dev Returns the integer division of two unsigned integers. Reverts with custom message on
+     * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),
+     * reverting when dividing by zero.
+     *
+     * Counterpart to Solidity's `%` operator. This function uses a `revert`
+     * opcode (which leaves remaining gas untouched) while Solidity uses an
+     * invalid opcode to revert (consuming all remaining gas).
+     *
+     * Requirements:
+     *
+     * - The divisor cannot be zero.
+     */
+    function mod(uint256 a, uint256 b) internal pure returns (uint256) {
+        require(b > 0, "SafeMath: modulo by zero");
+        return a % b;
+    }
+
+    /**
+     * @dev Returns the subtraction of two unsigned integers, reverting with custom message on
+     * overflow (when the result is negative).
+     *
+     * CAUTION: This function is deprecated because it requires allocating memory for the error
+     * message unnecessarily. For custom revert reasons use {trySub}.
+     *
+     * Counterpart to Solidity's `-` operator.
+     *
+     * Requirements:
+     *
+     * - Subtraction cannot overflow.
+     */
+    function sub(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
+        require(b <= a, errorMessage);
+        return a - b;
+    }
+
+    /**
+     * @dev Returns the integer division of two unsigned integers, reverting with custom message on
      * division by zero. The result is rounded towards zero.
+     *
+     * CAUTION: This function is deprecated because it requires allocating memory for the error
+     * message unnecessarily. For custom revert reasons use {tryDiv}.
      *
      * Counterpart to Solidity's `/` operator. Note: this function uses a
      * `revert` opcode (which leaves remaining gas untouched) while Solidity
@@ -206,31 +280,15 @@ library SafeMath {
      */
     function div(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
         require(b > 0, errorMessage);
-        uint256 c = a / b;
-        // assert(a == b * c + a % b); // There is no case in which this doesn't hold
-
-        return c;
+        return a / b;
     }
 
     /**
      * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),
-     * Reverts when dividing by zero.
+     * reverting with custom message when dividing by zero.
      *
-     * Counterpart to Solidity's `%` operator. This function uses a `revert`
-     * opcode (which leaves remaining gas untouched) while Solidity uses an
-     * invalid opcode to revert (consuming all remaining gas).
-     *
-     * Requirements:
-     *
-     * - The divisor cannot be zero.
-     */
-    function mod(uint256 a, uint256 b) internal pure returns (uint256) {
-        return mod(a, b, "SafeMath: modulo by zero");
-    }
-
-    /**
-     * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),
-     * Reverts with custom message when dividing by zero.
+     * CAUTION: This function is deprecated because it requires allocating memory for the error
+     * message unnecessarily. For custom revert reasons use {tryMod}.
      *
      * Counterpart to Solidity's `%` operator. This function uses a `revert`
      * opcode (which leaves remaining gas untouched) while Solidity uses an
@@ -241,7 +299,7 @@ library SafeMath {
      * - The divisor cannot be zero.
      */
     function mod(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
-        require(b != 0, errorMessage);
+        require(b > 0, errorMessage);
         return a % b;
     }
 }
@@ -250,7 +308,7 @@ library SafeMath {
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.0;
+pragma solidity >=0.6.0 <0.8.0;
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
@@ -329,7 +387,7 @@ interface IERC20 {
 // File: contracts/interfaces/IERC20Token.sol
 
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity =0.7.1;
+pragma solidity =0.7.6;
 
 
 abstract contract IERC20Token is IERC20 {
@@ -339,12 +397,12 @@ abstract contract IERC20Token is IERC20 {
 // File: contracts/interfaces/IHermesContract.sol
 
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity >=0.7.0;
+pragma solidity >=0.7.6;
 
 interface IHermesContract {
     enum Status { Active, Paused, Punishment, Closed }
     function initialize(address _token, address _operator, uint16 _hermesFee, uint256 _minStake, uint256 _maxStake, address payable _routerAddress) external;
-    function openChannel(address _party, address _beneficiary, uint256 _amountToLend) external;
+    function openChannel(address _party, uint256 _amountToLend) external;
     function getOperator() external view returns (address);
     function getStake() external view returns (uint256);
     function getStatus() external view returns (Status);
@@ -353,7 +411,7 @@ interface IHermesContract {
 // File: contracts/Ownable.sol
 
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.7.1;
+pragma solidity 0.7.6;
 
 contract Ownable {
     address private _owner;
@@ -369,11 +427,6 @@ contract Ownable {
         _;
     }
 
-    function renounceOwnership() public virtual onlyOwner {
-        emit OwnershipTransferred(_owner, address(0));
-        _owner = address(0);
-    }
-
     function transferOwnership(address newOwner) public virtual onlyOwner {
         require(newOwner != address(0), "Ownable: new owner is the zero address");
         emit OwnershipTransferred(_owner, newOwner);
@@ -384,7 +437,7 @@ contract Ownable {
 // File: contracts/FundsRecovery.sol
 
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.7.1;
+pragma solidity 0.7.6;
 
 
 
@@ -429,10 +482,39 @@ contract FundsRecovery is Ownable {
     }
 }
 
+// File: contracts/Utils.sol
+
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity 0.7.6;
+
+contract Utils {
+    function getChainID() internal pure returns (uint256) {
+        uint256 chainID;
+        assembly {
+            chainID := chainid()
+        }
+        return chainID;
+    }
+
+    function max(uint a, uint b) internal pure returns (uint) {
+        return a > b ? a : b;
+    }
+
+    function min(uint a, uint b) internal pure returns (uint) {
+        return a < b ? a : b;
+    }
+
+    function round(uint a, uint m) internal pure returns (uint ) {
+        return ((a + m - 1) / m) * m;
+    }
+}
+
 // File: contracts/Registry.sol
 
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.7.1;
+pragma solidity 0.7.6;
+pragma abicoder v2;
+
 
 
 
@@ -443,12 +525,14 @@ interface Channel {
     function initialize(address _token, address _dex, address _identityHash, address _hermesId, uint256 _fee) external;
 }
 
-contract Registry is FundsRecovery {
+contract Registry is FundsRecovery, Utils {
     using ECDSA for bytes32;
     using SafeMath for uint256;
 
-    address payable public dex;  // Any uniswap v2 compatible DEX router address
+    uint256 public lastNonce;
+    address payable public dex;    // Any uniswap v2 compatible DEX router address
     uint256 public minimalHermesStake;
+    Registry public parentRegistry; // If there is parent registry, we will check for
 
     struct Implementation {
         address channelImplAddress;
@@ -462,16 +546,29 @@ contract Registry is FundsRecovery {
         function() external view returns(uint256) stake;
         bytes url;          // hermes service URL
     }
-    mapping(address => Hermes) public hermeses;
+    mapping(address => Hermes) private hermeses;
 
-    mapping(address => bool) private identities;
+    mapping(address => address) private identities;   // key: identity, value: beneficiary wallet address
 
-    event RegisteredIdentity(address indexed identityHash, address indexed hermesId);
+    event RegisteredIdentity(address indexed identity, address beneficiary);
     event RegisteredHermes(address indexed hermesId, address hermesOperator, bytes ur);
     event HermesURLUpdated(address indexed hermesId, bytes newURL);
-    event ConsumerChannelCreated(address indexed identityHash, address indexed hermesId, address channelAddress);
+    event ConsumerChannelCreated(address indexed identity, address indexed hermesId, address channelAddress);
+    event BeneficiaryChanged(address indexed identity, address newBeneficiary);
+    event MinimalHermesStakeChanged(uint256 newMinimalStake);
 
-    constructor (address _tokenAddress, address payable _dexAddress, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation) {
+    // Reject any ethers sent to this smart-contract
+    receive() external payable {
+        revert("Registry: Rejecting tx with ethers sent");
+    }
+
+    // We're using `initialize` instead of `constructor` to ensure easy way to deploy Registry into
+    // deterministic address on any EVM compatible chain. Registry should be first be deployed using
+    // `deployRegistry` scripts and then initialized with wanted token and implementations.
+    function initialize(address _tokenAddress, address payable _dexAddress, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation, address payable _parentRegistry) public onlyOwner {
+        // TODO implement additional protection so only Mysterium official multisig signed tx could initialize registry
+        require(!isInitialized(), "Registry: is already initialized");
+
         minimalHermesStake = _minimalHermesStake;
 
         require(_tokenAddress != address(0));
@@ -483,55 +580,93 @@ contract Registry is FundsRecovery {
         // Set initial channel implementations
         setImplementations(_channelImplementation, _hermesImplementation);
 
-        // Contract deployer is initial owner
+        // We set initial owner to be sure
         transferOwnership(msg.sender);
+
+        // Set parent registry, if `0x0` then this is root registry
+        parentRegistry = Registry(_parentRegistry);
     }
 
-    // Reject any ethers sent to this smart-contract
-    receive() external payable {
-        revert("Registry: Rejecting tx with ethers sent");
+    function isInitialized() public view returns (bool) {
+        return address(token) != address(0);
     }
 
-    // Register identity and open spending and incomming channels with given hermes
+    // Register provider and open his channel with given hermes
     // _stakeAmount - it's amount of tokens staked into hermes to guarantee incomming channel's balance.
+    // _beneficiary - payout address during settlements in hermes channel, if provided 0x0 then will be set to consumer channel address.
     function registerIdentity(address _hermesId, uint256 _stakeAmount, uint256 _transactorFee, address _beneficiary, bytes memory _signature) public {
         require(isActiveHermes(_hermesId), "Registry: provided hermes have to be active");
 
         // Check if given signature is valid
-        address _identityHash = keccak256(abi.encodePacked(address(this), _hermesId, _stakeAmount, _transactorFee, _beneficiary)).recover(_signature);
-        require(_identityHash != address(0), "Registry: wrong identity signature");
+        address _identity = keccak256(abi.encodePacked(address(this), _hermesId, _stakeAmount, _transactorFee, _beneficiary)).recover(_signature);
+        require(_identity != address(0), "Registry: wrong identity signature");
 
         // Tokens amount to get from channel to cover tx fee and provider's stake
         uint256 _totalFee = _stakeAmount.add(_transactorFee);
-        require(_totalFee <= token.balanceOf(getChannelAddress(_identityHash, _hermesId)), "Registry: not enought funds in channel to cover fees");
+        require(_totalFee <= token.balanceOf(getChannelAddress(_identity, _hermesId)), "Registry: not enought funds in channel to cover fees");
 
-        // Deploy channel contract for given identity (mini proxy which is pointing to implementation)
-        bytes32 _salt = keccak256(abi.encodePacked(_identityHash, _hermesId));
-        bytes memory _code = getProxyCode(getChannelImplementation(hermeses[_hermesId].implVer));
-        Channel _channel = Channel(deployMiniProxy(uint256(_salt), _code));
-        _channel.initialize(address(token), dex, _identityHash, _hermesId, _totalFee);
+        // Open consumer channel
+        _openChannel(_identity, _hermesId, _beneficiary, _totalFee);
 
-        // Opening incoming (provider's) channel
-        if (_stakeAmount > 0 && _beneficiary != address(0)) {
-            require(token.approve(_hermesId, _stakeAmount), "Registry: hermes should get approval to transfer tokens");
-            IHermesContract(_hermesId).openChannel(_identityHash, _beneficiary, _stakeAmount);
+        // When stake is providet we're opening channel with hermes (a.k.a provider channel)
+        if (_stakeAmount > 0) {
+            IHermesContract(_hermesId).openChannel(_identity, _stakeAmount);
         }
 
         // Pay fee for transaction maker
         if (_transactorFee > 0) {
             token.transfer(msg.sender, _transactorFee);
         }
+    }
 
-        emit ConsumerChannelCreated(_identityHash, _hermesId, address(_channel));
+    // Deployes consumer channel and sets beneficiary as newly created channel address
+    function openConsumerChannel(address _hermesId, uint256 _transactorFee, bytes memory _signature) public {
+        require(isActiveHermes(_hermesId), "Registry: provided hermes have to be active");
 
-        // Mark identity as registered if this is first registration attempt / first channel opened
-        if (!isRegistered(_identityHash)) {
-            identities[_identityHash] = true;
-            emit RegisteredIdentity(_identityHash, _hermesId);
+        // Check if given signature is valid
+        // TODO add chainID
+        address _identity = keccak256(abi.encodePacked(address(this), _hermesId, _transactorFee)).recover(_signature);
+        require(_identity != address(0), "Registry: wrong channel openinig signature");
+
+        require(_transactorFee <= token.balanceOf(getChannelAddress(_identity, _hermesId)), "Registry: not enought funds in channel to cover fees");
+
+        _openChannel(_identity, _hermesId, address(0), _transactorFee);
+    }
+
+    // Allows to securely deploy channel's smart contract without consumer signature
+    function openConsumerChannel(address _identity, address _hermesId) public {
+        require(isActiveHermes(_hermesId), "Registry: provided hermes have to be active");
+        require(!isChannelOpened(_identity, _hermesId), "Registry: such consumer channel is already opened");
+
+        _openChannel(_identity, _hermesId, address(0), 0);
+    }
+
+    // Deploy payment channel for given consumer identity
+    // We're using minimal proxy (EIP1167) to save on gas cost and blockchain space.
+    function _openChannel(address _identity, address _hermesId, address _beneficiary, uint256 _fee) internal returns (address) {
+        bytes32 _salt = keccak256(abi.encodePacked(_identity, _hermesId));
+        bytes memory _code = getProxyCode(getChannelImplementation(hermeses[_hermesId].implVer));
+        Channel _channel = Channel(deployMiniProxy(uint256(_salt), _code));
+        _channel.initialize(address(token), dex, _identity, _hermesId, _fee);
+
+        emit ConsumerChannelCreated(_identity, _hermesId, address(_channel));
+
+        // If beneficiary was not provided, then we're going to use consumer channel for that
+        if (_beneficiary == address(0)) {
+            _beneficiary = address(_channel);
         }
+
+        // Mark identity as registered (only during first channel opening)
+        if (!isRegistered(_identity)) {
+            identities[_identity] = _beneficiary;
+            emit RegisteredIdentity(_identity, _beneficiary);
+        }
+
+        return address(_channel);
     }
 
     function registerHermes(address _hermesOperator, uint256 _hermesStake, uint16 _hermesFee, uint256 _minChannelStake, uint256 _maxChannelStake, bytes memory _url) public {
+        require(isInitialized(), "Registry: only initialized registry can register hermeses");
         require(_hermesOperator != address(0), "Registry: hermes operator can't be zero address");
         require(_hermesStake >= minimalHermesStake, "Registry: hermes have to stake at least minimal stake amount");
 
@@ -548,15 +683,22 @@ contract Registry is FundsRecovery {
         _hermes.initialize(address(token), _hermesOperator, _hermesFee, _minChannelStake, _maxChannelStake, dex);
 
         // Save info about newly created hermes
-        hermeses[address(_hermes)] = Hermes(_hermesOperator, getLastImplVer(), _hermes.getStake, _url);
+        hermeses[_hermesId] = Hermes(_hermesOperator, getLastImplVer(), _hermes.getStake, _url);
 
-        emit RegisteredHermes(address(_hermes), _hermesOperator, _url);
+        // Approve hermes contract to `transferFrom` registry (used during hermes channel openings)
+        token.approve(_hermesId, uint256(-1));
+
+        emit RegisteredHermes(_hermesId, _hermesOperator, _url);
     }
 
     function getChannelAddress(address _identity, address _hermesId) public view returns (address) {
         bytes32 _code = keccak256(getProxyCode(getChannelImplementation(hermeses[_hermesId].implVer)));
         bytes32 _salt = keccak256(abi.encodePacked(_identity, _hermesId));
         return getCreate2Address(_salt, _code);
+    }
+
+    function getHermes(address _hermesId) public view returns (Hermes memory) {
+        return isHermes(_hermesId) || !hasParentRegistry() ? hermeses[_hermesId] : parentRegistry.getHermes(_hermesId);
     }
 
     function getHermesAddress(address _hermesOperator) public view returns (address) {
@@ -577,7 +719,7 @@ contract Registry is FundsRecovery {
         require(isActiveHermes(_hermesId), "Registry: provided hermes has to be active");
 
         // Check if given signature is valid
-        address _operator = keccak256(abi.encodePacked(address(this), _hermesId, _url)).recover(_signature);
+        address _operator = keccak256(abi.encodePacked(address(this), _hermesId, _url, lastNonce++)).recover(_signature);
         require(_operator == hermeses[_hermesId].operator, "wrong signature");
 
         // Update URL
@@ -596,8 +738,6 @@ contract Registry is FundsRecovery {
         ))));
     }
 
-    // NOTE: in final implementation this function will return static code (with `channelImplementation` address hardcoded there).
-    // We're using this way now for easier testing.
     function getProxyCode(address _implementation) public pure returns (bytes memory) {
         // `_code` is EIP 1167 - Minimal Proxy Contract
         // more information: https://eips.ethereum.org/EIPS/eip-1167
@@ -624,6 +764,39 @@ contract Registry is FundsRecovery {
         return _addr;
     }
 
+    function getBeneficiary(address _identity) public view returns (address) {
+        if (hasParentRegistry())
+            return parentRegistry.getBeneficiary(_identity);
+
+        return identities[_identity];
+    }
+
+    function setBeneficiary(address _identity, address _newBeneficiary, bytes memory _signature) public {
+        require(_newBeneficiary != address(0), "Registry: beneficiary can't be zero address");
+
+        // Always set beneficiary into root registry
+        if (hasParentRegistry()) {
+            parentRegistry.setBeneficiary(_identity, _newBeneficiary, _signature);
+        } else {
+            lastNonce = lastNonce + 1;
+
+            // In signatures we should always use root registry (for backward compatibility)
+            address _rootRegistry = hasParentRegistry() ? address(parentRegistry) : address(this);
+            address _signer = keccak256(abi.encodePacked(getChainID(), _rootRegistry, _identity, _newBeneficiary, lastNonce)).recover(_signature);
+            require(_signer == _identity, "Registry: have to be signed by identity owner");
+
+            identities[_identity] = _newBeneficiary;
+
+            emit BeneficiaryChanged(_identity, _newBeneficiary);
+        }
+    }
+
+    function setMinimalHermesStake(uint256 _newMinimalStake) public onlyOwner {
+        require(isInitialized(), "Registry: only initialized registry can set new minimal hermes stake");
+        minimalHermesStake = _newMinimalStake;
+        emit MinimalHermesStakeChanged(_newMinimalStake);
+    }
+
     // -------- UTILS TO WORK WITH CHANNEL AND HERMES IMPLEMENTATIONS ---------
 
     function getChannelImplementation() public view returns (address) {
@@ -643,6 +816,7 @@ contract Registry is FundsRecovery {
     }
 
     function setImplementations(address _newChannelImplAddress, address _newHermesImplAddress) public onlyOwner {
+        require(isInitialized(), "Registry: only initialized registry can set new implementations");
         require(isSmartContract(_newChannelImplAddress) && isSmartContract(_newHermesImplAddress), "Registry: implementations have to be smart contracts");
         implementations.push(Implementation(_newChannelImplAddress, _newHermesImplAddress));
     }
@@ -664,13 +838,17 @@ contract Registry is FundsRecovery {
         return _codeLength != 0;
     }
 
-    // This is root registry, always return false
-    function hasParentRegistry(address) public pure returns (bool) {
-        return false;
+    // If `parentRegistry` is not set, this is root registry and should return false
+    function hasParentRegistry() public view returns (bool) {
+        return address(parentRegistry) != address(0);
     }
 
     function isRegistered(address _identity) public view returns (bool) {
-        return identities[_identity];
+        if (hasParentRegistry())
+            return parentRegistry.isRegistered(_identity);
+
+        // If we know its beneficiary address it is registered identity
+        return identities[_identity] != address(0);
     }
 
     function isHermes(address _hermesId) public view returns (bool) {
@@ -682,7 +860,7 @@ contract Registry is FundsRecovery {
         if (_addr != _hermesId)
             return false; // hermesId should be same as generated address
 
-        return isSmartContract(_addr);
+        return isSmartContract(_addr) || parentRegistry.isHermes(_hermesId);
     }
 
     function isActiveHermes(address _hermesId) internal view returns (bool) {
@@ -691,6 +869,10 @@ contract Registry is FundsRecovery {
 
         IHermesContract.Status status = IHermesContract(_hermesId).getStatus();
         return status == IHermesContract.Status.Active;
+    }
+
+    function isChannelOpened(address _identity, address _hermesId) public view returns (bool) {
+        return isSmartContract(getChannelAddress(_identity, _hermesId)) || isSmartContract(parentRegistry.getChannelAddress(_identity, _hermesId));
     }
 
     function transferCollectedFeeTo(address _beneficiary) public onlyOwner{
