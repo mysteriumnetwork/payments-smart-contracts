@@ -9,6 +9,8 @@ const setupDEX = require('./utils/index.js').setupDEX
 const { signIdentityRegistration, signUrlUpdate } = require('./utils/client.js')
 const generateAccount = require('./utils/wallet.js').generateAccount
 
+const deployRegistry = require('../scripts/deployRegistry')
+
 const Registry = artifacts.require("Registry")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
 const HermesImplementation = artifacts.require("HermesImplementation")
@@ -17,7 +19,7 @@ const MystToken = artifacts.require("TestMystToken")
 const OneEther = web3.utils.toWei('1', 'ether')
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const Zero = new BN(0)
-
+const ZeroAddress = '0x0000000000000000000000000000000000000000'
 function generateIdentities(amount) {
     return (amount <= 0) ? [generateAccount()] : [generateAccount(), ...generateIdentities(amount - 1)]
 }
@@ -27,6 +29,43 @@ const operator = generateAccount()
 const hermesOperator = operator.address
 const hermesOperator2 = generateAccount().address
 
+contract('Deterministic registry', ([txMaker, ...otherAccounts]) => {
+    let token, channelImplementation, hermesImplementation, dex, registry
+    before(async () => {
+        token = await MystToken.new()
+        dex = await setupDEX(token, txMaker)
+        hermesImplementation = await HermesImplementation.new()
+        channelImplementation = await ChannelImplementation.new()
+
+        const registryAddress = await deployRegistry(web3, txMaker)
+        registry = await Registry.at(registryAddress)
+
+        // Topup some tokens into txMaker address so it could register hermes
+        await topUpTokens(token, txMaker, 10000)
+        await token.approve(registry.address, 10000)
+    })
+
+    it('should allow to initialize not initialized registry', async () => {
+        if (! await registry.isInitialized()) {
+            expect(await registry.token()).to.be.equal(ZeroAddress)
+            await registry.initialize(token.address, dex.address, 0, channelImplementation.address, hermesImplementation.address, ZeroAddress)
+
+            expect(await registry.token()).to.be.equal(token.address)
+            expect(await registry.dex()).to.be.equal(dex.address)
+            expect(await registry.getChannelImplementation()).to.be.equal(channelImplementation.address)
+            expect(await registry.getHermesImplementation()).to.be.equal(hermesImplementation.address)
+            expect(await registry.token()).to.be.equal(token.address)
+            expect(await registry.owner()).to.be.equal(txMaker)
+        }
+        expect(await registry.isInitialized()).to.be.true
+    })
+
+    it('should reject attempt to initialize already initialized registry', async () => {
+        expect(await registry.isInitialized()).to.be.true
+        await registry.initialize(token.address, dex.address, 10, channelImplementation.address, hermesImplementation.address, ZeroAddress).should.be.rejected
+    })
+})
+
 contract('Registry', ([txMaker, minter, fundsDestination, ...otherAccounts]) => {
     let token, channelImplementation, hermesImplementation, hermesId, dex, registry
     before(async () => {
@@ -34,7 +73,9 @@ contract('Registry', ([txMaker, minter, fundsDestination, ...otherAccounts]) => 
         dex = await setupDEX(token, txMaker)
         hermesImplementation = await HermesImplementation.new()
         channelImplementation = await ChannelImplementation.new()
-        registry = await Registry.new(token.address, dex.address, 0, channelImplementation.address, hermesImplementation.address)
+
+        registry = await Registry.new()
+        await registry.initialize(token.address, dex.address, 0, channelImplementation.address, hermesImplementation.address, ZeroAddress)
 
         // Topup some tokens into txMaker address so it could register hermes
         await topUpTokens(token, txMaker, 10000)

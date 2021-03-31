@@ -26,6 +26,7 @@ const ChannelImplementation = artifacts.require("ChannelImplementation")
 const OneToken = web3.utils.toWei(new BN('1000000000000000000'), 'wei')
 const OneEther = web3.utils.toWei(new BN(1), 'ether')
 const Zero = new BN(0)
+const ZeroAddress = '0x0000000000000000000000000000000000000000'
 const One = new BN(1)
 const hermesURL = Buffer.from('http://test.hermes')
 const ChainID = 1
@@ -48,7 +49,8 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
         dex = await setupDEX(token, txMaker)
         const hermesImplementation = await HermesImplementation.new(token.address, operator.address, 0, OneToken)
         const channelImplementation = await ChannelImplementation.new()
-        registry = await Registry.new(token.address, dex.address, 1, channelImplementation.address, hermesImplementation.address)
+        registry = await Registry.new()
+        await registry.initialize(token.address, dex.address, 1, channelImplementation.address, hermesImplementation.address, ZeroAddress)
 
         // Give some ethers for gas for operator
         await topUpEthers(txMaker, operator.address, OneEther)

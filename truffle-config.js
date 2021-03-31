@@ -11,7 +11,7 @@ module.exports = {
 
     compilers: {
         solc: {
-            version: "0.7.4",
+            version: "0.7.6",
             settings: {
                 optimizer: {
                     enabled: true,
@@ -24,7 +24,8 @@ module.exports = {
         development: {
             host: "127.0.0.1",
             port: 7545,
-            network_id: "*"
+            network_id: "*",
+            disableConfirmationListener: true
         },
         ropsten: {
             provider: () => new HDWalletProvider(mnemonic, INFURA_URL),
@@ -51,6 +52,7 @@ module.exports = {
             host: "ganache",
             port: 8545,
             network_id: "*",
+            disableConfirmationListener: true
         }
     }
 };

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.7.4;
+pragma solidity 0.7.6;
+pragma abicoder v2;
 
 import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
@@ -17,8 +18,9 @@ contract Registry is FundsRecovery, Utils {
     using SafeMath for uint256;
 
     uint256 public lastNonce;
-    address payable public dex;  // Any uniswap v2 compatible DEX router address
+    address payable public dex;    // Any uniswap v2 compatible DEX router address
     uint256 public minimalHermesStake;
+    Registry public parentRegistry; // If there is parent registry, we will check for
 
     struct Implementation {
         address channelImplAddress;
@@ -32,7 +34,7 @@ contract Registry is FundsRecovery, Utils {
         function() external view returns(uint256) stake;
         bytes url;          // hermes service URL
     }
-    mapping(address => Hermes) public hermeses;
+    mapping(address => Hermes) private hermeses;
 
     mapping(address => address) private identities;   // key: identity, value: beneficiary wallet address
 
@@ -41,8 +43,20 @@ contract Registry is FundsRecovery, Utils {
     event HermesURLUpdated(address indexed hermesId, bytes newURL);
     event ConsumerChannelCreated(address indexed identity, address indexed hermesId, address channelAddress);
     event BeneficiaryChanged(address indexed identity, address newBeneficiary);
+    event MinimalHermesStakeChanged(uint256 newMinimalStake);
 
-    constructor (address _tokenAddress, address payable _dexAddress, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation) {
+    // Reject any ethers sent to this smart-contract
+    receive() external payable {
+        revert("Registry: Rejecting tx with ethers sent");
+    }
+
+    // We're using `initialize` instead of `constructor` to ensure easy way to deploy Registry into
+    // deterministic address on any EVM compatible chain. Registry should be first be deployed using
+    // `deployRegistry` scripts and then initialized with wanted token and implementations.
+    function initialize(address _tokenAddress, address payable _dexAddress, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation, address payable _parentRegistry) public onlyOwner {
+        // TODO implement additional protection so only Mysterium official multisig signed tx could initialize registry
+        require(!isInitialized(), "Registry: is already initialized");
+
         minimalHermesStake = _minimalHermesStake;
 
         require(_tokenAddress != address(0));
@@ -54,37 +68,36 @@ contract Registry is FundsRecovery, Utils {
         // Set initial channel implementations
         setImplementations(_channelImplementation, _hermesImplementation);
 
-        // Contract deployer is initial owner
+        // We set initial owner to be sure
         transferOwnership(msg.sender);
+
+        // Set parent registry, if `0x0` then this is root registry
+        parentRegistry = Registry(_parentRegistry);
     }
 
-    // Reject any ethers sent to this smart-contract
-    receive() external payable {
-        revert("Registry: Rejecting tx with ethers sent");
+    function isInitialized() public view returns (bool) {
+        return address(token) != address(0);
     }
 
-    // Register identity and open spending and incomming channels with given hermes
+    // Register provider and open his channel with given hermes
     // _stakeAmount - it's amount of tokens staked into hermes to guarantee incomming channel's balance.
+    // _beneficiary - payout address during settlements in hermes channel, if provided 0x0 then will be set to consumer channel address.
     function registerIdentity(address _hermesId, uint256 _stakeAmount, uint256 _transactorFee, address _beneficiary, bytes memory _signature) public {
         require(isActiveHermes(_hermesId), "Registry: provided hermes have to be active");
 
         // Check if given signature is valid
-        address _identity = keccak256(abi.encodePacked(address(this), _hermesId, _stakeAmount, _transactorFee, _beneficiary)).recover(_signature);
+        address _identity = keccak256(abi.encodePacked(getChainID(), address(this), _hermesId, _stakeAmount, _transactorFee, _beneficiary)).recover(_signature);
         require(_identity != address(0), "Registry: wrong identity signature");
 
         // Tokens amount to get from channel to cover tx fee and provider's stake
         uint256 _totalFee = _stakeAmount.add(_transactorFee);
         require(_totalFee <= token.balanceOf(getChannelAddress(_identity, _hermesId)), "Registry: not enought funds in channel to cover fees");
 
-        // Deploy channel contract for given identity (mini proxy which is pointing to implementation)
-        bytes32 _salt = keccak256(abi.encodePacked(_identity, _hermesId));
-        bytes memory _code = getProxyCode(getChannelImplementation(hermeses[_hermesId].implVer));
-        Channel _channel = Channel(deployMiniProxy(uint256(_salt), _code));
-        _channel.initialize(address(token), dex, _identity, _hermesId, _totalFee);
+        // Open consumer channel
+        _openChannel(_identity, _hermesId, _beneficiary, _totalFee);
 
-        // Opening incoming (provider's) channel
-        if (_stakeAmount > 0 && _beneficiary != address(0)) {
-            require(token.approve(_hermesId, _stakeAmount), "Registry: hermes should get approval to transfer tokens");
+        // When stake is providet we're opening channel with hermes (a.k.a provider channel)
+        if (_stakeAmount > 0) {
             IHermesContract(_hermesId).openChannel(_identity, _stakeAmount);
         }
 
@@ -92,17 +105,55 @@ contract Registry is FundsRecovery, Utils {
         if (_transactorFee > 0) {
             token.transfer(msg.sender, _transactorFee);
         }
+    }
+
+    // Deployes consumer channel and sets beneficiary as newly created channel address
+    function openConsumerChannel(address _hermesId, uint256 _transactorFee, bytes memory _signature) public {
+        require(isActiveHermes(_hermesId), "Registry: provided hermes have to be active");
+
+        // Check if given signature is valid
+        address _identity = keccak256(abi.encodePacked(getChainID(), address(this), _hermesId, _transactorFee)).recover(_signature);
+        require(_identity != address(0), "Registry: wrong channel openinig signature");
+
+        require(_transactorFee <= token.balanceOf(getChannelAddress(_identity, _hermesId)), "Registry: not enought funds in channel to cover fees");
+
+        _openChannel(_identity, _hermesId, address(0), _transactorFee);
+    }
+
+    // Allows to securely deploy channel's smart contract without consumer signature
+    function openConsumerChannel(address _identity, address _hermesId) public {
+        require(isActiveHermes(_hermesId), "Registry: provided hermes have to be active");
+        require(!isChannelOpened(_identity, _hermesId), "Registry: such consumer channel is already opened");
+
+        _openChannel(_identity, _hermesId, address(0), 0);
+    }
+
+    // Deploy payment channel for given consumer identity
+    // We're using minimal proxy (EIP1167) to save on gas cost and blockchain space.
+    function _openChannel(address _identity, address _hermesId, address _beneficiary, uint256 _fee) internal returns (address) {
+        bytes32 _salt = keccak256(abi.encodePacked(_identity, _hermesId));
+        bytes memory _code = getProxyCode(getChannelImplementation(hermeses[_hermesId].implVer));
+        Channel _channel = Channel(deployMiniProxy(uint256(_salt), _code));
+        _channel.initialize(address(token), dex, _identity, _hermesId, _fee);
 
         emit ConsumerChannelCreated(_identity, _hermesId, address(_channel));
 
-        // Mark identity as registered if this is first registration attempt / first channel opened
+        // If beneficiary was not provided, then we're going to use consumer channel for that
+        if (_beneficiary == address(0)) {
+            _beneficiary = address(_channel);
+        }
+
+        // Mark identity as registered (only during first channel opening)
         if (!isRegistered(_identity)) {
             identities[_identity] = _beneficiary;
             emit RegisteredIdentity(_identity, _beneficiary);
         }
+
+        return address(_channel);
     }
 
     function registerHermes(address _hermesOperator, uint256 _hermesStake, uint16 _hermesFee, uint256 _minChannelStake, uint256 _maxChannelStake, bytes memory _url) public {
+        require(isInitialized(), "Registry: only initialized registry can register hermeses");
         require(_hermesOperator != address(0), "Registry: hermes operator can't be zero address");
         require(_hermesStake >= minimalHermesStake, "Registry: hermes have to stake at least minimal stake amount");
 
@@ -119,15 +170,22 @@ contract Registry is FundsRecovery, Utils {
         _hermes.initialize(address(token), _hermesOperator, _hermesFee, _minChannelStake, _maxChannelStake, dex);
 
         // Save info about newly created hermes
-        hermeses[address(_hermes)] = Hermes(_hermesOperator, getLastImplVer(), _hermes.getStake, _url);
+        hermeses[_hermesId] = Hermes(_hermesOperator, getLastImplVer(), _hermes.getStake, _url);
 
-        emit RegisteredHermes(address(_hermes), _hermesOperator, _url);
+        // Approve hermes contract to `transferFrom` registry (used during hermes channel openings)
+        token.approve(_hermesId, uint256(-1));
+
+        emit RegisteredHermes(_hermesId, _hermesOperator, _url);
     }
 
     function getChannelAddress(address _identity, address _hermesId) public view returns (address) {
         bytes32 _code = keccak256(getProxyCode(getChannelImplementation(hermeses[_hermesId].implVer)));
         bytes32 _salt = keccak256(abi.encodePacked(_identity, _hermesId));
         return getCreate2Address(_salt, _code);
+    }
+
+    function getHermes(address _hermesId) public view returns (Hermes memory) {
+        return isHermes(_hermesId) || !hasParentRegistry() ? hermeses[_hermesId] : parentRegistry.getHermes(_hermesId);
     }
 
     function getHermesAddress(address _hermesOperator) public view returns (address) {
@@ -167,8 +225,6 @@ contract Registry is FundsRecovery, Utils {
         ))));
     }
 
-    // NOTE: in final implementation this function will return static code (with `channelImplementation` address hardcoded there).
-    // We're using this way now for easier testing.
     function getProxyCode(address _implementation) public pure returns (bytes memory) {
         // `_code` is EIP 1167 - Minimal Proxy Contract
         // more information: https://eips.ethereum.org/EIPS/eip-1167
@@ -196,19 +252,36 @@ contract Registry is FundsRecovery, Utils {
     }
 
     function getBeneficiary(address _identity) public view returns (address) {
+        if (hasParentRegistry())
+            return parentRegistry.getBeneficiary(_identity);
+
         return identities[_identity];
     }
 
     function setBeneficiary(address _identity, address _newBeneficiary, bytes memory _signature) public {
         require(_newBeneficiary != address(0), "Registry: beneficiary can't be zero address");
 
-        lastNonce = lastNonce + 1;
-        address _signer = keccak256(abi.encodePacked(getChainID(), address(this), _identity, _newBeneficiary, lastNonce)).recover(_signature);
-        require(_signer == _identity, "Registry: have to be signed by identity owner");
+        // Always set beneficiary into root registry
+        if (hasParentRegistry()) {
+            parentRegistry.setBeneficiary(_identity, _newBeneficiary, _signature);
+        } else {
+            lastNonce = lastNonce + 1;
 
-        identities[_identity] = _newBeneficiary;
+            // In signatures we should always use root registry (for backward compatibility)
+            address _rootRegistry = hasParentRegistry() ? address(parentRegistry) : address(this);
+            address _signer = keccak256(abi.encodePacked(getChainID(), _rootRegistry, _identity, _newBeneficiary, lastNonce)).recover(_signature);
+            require(_signer == _identity, "Registry: have to be signed by identity owner");
 
-        emit BeneficiaryChanged(_identity, _newBeneficiary);
+            identities[_identity] = _newBeneficiary;
+
+            emit BeneficiaryChanged(_identity, _newBeneficiary);
+        }
+    }
+
+    function setMinimalHermesStake(uint256 _newMinimalStake) public onlyOwner {
+        require(isInitialized(), "Registry: only initialized registry can set new minimal hermes stake");
+        minimalHermesStake = _newMinimalStake;
+        emit MinimalHermesStakeChanged(_newMinimalStake);
     }
 
     // -------- UTILS TO WORK WITH CHANNEL AND HERMES IMPLEMENTATIONS ---------
@@ -230,6 +303,7 @@ contract Registry is FundsRecovery, Utils {
     }
 
     function setImplementations(address _newChannelImplAddress, address _newHermesImplAddress) public onlyOwner {
+        require(isInitialized(), "Registry: only initialized registry can set new implementations");
         require(isSmartContract(_newChannelImplAddress) && isSmartContract(_newHermesImplAddress), "Registry: implementations have to be smart contracts");
         implementations.push(Implementation(_newChannelImplAddress, _newHermesImplAddress));
     }
@@ -251,12 +325,16 @@ contract Registry is FundsRecovery, Utils {
         return _codeLength != 0;
     }
 
-    // This is root registry, always return false
-    function hasParentRegistry(address) public pure returns (bool) {
-        return false;
+    // If `parentRegistry` is not set, this is root registry and should return false
+    function hasParentRegistry() public view returns (bool) {
+        return address(parentRegistry) != address(0);
     }
 
     function isRegistered(address _identity) public view returns (bool) {
+        if (hasParentRegistry())
+            return parentRegistry.isRegistered(_identity);
+
+        // If we know its beneficiary address it is registered identity
         return identities[_identity] != address(0);
     }
 
@@ -269,7 +347,7 @@ contract Registry is FundsRecovery, Utils {
         if (_addr != _hermesId)
             return false; // hermesId should be same as generated address
 
-        return isSmartContract(_addr);
+        return isSmartContract(_addr) || parentRegistry.isHermes(_hermesId);
     }
 
     function isActiveHermes(address _hermesId) internal view returns (bool) {
@@ -278,6 +356,10 @@ contract Registry is FundsRecovery, Utils {
 
         IHermesContract.Status status = IHermesContract(_hermesId).getStatus();
         return status == IHermesContract.Status.Active;
+    }
+
+    function isChannelOpened(address _identity, address _hermesId) public view returns (bool) {
+        return isSmartContract(getChannelAddress(_identity, _hermesId)) || isSmartContract(parentRegistry.getChannelAddress(_identity, _hermesId));
     }
 
     function transferCollectedFeeTo(address _beneficiary) public onlyOwner{

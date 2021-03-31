@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.7.4;
+pragma solidity 0.7.6;
 
 import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
@@ -9,10 +9,6 @@ import { IUniswapV2Router } from "./interfaces/IUniswapV2Router.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
 import { Utils } from "./Utils.sol";
 
-interface IdentityRegistry {
-    function getBeneficiary(address _identity) external view returns (address);
-    function setBeneficiary(address _identity, address _newBeneficiary, bytes memory _signature) external;
-}
 
 contract ChannelImplementation is FundsRecovery, Utils {
     using ECDSA for bytes32;
@@ -35,7 +31,6 @@ contract ChannelImplementation is FundsRecovery, Utils {
     }
 
     ExitRequest public exitRequest;
-    IdentityRegistry internal registry;
     Hermes public hermes;
     address public operator;          // channel operator = sha3(IdentityPublicKey)[:20]
     IUniswapV2Router internal dex;    // any uniswap v2 compatible dex router address
@@ -59,9 +54,9 @@ contract ChannelImplementation is FundsRecovery, Utils {
 
     // Because of proxy pattern this function is used insted of constructor.
     // Have to be called right after proxy deployment.
-    function initialize(address _token, address _dexAddress, address _identityHash, address _hermesId, uint256 _fee) public {
+    function initialize(address _token, address _dexAddress, address _identity, address _hermesId, uint256 _fee) public {
         require(!isInitialized(), "Is already initialized");
-        require(_identityHash != address(0), "Identity can't be zero");
+        require(_identity != address(0), "Identity can't be zero");
         require(_hermesId != address(0), "HermesID can't be zero");
         require(_token != address(0), "Token can't be deployd into zero address");
 
@@ -73,7 +68,7 @@ contract ChannelImplementation is FundsRecovery, Utils {
             token.transfer(msg.sender, _fee);
         }
 
-        operator = _identityHash;
+        operator = _identity;
         transferOwnership(operator);
         hermes = Hermes(IHermesContract(_hermesId).getOperator(), _hermesId, 0);
     }

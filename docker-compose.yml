@@ -7,7 +7,7 @@ services:
     depends_on:
       - ganache
   ganache:
-    image: trufflesuite/ganache-cli:v6.9.1
+    image: trufflesuite/ganache-cli:v6.12.2
     expose:
       - 8545
     command: >

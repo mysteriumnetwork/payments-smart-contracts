@@ -49,7 +49,8 @@ contract('Full path (in channel using cheque) test for funds recovery', ([txMake
         const dex = await setupDEX(nativeToken, txMaker)
         const channelImplementation = await ChannelImplementation.new()
         const hermesImplementation = await HermesImplementation.new()
-        registry = await Registry.new(nativeToken.address, dex.address, 0, channelImplementation.address, hermesImplementation.address)
+        registry = await Registry.new()
+        await registry.initialize(nativeToken.address, dex.address, 0, channelImplementation.address, hermesImplementation.address, ZeroAddress)
 
         hermesId = await registry.getHermesAddress(hermesOperator)
         expectedAddress = await genCreate2Address(identityHash, hermesId, registry, channelImplementation.address)

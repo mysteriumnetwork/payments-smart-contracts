@@ -24,10 +24,11 @@ async function genCreate2Address(identityHash, hermesId, registry, implementatio
 }
 
 // Generates provider's channelId in hermes smart contract
-function generateChannelId(party, hermesId) {
+function generateChannelId(party, hermesId, type = '') {
     return `0x${ethUtils.keccak(Buffer.concat([
         Buffer.from(party.slice(2), 'hex'),
-        Buffer.from(hermesId.slice(2), 'hex')]
+        Buffer.from(hermesId.slice(2), 'hex'),
+        Buffer.from(type)]
     )).toString('hex')}`
 }
 
@@ -122,6 +123,10 @@ async function setupDEX(token, txMaker) {
 }
 
 function toBytes32Buffer(item, type) {
+    if (item.constructor.name === 'Buffer') {
+        return item
+    }
+
     if (type === 'address') {
         item = new BN(item.replace(/0x/, ''), 16)
     }
@@ -158,6 +163,13 @@ function toBuffer(item) {
     }
 }
 
+function calcFee(amount, fee = new BN(0)) {
+    if (amount.constructor.name !== 'BN')
+        amount = new BN(fee)
+
+    return amount.mul(fee).div(new BN(10000))
+}
+
 module.exports = {
     genCreate2Address,
     generateChannelId,
@@ -175,5 +187,6 @@ module.exports = {
     setLengthLeft: ethUtils.setLengthLeft,
     to16BitsBuffer,
     toBytes32Buffer,
-    toBuffer
+    toBuffer,
+    calcFee
 }
