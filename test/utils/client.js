@@ -316,6 +316,22 @@ function signChannelBeneficiaryChange(chainId, registry, newBeneficiary, registr
     return signature
 }
 
+function singPayAndSettleBeneficiary(chainId, channelId, amount, preimage, beneficiary, identity) {
+    const message = Buffer.concat([
+        toBytes32Buffer(chainId),
+        toBytes32Buffer(channelId, 'address'),
+        toBytes32Buffer(amount),
+        toBytes32Buffer(preimage),
+        Buffer.from(beneficiary.slice(2), 'hex')
+    ])
+
+    // sign and verify the signature
+    const signature = signMessage(message, identity.privKey)
+    expect(verifySignature(message, signature, identity.pubKey)).to.be.true
+
+    return signature
+}
+
 function signChannelLoanReturnRequest(channelId, amount, fee, channelNonce, identity, chainId = 1) {
     const LOAN_RETURN_PREFIX = "Stake return request"
     const message = Buffer.concat([
@@ -341,6 +357,20 @@ function signIdentityRegistration(registryAddress, hermesId, stake, fee, benefic
         toBytes32Buffer(stake),
         toBytes32Buffer(fee),
         Buffer.from(beneficiary.slice(2), 'hex')
+    ])
+
+    // sign and verify the signature
+    const signature = signMessage(message, identity.privKey)
+    expect(verifySignature(message, signature, identity.pubKey)).to.be.true
+
+    return signature
+}
+
+function signConsumerChannelOpening(registryAddress, hermesId, fee, identity) {
+    const message = Buffer.concat([
+        Buffer.from(registryAddress.slice(2), 'hex'),
+        Buffer.from(hermesId.slice(2), 'hex'),
+        toBytes32Buffer(fee)
     ])
 
     // sign and verify the signature
@@ -415,10 +445,12 @@ module.exports = {
     createPromise,
     generatePromise,
     signChannelBeneficiaryChange,
+    singPayAndSettleBeneficiary,
     signChannelLoanReturnRequest,
     signExitRequest,
     signFastWithdrawal,
     signIdentityRegistration,
+    signConsumerChannelOpening,
     signStakeGoalUpdate,
     signUrlUpdate,
     validatePromise
