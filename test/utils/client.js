@@ -352,6 +352,7 @@ function signChannelLoanReturnRequest(channelId, amount, fee, channelNonce, iden
 
 function signIdentityRegistration(registryAddress, hermesId, stake, fee, beneficiary, identity) {
     const message = Buffer.concat([
+        toBytes32Buffer(1), // ChainID = 1
         Buffer.from(registryAddress.slice(2), 'hex'),
         Buffer.from(hermesId.slice(2), 'hex'),
         toBytes32Buffer(stake),
@@ -368,6 +369,7 @@ function signIdentityRegistration(registryAddress, hermesId, stake, fee, benefic
 
 function signConsumerChannelOpening(registryAddress, hermesId, fee, identity) {
     const message = Buffer.concat([
+        toBytes32Buffer(1), // ChainID = 1
         Buffer.from(registryAddress.slice(2), 'hex'),
         Buffer.from(hermesId.slice(2), 'hex'),
         toBytes32Buffer(fee)

@@ -86,7 +86,7 @@ contract Registry is FundsRecovery, Utils {
         require(isActiveHermes(_hermesId), "Registry: provided hermes have to be active");
 
         // Check if given signature is valid
-        address _identity = keccak256(abi.encodePacked(address(this), _hermesId, _stakeAmount, _transactorFee, _beneficiary)).recover(_signature);
+        address _identity = keccak256(abi.encodePacked(getChainID(), address(this), _hermesId, _stakeAmount, _transactorFee, _beneficiary)).recover(_signature);
         require(_identity != address(0), "Registry: wrong identity signature");
 
         // Tokens amount to get from channel to cover tx fee and provider's stake
@@ -112,7 +112,7 @@ contract Registry is FundsRecovery, Utils {
         require(isActiveHermes(_hermesId), "Registry: provided hermes have to be active");
 
         // Check if given signature is valid
-        address _identity = keccak256(abi.encodePacked(address(this), _hermesId, _transactorFee)).recover(_signature);
+        address _identity = keccak256(abi.encodePacked(getChainID(), address(this), _hermesId, _transactorFee)).recover(_signature);
         require(_identity != address(0), "Registry: wrong channel openinig signature");
 
         require(_transactorFee <= token.balanceOf(getChannelAddress(_identity, _hermesId)), "Registry: not enought funds in channel to cover fees");
