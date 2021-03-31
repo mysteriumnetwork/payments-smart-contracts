@@ -313,10 +313,6 @@ contract Registry is FundsRecovery, Utils {
         return implementations.length-1;
     }
 
-    function getRootRegistry() public view returns (address) {
-        return hasParentRegistry() ? address(parentRegistry) : address(this);
-    }
-
     // ------------------------------------------------------------------------
 
     function isSmartContract(address _addr) internal view returns (bool) {
