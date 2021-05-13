@@ -19,7 +19,7 @@ We're using truffle for smart contract compilation and running tests.
 npm install
 ```
 
-2. Run local ethereum node, e.g. `ganache`. Make sure to use version greater than 6.9.1.
+2. Run local ethereum node, e.g. `ganache`. Make sure to use version greater than 6.12.2.
 
 ```bash
 npx ganache-cli --port 7545 --mnemonic "amused glory pen avocado toilet dragon entry kitchen cliff retreat canyon danger"
@@ -48,7 +48,7 @@ Registry smart contract:
 Hermes smart contract:
 [0xD5d2f5729D4581dfacEBedF46C7014DeFda43585](https://goerli.etherscan.io/address/0xD5d2f5729D4581dfacEBedF46C7014DeFda43585)
 
-### Deloyment log:
+### Goerli deloyment log:
 
     $ npm run deploy
 
@@ -96,15 +96,21 @@ Hermes smart contract:
     > total cost:          0.00381886065 ETH
 
     Deploying 'Registry'
-    --------------------
-    > transaction hash:    0x4c2bbe6bab43fe98a2ee3a7a24233bbc13b6795866b1520c2c1bf90c92c7c393
-    > Blocks: 1            Seconds: 13
-    > contract address:    0x15B1281F4e58215b2c3243d864BdF8b9ddDc0DA2
-    > block number:        3683811
-    > block timestamp:     1604329426
-    > account:             0x3D0A081720aC75fC8d66714F92f7ccc993EeB53D
-    > balance:             27.06456969829
-    > gas used:            2566640 (0x2729f0)
-    > gas price:           1.11 gwei
-    > value sent:          0 ETH
-    > total cost:          0.0028489704 ETH
+    --------------------------------
+    > transaction hash:    0x59329b2f7dd48d385ebc1556a6833a7809dd76aea87ee965714a44d21146a43c
+    > contract address:    0x0BcAd0a5eEb569B4D0f597d6EE31ec6ae043610e
+    > block number:        4690357
+    > account:             0x891079f126b735dd650cb8bc83c1976fcf3371ba
+    > gas used:            3052834
+    > gas price:           10 gwei
+    > total cost:          0.03052834 ETH
+
+
+### Mumbai deployment log:
+
+    $ npm run deploy-matic
+
+
+    Deploying `Registry`
+    --------------------------------
+    > contract address:  0x0BcAd0a5eEb569B4D0f597d6EE31ec6ae043610e

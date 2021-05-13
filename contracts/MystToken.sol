@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.7.6;
+pragma solidity 0.8.4;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Context } from "@openzeppelin/contracts/GSN/Context.sol";
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/IUpgradeAgent.sol";
 
 contract MystToken is Context, IERC20, IUpgradeAgent {
-    using SafeMath for uint256;
     using Address for address;
 
     address immutable _originalToken;                        // Address of MYSTv1 token
@@ -101,12 +99,12 @@ contract MystToken is Context, IERC20, IUpgradeAgent {
     }
 
     function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
-        _approve(_msgSender(), spender, _allowances[_msgSender()][spender].add(addedValue));
+        _approve(_msgSender(), spender, _allowances[_msgSender()][spender] + addedValue);
         return true;
     }
 
     function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
-        _approve(_msgSender(), spender, _allowances[_msgSender()][spender].sub(subtractedValue, "ERC20: decreased allowance below zero"));
+        _approve(_msgSender(), spender, _allowances[_msgSender()][spender] - subtractedValue);
         return true;
     }
 
@@ -137,7 +135,7 @@ contract MystToken is Context, IERC20, IUpgradeAgent {
 
         // Allowance for uint256(-1) means "always allowed" and is analog for erc777 operators but in erc20 semantics.
         if (holder != spender && _allowances[holder][spender] != uint256(-1)) {
-            _approve(holder, spender, _allowances[holder][spender].sub(amount, "MYST: transfer amount exceeds allowance"));
+            _approve(holder, spender, _allowances[holder][spender] - amount);
         }
 
         _move(holder, recipient, amount);
@@ -152,8 +150,8 @@ contract MystToken is Context, IERC20, IUpgradeAgent {
         require(holder != address(0), "MYST: mint to the zero address");
 
         // Update state variables
-        _totalSupply = _totalSupply.add(amount);
-        _balances[holder] = _balances[holder].add(amount);
+        _totalSupply = _totalSupply + amount;
+        _balances[holder] = _balances[holder] + amount;
 
         emit Minted(holder, amount);
         emit Transfer(address(0), holder, amount);
@@ -163,8 +161,8 @@ contract MystToken is Context, IERC20, IUpgradeAgent {
         require(from != address(0), "MYST: burn from the zero address");
 
         // Update state variables
-        _balances[from] = _balances[from].sub(amount, "MYST: burn amount exceeds balance");
-        _totalSupply = _totalSupply.sub(amount);
+        _balances[from] = _balances[from] - amount;
+        _totalSupply = _totalSupply - amount;
 
         emit Transfer(from, address(0), amount);
         emit Burned(from, amount);
@@ -177,8 +175,8 @@ contract MystToken is Context, IERC20, IUpgradeAgent {
             return;
         }
 
-        _balances[from] = _balances[from].sub(amount, "MYST: transfer amount exceeds balance");
-        _balances[to] = _balances[to].add(amount);
+        _balances[from] = _balances[from] - amount;
+        _balances[to] = _balances[to] + amount;
 
         emit Transfer(from, to, amount);
     }
@@ -205,9 +203,9 @@ contract MystToken is Context, IERC20, IUpgradeAgent {
         require(msg.sender == originalToken(), "only original token can call upgradeFrom");
 
         // Value is multiplied by 0e10 as old token had decimals = 8?
-        _mint(_account, _value.mul(DECIMAL_OFFSET));
+        _mint(_account, _value * DECIMAL_OFFSET);
 
-        require(totalSupply() <= originalSupply().mul(DECIMAL_OFFSET), "can not mint more tokens than in original contract");
+        require(totalSupply() <= originalSupply() * DECIMAL_OFFSET, "can not mint more tokens than in original contract");
     }
 
 
@@ -240,7 +238,7 @@ contract MystToken is Context, IERC20, IUpgradeAgent {
         _burn(holder, amount);
 
         // Remember how many tokens we have upgraded
-        _totalUpgraded = _totalUpgraded.add(amount);
+        _totalUpgraded = _totalUpgraded + amount;
 
         // Upgrade agent upgrades/reissues tokens
         _upgradeAgent.upgradeFrom(holder, amount);

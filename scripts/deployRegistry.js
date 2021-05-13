@@ -16,7 +16,8 @@ const rawTransaction = {
 }
 
 function generateDeployTx(calldata) {
-    const tx = new ethTx(rawTransaction)
+    // const tx = new ethTx(rawTransaction)
+    const tx = ethTx.fromTxData(rawTransaction)
     const res = {
         sender: ethUtils.toChecksumAddress(
             '0x' + tx.getSenderAddress().toString('hex')

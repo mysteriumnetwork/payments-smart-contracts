@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.7.6;
-pragma abicoder v2;
+pragma solidity 0.8.4;
 
-import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IERC20Token } from "./interfaces/IERC20Token.sol";
 import { IHermesContract } from "./interfaces/IHermesContract.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
@@ -15,10 +13,9 @@ interface Channel {
 
 contract Registry is FundsRecovery, Utils {
     using ECDSA for bytes32;
-    using SafeMath for uint256;
 
     uint256 public lastNonce;
-    address payable public dex;    // Any uniswap v2 compatible DEX router address
+    address payable public dex;     // Any uniswap v2 compatible DEX router address
     uint256 public minimalHermesStake;
     Registry public parentRegistry; // If there is parent registry, we will check for
 
@@ -90,7 +87,7 @@ contract Registry is FundsRecovery, Utils {
         require(_identity != address(0), "Registry: wrong identity signature");
 
         // Tokens amount to get from channel to cover tx fee and provider's stake
-        uint256 _totalFee = _stakeAmount.add(_transactorFee);
+        uint256 _totalFee = _stakeAmount + _transactorFee;
         require(_totalFee <= token.balanceOf(getChannelAddress(_identity, _hermesId)), "Registry: not enought funds in channel to cover fees");
 
         // Open consumer channel

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.7.6;
+pragma solidity 0.8.4;
 
 import { IERC20Token } from "./interfaces/IERC20Token.sol";
 import { Ownable } from "./Ownable.sol";

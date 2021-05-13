@@ -29,7 +29,8 @@ async function sendTx(destination, payload, account) {
         data: payload,
         chainId: 5777 // EIP 155 chainId - mainnet: 1, ropsten: 3, localchain: 1337
     }
-    const tx = new EthereumTx(txParams)
+    // const tx = new EthereumTx(txParams)
+    const tx = EthereumTx.fromTxData(txParams)
     tx.sign(account.privKey)
     const serializedTx = tx.serialize()
     await web3.eth.sendSignedTransaction('0x' + serializedTx.toString('hex'))
