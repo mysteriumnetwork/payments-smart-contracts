@@ -1,4 +1,4 @@
-const ethTx = require('ethereumjs-tx').Transaction
+const ethTx = require('@ethereumjs/tx').Transaction
 const ethUtils = require('ethereumjs-util')
 const BN = require('bn.js')
 
@@ -17,14 +17,16 @@ const rawTransaction = {
 
 function generateDeployTx(calldata) {
     // const tx = new ethTx(rawTransaction)
+
+
     const tx = ethTx.fromTxData(rawTransaction)
     const res = {
         sender: ethUtils.toChecksumAddress(
-            '0x' + tx.getSenderAddress().toString('hex')
+            tx.getSenderAddress().toString('hex')
         ),
         rawTx: '0x' + tx.serialize().toString('hex'),
         contractAddress: ethUtils.toChecksumAddress(
-            '0x' + ethUtils.generateAddress(tx.getSenderAddress(), ethUtils.toBuffer(0)).toString('hex')
+            '0x' + ethUtils.generateAddress(tx.getSenderAddress().toBuffer(), ethUtils.toBuffer(0)).toString('hex')
         )
     }
     return res

@@ -85,7 +85,8 @@ contract ChannelImplementation is FundsRecovery, Utils {
     function settlePromise(uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _signature) public {
         bytes32 _hashlock = keccak256(abi.encode(_lock));
         address _channelId = address(this);
-        address _signer = keccak256(abi.encodePacked(getChainID(), uint256(_channelId), _amount, _transactorFee, _hashlock)).recover(_signature);
+
+        address _signer = keccak256(abi.encodePacked(getChainID(), uint256(uint160(_channelId)), _amount, _transactorFee, _hashlock)).recover(_signature);
         require(_signer == operator, "have to be signed by channel operator");
 
         // Calculate amount of tokens to be claimed.
@@ -157,7 +158,7 @@ contract ChannelImplementation is FundsRecovery, Utils {
         require(_validUntil >= block.number, "Channel: _validUntil have to be greater than or equal to current block number");
 
         address _channelId = address(this);
-        bytes32 _msgHash = keccak256(abi.encodePacked(EXIT_PREFIX, getChainID(), uint256(_channelId), _amount, _transactorFee, uint256(_beneficiary), _validUntil, lastNonce++));
+        bytes32 _msgHash = keccak256(abi.encodePacked(EXIT_PREFIX, getChainID(), uint256(uint160(_channelId)), _amount, _transactorFee, uint256(uint160(_beneficiary)), _validUntil, lastNonce++));
 
         address _firstSigner = _msgHash.recover(_operatorSignature);
         require(_firstSigner == operator, "Channel: have to be signed by operator");

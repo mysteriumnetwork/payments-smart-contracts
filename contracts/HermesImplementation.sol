@@ -138,7 +138,7 @@ contract HermesImplementation is FundsRecovery, Utils {
         hermesStake = token.balanceOf(address(this));
 
         // Approving all myst for dex, because MYST token's `transferFrom` is cheaper when there is approval of uint(-1)
-        token.approve(_dexAddress, uint(-1));
+        token.approve(_dexAddress, type(uint256).max);
         dex = IUniswapV2Router(_dexAddress);
 
         transferOwnership(_operator);
@@ -392,7 +392,7 @@ contract HermesImplementation is FundsRecovery, Utils {
 
     function increaseHermesStake(uint256 _additionalStake) public onlyOperator {
         if (availableBalance() < _additionalStake) {
-            uint256 _diff = _additionalStake.sub(availableBalance());
+            uint256 _diff = _additionalStake - availableBalance();
             token.transferFrom(msg.sender, address(this), _diff);
         }
 
@@ -419,7 +419,7 @@ contract HermesImplementation is FundsRecovery, Utils {
         if (_totalLockedAmount > _currentBalance) {
             return uint256(0);
         }
-        return _currentBalance.sub(_totalLockedAmount);
+        return _currentBalance - _totalLockedAmount;
     }
 
     // Returns true if channel is opened.
@@ -456,7 +456,7 @@ contract HermesImplementation is FundsRecovery, Utils {
         require(getStatus() == Status.Closed, "hermes have to be closed");
         require(block.number > closingTimelock, "timelock period have be already passed");
 
-        uint256 _amount = token.balanceOf(address(this)).sub(punishment.amount);
+        uint256 _amount = token.balanceOf(address(this)) - punishment.amount;
         token.transfer(_beneficiary, _amount);
     }
 

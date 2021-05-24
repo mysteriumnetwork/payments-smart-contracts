@@ -158,7 +158,7 @@ contract Registry is FundsRecovery, Utils {
         require(!isHermes(_hermesId), "Registry: hermes already registered");
 
         // Deploy hermes contract (mini proxy which is pointing to implementation)
-        IHermesContract _hermes = IHermesContract(deployMiniProxy(uint256(_hermesOperator), getProxyCode(getHermesImplementation())));
+        IHermesContract _hermes = IHermesContract(deployMiniProxy(uint256(uint160(_hermesOperator)), getProxyCode(getHermesImplementation())));
 
         // Transfer stake into hermes smart contract
         token.transferFrom(msg.sender, address(_hermes), _hermesStake);
@@ -170,7 +170,7 @@ contract Registry is FundsRecovery, Utils {
         hermeses[_hermesId] = Hermes(_hermesOperator, getLastImplVer(), _hermes.getStake, _url);
 
         // Approve hermes contract to `transferFrom` registry (used during hermes channel openings)
-        token.approve(_hermesId, uint256(-1));
+        token.approve(_hermesId, type(uint256).max);
 
         emit RegisteredHermes(_hermesId, _hermesOperator, _url);
     }
@@ -187,12 +187,12 @@ contract Registry is FundsRecovery, Utils {
 
     function getHermesAddress(address _hermesOperator) public view returns (address) {
         bytes32 _code = keccak256(getProxyCode(getHermesImplementation()));
-        return getCreate2Address(bytes32(uint256(_hermesOperator)), _code);
+        return getCreate2Address(bytes32(uint256(uint160(_hermesOperator))), _code);
     }
 
     function getHermesAddress(address _hermesOperator, uint256 _implVer) public view returns (address) {
         bytes32 _code = keccak256(getProxyCode(getHermesImplementation(_implVer)));
-        return getCreate2Address(bytes32(uint256(_hermesOperator)), _code);
+        return getCreate2Address(bytes32(uint256(uint160(_hermesOperator))), _code);
     }
 
     function getHermesURL(address _hermesId) public view returns (bytes memory) {
@@ -214,12 +214,12 @@ contract Registry is FundsRecovery, Utils {
 
     // ------------ UTILS ------------
     function getCreate2Address(bytes32 _salt, bytes32 _code) internal view returns (address) {
-        return address(uint256(keccak256(abi.encodePacked(
+        return address(uint160(uint256(keccak256(abi.encodePacked(
             bytes1(0xff),
             address(this),
             bytes32(_salt),
             bytes32(_code)
-        ))));
+        )))));
     }
 
     function getProxyCode(address _implementation) public pure returns (bytes memory) {

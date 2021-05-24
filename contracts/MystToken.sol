@@ -2,7 +2,7 @@
 pragma solidity 0.8.4;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Context } from "@openzeppelin/contracts/GSN/Context.sol";
+import { Context } from "@openzeppelin/contracts/utils/Context.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/IUpgradeAgent.sol";
 
@@ -134,7 +134,7 @@ contract MystToken is Context, IERC20, IUpgradeAgent {
         address spender = _msgSender();
 
         // Allowance for uint256(-1) means "always allowed" and is analog for erc777 operators but in erc20 semantics.
-        if (holder != spender && _allowances[holder][spender] != uint256(-1)) {
+        if (holder != spender && _allowances[holder][spender] != type(uint256).max) {
             _approve(holder, spender, _allowances[holder][spender] - amount);
         }
 
@@ -307,7 +307,7 @@ contract MystToken is Context, IERC20, IUpgradeAgent {
 
     // -------------- HELPERS --------------
 
-    function _chainID() private pure returns (uint256) {
+    function _chainID() private view returns (uint256) {
         uint256 chainID;
         assembly {
             chainID := chainid()

@@ -2,7 +2,7 @@
 pragma solidity 0.8.4;
 
 contract Utils {
-    function getChainID() internal pure returns (uint256) {
+    function getChainID() internal view returns (uint256) {
         uint256 chainID;
         assembly {
             chainID := chainid()
