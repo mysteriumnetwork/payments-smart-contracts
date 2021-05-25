@@ -25,7 +25,7 @@ module.exports = async function (deployer, network, accounts) {
     // const hermesImplementationAddress = '0x553abe2e4374cddeff1b092f342efddaf082582a'
     console.log('\n Deploying `Registry`')
     console.log('--------------------------------')
-    const registryAddress = await deployRegistry(web3, accounts[0])
+    const [registryAddress, _] = await deployRegistry(web3, accounts[0])
     const registry = await Registry.at(registryAddress)
     await registry.initialize(tokenAddress, quickSwapRouterAddress, 0, ChannelImplementation.address, HermesImplementation.address, parentRegistry)
     console.log('   > contract address: ', registryAddress, ' \n')
@@ -36,8 +36,11 @@ module.exports = async function (deployer, network, accounts) {
     // Deploy Uniswap smart contracts: Factory, Router, Migrator
     await uniswap.deploy(web3, accounts[0])
 
-    // Deploy Registry
-    const registryAddress = await deployRegistry(web3, accounts[0])
-    console.log('   > contract address: ', registryAddress, ' \n')
+    // Deploy Registry and Hermes implementation
+    const [registryAddress, hermesImplementationAddress] = await deployRegistry(web3, accounts[0])
+
+    console.log('   > registry contract address: ', registryAddress, ' \n')
+    console.log('   > hermes implementation address: ', hermesImplementationAddress, ' \n')
+
   }
 }
