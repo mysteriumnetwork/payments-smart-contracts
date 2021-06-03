@@ -34,11 +34,11 @@ contract('Deterministic registry', ([txMaker, ...otherAccounts]) => {
     before(async () => {
         token = await MystToken.new()
         dex = await setupDEX(token, txMaker)
-        hermesImplementation = await HermesImplementation.new()
         channelImplementation = await ChannelImplementation.new()
 
-        const registryAddress = await deployRegistry(web3, txMaker)
+        const [registryAddress, hermesImplementationAddress] = await deployRegistry(web3, txMaker)
         registry = await Registry.at(registryAddress)
+        hermesImplementation = await HermesImplementation.at(hermesImplementationAddress)
 
         // Topup some tokens into txMaker address so it could register hermes
         await topUpTokens(token, txMaker, 10000)
@@ -63,6 +63,11 @@ contract('Deterministic registry', ([txMaker, ...otherAccounts]) => {
     it('should reject attempt to initialize already initialized registry', async () => {
         expect(await registry.isInitialized()).to.be.true
         await registry.initialize(token.address, dex.address, 10, channelImplementation.address, hermesImplementation.address, ZeroAddress).should.be.rejected
+    })
+
+    it('should have hermes implementation deloyed into deterministic address', async () => {
+        const expectedAddress = '0x67F73B1fb1a07Cb59631eD34D7210cF28d9a689F'
+        expect(await registry.getHermesImplementation()).to.be.equal(expectedAddress)
     })
 })
 

@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.7.6;
+pragma solidity 0.8.4;
 
-import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IERC20Token } from "./interfaces/IERC20Token.sol";
 import { IHermesContract } from "./interfaces/IHermesContract.sol";
 import { IUniswapV2Router } from "./interfaces/IUniswapV2Router.sol";
@@ -12,7 +11,6 @@ import { Utils } from "./Utils.sol";
 
 contract ChannelImplementation is FundsRecovery, Utils {
     using ECDSA for bytes32;
-    using SafeMath for uint256;
 
     string constant EXIT_PREFIX = "Exit request:";
     uint256 constant DELAY_BLOCKS = 18000;  // +/- 4 days
@@ -87,11 +85,12 @@ contract ChannelImplementation is FundsRecovery, Utils {
     function settlePromise(uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _signature) public {
         bytes32 _hashlock = keccak256(abi.encode(_lock));
         address _channelId = address(this);
-        address _signer = keccak256(abi.encodePacked(getChainID(), uint256(_channelId), _amount, _transactorFee, _hashlock)).recover(_signature);
+
+        address _signer = keccak256(abi.encodePacked(getChainID(), uint256(uint160(_channelId)), _amount, _transactorFee, _hashlock)).recover(_signature);
         require(_signer == operator, "have to be signed by channel operator");
 
         // Calculate amount of tokens to be claimed.
-        uint256 _unpaidAmount = _amount.sub(hermes.settled);
+        uint256 _unpaidAmount = _amount - hermes.settled;
         require(_unpaidAmount > 0, "amount to settle should be greater that already settled");
 
         // If signer has less tokens than asked to transfer, we can transfer as much as he has already
@@ -103,10 +102,10 @@ contract ChannelImplementation is FundsRecovery, Utils {
         }
 
         // Increase already paid amount
-        hermes.settled = hermes.settled.add(_unpaidAmount);
+        hermes.settled = hermes.settled + _unpaidAmount;
 
         // Send tokens
-        token.transfer(hermes.contractAddress, _unpaidAmount.sub(_transactorFee));
+        token.transfer(hermes.contractAddress, _unpaidAmount - _transactorFee);
 
         // Pay fee to transaction maker
         if (_transactorFee > 0) {
@@ -159,7 +158,7 @@ contract ChannelImplementation is FundsRecovery, Utils {
         require(_validUntil >= block.number, "Channel: _validUntil have to be greater than or equal to current block number");
 
         address _channelId = address(this);
-        bytes32 _msgHash = keccak256(abi.encodePacked(EXIT_PREFIX, getChainID(), uint256(_channelId), _amount, _transactorFee, uint256(_beneficiary), _validUntil, lastNonce++));
+        bytes32 _msgHash = keccak256(abi.encodePacked(EXIT_PREFIX, getChainID(), uint256(uint160(_channelId)), _amount, _transactorFee, uint256(uint160(_beneficiary)), _validUntil, lastNonce++));
 
         address _firstSigner = _msgHash.recover(_operatorSignature);
         require(_firstSigner == operator, "Channel: have to be signed by operator");
@@ -174,7 +173,7 @@ contract ChannelImplementation is FundsRecovery, Utils {
         }
 
         // Withdraw agreed amount
-        uint256 _amountToSend = _amount.sub(_transactorFee);
+        uint256 _amountToSend = _amount - _transactorFee;
         token.transfer(_beneficiary, _amountToSend);
         emit Withdraw(_beneficiary, _amountToSend);
     }

@@ -1,8 +1,8 @@
-// File: @openzeppelin/contracts/cryptography/ECDSA.sol
+// File: @openzeppelin/contracts/utils/cryptography/ECDSA.sol
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity >=0.6.0 <0.8.0;
+pragma solidity ^0.8.0;
 
 /**
  * @dev Elliptic Curve Digital Signature Algorithm (ECDSA) operations.
@@ -26,30 +26,42 @@ library ECDSA {
      * be too long), and then calling {toEthSignedMessageHash} on it.
      */
     function recover(bytes32 hash, bytes memory signature) internal pure returns (address) {
-        // Check the signature length
-        if (signature.length != 65) {
-            revert("ECDSA: invalid signature length");
-        }
-
         // Divide the signature in r, s and v variables
         bytes32 r;
         bytes32 s;
         uint8 v;
 
-        // ecrecover takes the signature parameters, and the only way to get them
-        // currently is to use assembly.
-        // solhint-disable-next-line no-inline-assembly
-        assembly {
-            r := mload(add(signature, 0x20))
-            s := mload(add(signature, 0x40))
-            v := byte(0, mload(add(signature, 0x60)))
+        // Check the signature length
+        // - case 65: r,s,v signature (standard)
+        // - case 64: r,vs signature (cf https://eips.ethereum.org/EIPS/eip-2098) _Available since v4.1._
+        if (signature.length == 65) {
+            // ecrecover takes the signature parameters, and the only way to get them
+            // currently is to use assembly.
+            // solhint-disable-next-line no-inline-assembly
+            assembly {
+                r := mload(add(signature, 0x20))
+                s := mload(add(signature, 0x40))
+                v := byte(0, mload(add(signature, 0x60)))
+            }
+        } else if (signature.length == 64) {
+            // ecrecover takes the signature parameters, and the only way to get them
+            // currently is to use assembly.
+            // solhint-disable-next-line no-inline-assembly
+            assembly {
+                let vs := mload(add(signature, 0x40))
+                r := mload(add(signature, 0x20))
+                s := and(vs, 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff)
+                v := add(shr(255, vs), 27)
+            }
+        } else {
+            revert("ECDSA: invalid signature length");
         }
 
         return recover(hash, v, r, s);
     }
 
     /**
-     * @dev Overload of {ECDSA-recover-bytes32-bytes-} that receives the `v`,
+     * @dev Overload of {ECDSA-recover} that receives the `v`,
      * `r` and `s` signature fields separately.
      */
     function recover(bytes32 hash, uint8 v, bytes32 r, bytes32 s) internal pure returns (address) {
@@ -74,9 +86,9 @@ library ECDSA {
 
     /**
      * @dev Returns an Ethereum Signed Message, created from a `hash`. This
-     * replicates the behavior of the
-     * https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_sign[`eth_sign`]
-     * JSON-RPC method.
+     * produces hash corresponding to the one signed with the
+     * https://eth.wiki/json-rpc/API#eth_sign[`eth_sign`]
+     * JSON-RPC method as part of EIP-191.
      *
      * See {recover}.
      */
@@ -85,222 +97,18 @@ library ECDSA {
         // enforced by the type signature above
         return keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", hash));
     }
-}
-
-// File: @openzeppelin/contracts/math/SafeMath.sol
-
-// SPDX-License-Identifier: MIT
-
-pragma solidity >=0.6.0 <0.8.0;
-
-/**
- * @dev Wrappers over Solidity's arithmetic operations with added overflow
- * checks.
- *
- * Arithmetic operations in Solidity wrap on overflow. This can easily result
- * in bugs, because programmers usually assume that an overflow raises an
- * error, which is the standard behavior in high level programming languages.
- * `SafeMath` restores this intuition by reverting the transaction when an
- * operation overflows.
- *
- * Using this library instead of the unchecked operations eliminates an entire
- * class of bugs, so it's recommended to use it always.
- */
-library SafeMath {
-    /**
-     * @dev Returns the addition of two unsigned integers, with an overflow flag.
-     *
-     * _Available since v3.4._
-     */
-    function tryAdd(uint256 a, uint256 b) internal pure returns (bool, uint256) {
-        uint256 c = a + b;
-        if (c < a) return (false, 0);
-        return (true, c);
-    }
 
     /**
-     * @dev Returns the substraction of two unsigned integers, with an overflow flag.
+     * @dev Returns an Ethereum Signed Typed Data, created from a
+     * `domainSeparator` and a `structHash`. This produces hash corresponding
+     * to the one signed with the
+     * https://eips.ethereum.org/EIPS/eip-712[`eth_signTypedData`]
+     * JSON-RPC method as part of EIP-712.
      *
-     * _Available since v3.4._
+     * See {recover}.
      */
-    function trySub(uint256 a, uint256 b) internal pure returns (bool, uint256) {
-        if (b > a) return (false, 0);
-        return (true, a - b);
-    }
-
-    /**
-     * @dev Returns the multiplication of two unsigned integers, with an overflow flag.
-     *
-     * _Available since v3.4._
-     */
-    function tryMul(uint256 a, uint256 b) internal pure returns (bool, uint256) {
-        // Gas optimization: this is cheaper than requiring 'a' not being zero, but the
-        // benefit is lost if 'b' is also tested.
-        // See: https://github.com/OpenZeppelin/openzeppelin-contracts/pull/522
-        if (a == 0) return (true, 0);
-        uint256 c = a * b;
-        if (c / a != b) return (false, 0);
-        return (true, c);
-    }
-
-    /**
-     * @dev Returns the division of two unsigned integers, with a division by zero flag.
-     *
-     * _Available since v3.4._
-     */
-    function tryDiv(uint256 a, uint256 b) internal pure returns (bool, uint256) {
-        if (b == 0) return (false, 0);
-        return (true, a / b);
-    }
-
-    /**
-     * @dev Returns the remainder of dividing two unsigned integers, with a division by zero flag.
-     *
-     * _Available since v3.4._
-     */
-    function tryMod(uint256 a, uint256 b) internal pure returns (bool, uint256) {
-        if (b == 0) return (false, 0);
-        return (true, a % b);
-    }
-
-    /**
-     * @dev Returns the addition of two unsigned integers, reverting on
-     * overflow.
-     *
-     * Counterpart to Solidity's `+` operator.
-     *
-     * Requirements:
-     *
-     * - Addition cannot overflow.
-     */
-    function add(uint256 a, uint256 b) internal pure returns (uint256) {
-        uint256 c = a + b;
-        require(c >= a, "SafeMath: addition overflow");
-        return c;
-    }
-
-    /**
-     * @dev Returns the subtraction of two unsigned integers, reverting on
-     * overflow (when the result is negative).
-     *
-     * Counterpart to Solidity's `-` operator.
-     *
-     * Requirements:
-     *
-     * - Subtraction cannot overflow.
-     */
-    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        require(b <= a, "SafeMath: subtraction overflow");
-        return a - b;
-    }
-
-    /**
-     * @dev Returns the multiplication of two unsigned integers, reverting on
-     * overflow.
-     *
-     * Counterpart to Solidity's `*` operator.
-     *
-     * Requirements:
-     *
-     * - Multiplication cannot overflow.
-     */
-    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-        if (a == 0) return 0;
-        uint256 c = a * b;
-        require(c / a == b, "SafeMath: multiplication overflow");
-        return c;
-    }
-
-    /**
-     * @dev Returns the integer division of two unsigned integers, reverting on
-     * division by zero. The result is rounded towards zero.
-     *
-     * Counterpart to Solidity's `/` operator. Note: this function uses a
-     * `revert` opcode (which leaves remaining gas untouched) while Solidity
-     * uses an invalid opcode to revert (consuming all remaining gas).
-     *
-     * Requirements:
-     *
-     * - The divisor cannot be zero.
-     */
-    function div(uint256 a, uint256 b) internal pure returns (uint256) {
-        require(b > 0, "SafeMath: division by zero");
-        return a / b;
-    }
-
-    /**
-     * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),
-     * reverting when dividing by zero.
-     *
-     * Counterpart to Solidity's `%` operator. This function uses a `revert`
-     * opcode (which leaves remaining gas untouched) while Solidity uses an
-     * invalid opcode to revert (consuming all remaining gas).
-     *
-     * Requirements:
-     *
-     * - The divisor cannot be zero.
-     */
-    function mod(uint256 a, uint256 b) internal pure returns (uint256) {
-        require(b > 0, "SafeMath: modulo by zero");
-        return a % b;
-    }
-
-    /**
-     * @dev Returns the subtraction of two unsigned integers, reverting with custom message on
-     * overflow (when the result is negative).
-     *
-     * CAUTION: This function is deprecated because it requires allocating memory for the error
-     * message unnecessarily. For custom revert reasons use {trySub}.
-     *
-     * Counterpart to Solidity's `-` operator.
-     *
-     * Requirements:
-     *
-     * - Subtraction cannot overflow.
-     */
-    function sub(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
-        require(b <= a, errorMessage);
-        return a - b;
-    }
-
-    /**
-     * @dev Returns the integer division of two unsigned integers, reverting with custom message on
-     * division by zero. The result is rounded towards zero.
-     *
-     * CAUTION: This function is deprecated because it requires allocating memory for the error
-     * message unnecessarily. For custom revert reasons use {tryDiv}.
-     *
-     * Counterpart to Solidity's `/` operator. Note: this function uses a
-     * `revert` opcode (which leaves remaining gas untouched) while Solidity
-     * uses an invalid opcode to revert (consuming all remaining gas).
-     *
-     * Requirements:
-     *
-     * - The divisor cannot be zero.
-     */
-    function div(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
-        require(b > 0, errorMessage);
-        return a / b;
-    }
-
-    /**
-     * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),
-     * reverting with custom message when dividing by zero.
-     *
-     * CAUTION: This function is deprecated because it requires allocating memory for the error
-     * message unnecessarily. For custom revert reasons use {tryMod}.
-     *
-     * Counterpart to Solidity's `%` operator. This function uses a `revert`
-     * opcode (which leaves remaining gas untouched) while Solidity uses an
-     * invalid opcode to revert (consuming all remaining gas).
-     *
-     * Requirements:
-     *
-     * - The divisor cannot be zero.
-     */
-    function mod(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
-        require(b > 0, errorMessage);
-        return a % b;
+    function toTypedDataHash(bytes32 domainSeparator, bytes32 structHash) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
     }
 }
 
@@ -308,7 +116,7 @@ library SafeMath {
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity >=0.6.0 <0.8.0;
+pragma solidity ^0.8.0;
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
@@ -387,7 +195,7 @@ interface IERC20 {
 // File: contracts/interfaces/IERC20Token.sol
 
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity =0.7.6;
+pragma solidity =0.8.4;
 
 
 abstract contract IERC20Token is IERC20 {
@@ -411,7 +219,7 @@ interface IHermesContract {
 // File: contracts/interfaces/IUniswapV2Router.sol
 
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity =0.7.6;
+pragma solidity =0.8.4;
 
 interface IUniswapV2Router {
     function factory() external pure returns (address);
@@ -510,7 +318,7 @@ interface IUniswapV2Router {
 // File: contracts/Ownable.sol
 
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.7.6;
+pragma solidity 0.8.4;
 
 contract Ownable {
     address private _owner;
@@ -536,7 +344,7 @@ contract Ownable {
 // File: contracts/FundsRecovery.sol
 
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.7.6;
+pragma solidity 0.8.4;
 
 
 
@@ -584,10 +392,10 @@ contract FundsRecovery is Ownable {
 // File: contracts/Utils.sol
 
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.7.6;
+pragma solidity 0.8.4;
 
 contract Utils {
-    function getChainID() internal pure returns (uint256) {
+    function getChainID() internal view returns (uint256) {
         uint256 chainID;
         assembly {
             chainID := chainid()
@@ -611,8 +419,7 @@ contract Utils {
 // File: contracts/ChannelImplementation.sol
 
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.7.6;
-
+pragma solidity 0.8.4;
 
 
 
@@ -623,7 +430,6 @@ pragma solidity 0.7.6;
 
 contract ChannelImplementation is FundsRecovery, Utils {
     using ECDSA for bytes32;
-    using SafeMath for uint256;
 
     string constant EXIT_PREFIX = "Exit request:";
     uint256 constant DELAY_BLOCKS = 18000;  // +/- 4 days
@@ -698,11 +504,12 @@ contract ChannelImplementation is FundsRecovery, Utils {
     function settlePromise(uint256 _amount, uint256 _transactorFee, bytes32 _lock, bytes memory _signature) public {
         bytes32 _hashlock = keccak256(abi.encode(_lock));
         address _channelId = address(this);
-        address _signer = keccak256(abi.encodePacked(getChainID(), uint256(_channelId), _amount, _transactorFee, _hashlock)).recover(_signature);
+
+        address _signer = keccak256(abi.encodePacked(getChainID(), uint256(uint160(_channelId)), _amount, _transactorFee, _hashlock)).recover(_signature);
         require(_signer == operator, "have to be signed by channel operator");
 
         // Calculate amount of tokens to be claimed.
-        uint256 _unpaidAmount = _amount.sub(hermes.settled);
+        uint256 _unpaidAmount = _amount - hermes.settled;
         require(_unpaidAmount > 0, "amount to settle should be greater that already settled");
 
         // If signer has less tokens than asked to transfer, we can transfer as much as he has already
@@ -714,10 +521,10 @@ contract ChannelImplementation is FundsRecovery, Utils {
         }
 
         // Increase already paid amount
-        hermes.settled = hermes.settled.add(_unpaidAmount);
+        hermes.settled = hermes.settled + _unpaidAmount;
 
         // Send tokens
-        token.transfer(hermes.contractAddress, _unpaidAmount.sub(_transactorFee));
+        token.transfer(hermes.contractAddress, _unpaidAmount - _transactorFee);
 
         // Pay fee to transaction maker
         if (_transactorFee > 0) {
@@ -770,7 +577,7 @@ contract ChannelImplementation is FundsRecovery, Utils {
         require(_validUntil >= block.number, "Channel: _validUntil have to be greater than or equal to current block number");
 
         address _channelId = address(this);
-        bytes32 _msgHash = keccak256(abi.encodePacked(EXIT_PREFIX, getChainID(), uint256(_channelId), _amount, _transactorFee, uint256(_beneficiary), _validUntil, lastNonce++));
+        bytes32 _msgHash = keccak256(abi.encodePacked(EXIT_PREFIX, getChainID(), uint256(uint160(_channelId)), _amount, _transactorFee, uint256(uint160(_beneficiary)), _validUntil, lastNonce++));
 
         address _firstSigner = _msgHash.recover(_operatorSignature);
         require(_firstSigner == operator, "Channel: have to be signed by operator");
@@ -785,7 +592,7 @@ contract ChannelImplementation is FundsRecovery, Utils {
         }
 
         // Withdraw agreed amount
-        uint256 _amountToSend = _amount.sub(_transactorFee);
+        uint256 _amountToSend = _amount - _transactorFee;
         token.transfer(_beneficiary, _amountToSend);
         emit Withdraw(_beneficiary, _amountToSend);
     }

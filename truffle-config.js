@@ -1,5 +1,5 @@
 const HDWalletProvider = require("@truffle/hdwallet-provider");
-const INFURA_URL = "https://ropsten.infura.io/v3/...";
+const INFURA_URL = "https://goerli.infura.io/v3/...";
 const mnemonic = "amused glory pen avocado toilet dragon entry kitchen cliff retreat canyon danger";
 
 module.exports = {
@@ -11,7 +11,7 @@ module.exports = {
 
     compilers: {
         solc: {
-            version: "0.7.6",
+            version: "0.8.4",
             settings: {
                 optimizer: {
                     enabled: true,
@@ -38,6 +38,14 @@ module.exports = {
         goerli: {
             provider: () => new HDWalletProvider(mnemonic, INFURA_URL),
             network_id: 5,
+            gas: 5000000,
+            gasPrice: 1110000000,
+            confirmations: 1,
+            skipDryRun: true
+        },
+        mumbai: {
+            provider: () => new HDWalletProvider(mnemonic, INFURA_URL),
+            network_id: 80001,
             gas: 5000000,
             gasPrice: 1110000000,
             confirmations: 1,

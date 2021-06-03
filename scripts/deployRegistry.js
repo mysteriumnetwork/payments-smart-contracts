@@ -1,48 +1,68 @@
-const ethTx = require('ethereumjs-tx').Transaction
+const ethTx = require('@ethereumjs/tx').Transaction
 const ethUtils = require('ethereumjs-util')
 const BN = require('bn.js')
 
 const registryBytecode = require('../build/contracts/Registry.json').bytecode
+const hermesBytecode = require('../build/contracts/HermesImplementation.json').bytecode
 
-const rawTransaction = {
-    nonce: 0,
-    gasPrice: 10000000000,        // 100 Gwei
-    gasLimit: 3300000,
-    value: 0,
-    data: registryBytecode,
-    v: 27,
-    r: '0x4d797374657269756d204e6574776f726b207061796d656e742073797374656d', // Buffer.from('Mysterium Network payment system').toString('hex')
-    s: '0x4d797374657269756d204e6574776f726b207061796d656e742073797374656d'
+
+function getRawTrasaction(byteCode, gasLimit, nonce = 0) {
+    return {
+        nonce: nonce,
+        gasPrice: 100000000000,        // 1000 Gwei
+        gasLimit: gasLimit,
+        value: 0,
+        data: byteCode,
+        v: 27,
+        r: '0x4d797374657269756d204e6574776f726b207061796d656e742073797374656d', // Buffer.from('Mysterium Network payment system').toString('hex')
+        s: '0x4d797374657269756d204e6574776f726b207061796d656e742073797374656d'
+    }
 }
 
-function generateDeployTx(calldata) {
-    const tx = new ethTx(rawTransaction)
+function generateDeployTx(byteCode, gasLimit = 3000000) {
+    // const tx = new ethTx(rawTransaction)
+
+    const rawTransaction = getRawTrasaction(byteCode, gasLimit)
+    const tx = ethTx.fromTxData(rawTransaction)
     const res = {
         sender: ethUtils.toChecksumAddress(
-            '0x' + tx.getSenderAddress().toString('hex')
+            tx.getSenderAddress().toString('hex')
         ),
         rawTx: '0x' + tx.serialize().toString('hex'),
         contractAddress: ethUtils.toChecksumAddress(
-            '0x' + ethUtils.generateAddress(tx.getSenderAddress(), ethUtils.toBuffer(0)).toString('hex')
+            '0x' + ethUtils.generateAddress(tx.getSenderAddress().toBuffer(), ethUtils.toBuffer(0)).toString('hex')
         )
     }
     return res
 }
 
 module.exports = async (web3, account = undefined) => {
-    const res = generateDeployTx()
-
     if (!account) {
         account = (await web3.eth.getAccounts())[0]
     }
 
-    const deployedCode = await web3.eth.getCode(res.contractAddress)
+    // Deploy Registry into deterministic address
+    const registryTxMetadata = generateDeployTx(registryBytecode, 2989157)
+    const deployedCode = await web3.eth.getCode(registryTxMetadata.contractAddress)
     if (deployedCode.length <= 3) {
         await web3.eth.sendTransaction({
-            from: account, to: res.sender, value: '1000000000000000000'
+            from: account, to: registryTxMetadata.sender, value: '298915700000000000'
         })
-        await web3.eth.sendSignedTransaction(res.rawTx)
+        await web3.eth.sendSignedTransaction(registryTxMetadata.rawTx)
     }
 
-    return res.contractAddress
+    // Deploy HermesImplementation into deterministic address
+    const hermesTxMetadata = generateDeployTx(hermesBytecode, 3327541)
+    const deployedHermesCode = await web3.eth.getCode(hermesTxMetadata.contractAddress)
+    if (deployedHermesCode.length <= 3) {
+        await web3.eth.sendTransaction({
+            from: account, to: hermesTxMetadata.sender, value: '332754100000000000'
+        })
+        await web3.eth.sendSignedTransaction(hermesTxMetadata.rawTx)
+    }
+
+    return [
+        registryTxMetadata.contractAddress,
+        hermesTxMetadata.contractAddress
+    ]
 }

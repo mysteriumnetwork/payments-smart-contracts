@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.7.6;
+pragma solidity 0.8.4;
 
-import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IUniswapV2Router } from "./interfaces/IUniswapV2Router.sol";
 import { IERC20Token } from "./interfaces/IERC20Token.sol";
 import { FundsRecovery } from "./FundsRecovery.sol";
@@ -19,7 +18,6 @@ interface IdentityRegistry {
 // Hermes (channel balance provided by Herms, no staking/loans)
 contract HermesImplementation is FundsRecovery, Utils {
     using ECDSA for bytes32;
-    using SafeMath for uint256;
 
     string constant STAKE_RETURN_PREFIX = "Stake return request";
     uint256 constant DELAY_BLOCKS = 18000;     // +/- 3 days
@@ -140,7 +138,7 @@ contract HermesImplementation is FundsRecovery, Utils {
         hermesStake = token.balanceOf(address(this));
 
         // Approving all myst for dex, because MYST token's `transferFrom` is cheaper when there is approval of uint(-1)
-        token.approve(_dexAddress, uint(-1));
+        token.approve(_dexAddress, type(uint256).max);
         dex = IUniswapV2Router(_dexAddress);
 
         transferOwnership(_operator);
@@ -184,7 +182,7 @@ contract HermesImplementation is FundsRecovery, Utils {
         }
 
         // Calculate amount of tokens to be claimed.
-        uint256 _unpaidAmount = _amount.sub(_channel.settled);
+        uint256 _unpaidAmount = _amount - _channel.settled;
         require(_unpaidAmount > _transactorFee, "Hermes: amount to settle should cover transactor fee");
 
         // It is don't allowed to settle more than maxStake and than available balance.
@@ -192,16 +190,16 @@ contract HermesImplementation is FundsRecovery, Utils {
             _unpaidAmount = min(_availableBalance, maxStake);
         }
 
-        _channel.settled = _channel.settled.add(_unpaidAmount);                // Increase already paid amount.
+        _channel.settled = _channel.settled + _unpaidAmount;                // Increase already paid amount.
         uint256 _hermesFee = _takeFee ? calculateHermesFee(_unpaidAmount) : 0; // Calculate hermes fee.
-        uint256 _fees = _transactorFee.add(_hermesFee);                        // Update channel balance.
+        uint256 _fees = _transactorFee + _hermesFee;                        // Update channel balance.
 
         // Pay transactor fee
         if (_transactorFee > 0) {
             token.transfer(msg.sender, _transactorFee);
         }
 
-        uint256 _amountToTransfer = _unpaidAmount.sub(_fees);
+        uint256 _amountToTransfer = _unpaidAmount -_fees;
 
         emit PromiseSettled(_channelId, _beneficiary, _amountToTransfer, _fees);
 
@@ -264,7 +262,7 @@ contract HermesImplementation is FundsRecovery, Utils {
         require(_amountToAdd > 0, "Hermes: should stake more than zero");
 
         Channel storage _channel = channels[_channelId];
-        uint256 _newStakeAmount = _channel.stake.add(_amountToAdd);
+        uint256 _newStakeAmount = _channel.stake +_amountToAdd;
         require(_newStakeAmount <= maxStake, "Hermes: total amount to stake can't be bigger than maximally allowed");
 
         // We don't transfer tokens during settlements, they already locked in hermes contract.
@@ -273,7 +271,7 @@ contract HermesImplementation is FundsRecovery, Utils {
         }
 
         _channel.stake = _newStakeAmount;
-        totalStake = totalStake.add(_amountToAdd);
+        totalStake = totalStake + _amountToAdd;
 
         emit NewStake(_channelId, _newStakeAmount);
     }
@@ -305,7 +303,7 @@ contract HermesImplementation is FundsRecovery, Utils {
         address _signer = keccak256(abi.encodePacked(STAKE_RETURN_PREFIX, getChainID(), _channelId, _amount, _transactorFee, _channel.lastUsedNonce)).recover(_signature);
         require(getChannelId(_signer) == _channelId, "Hermes: have to be signed by channel party");
 
-        uint256 _newStakeAmount = _channel.stake.sub(_amount);
+        uint256 _newStakeAmount = _channel.stake - _amount;
 
         // Pay transacor fee then withdraw the rest
         if (_transactorFee > 0) {
@@ -313,11 +311,11 @@ contract HermesImplementation is FundsRecovery, Utils {
         }
 
         address _beneficiary = registry.getBeneficiary(_identity);
-        token.transfer(_beneficiary, _amount.sub(_transactorFee));
+        token.transfer(_beneficiary, _amount - _transactorFee);
 
         // Update channel state
         _channel.stake = _newStakeAmount;
-        totalStake = totalStake.sub(_amount);
+        totalStake = totalStake - _amount;
 
         emit NewStake(_channelId, _newStakeAmount);
     }
@@ -330,22 +328,22 @@ contract HermesImplementation is FundsRecovery, Utils {
         require(getStatus() == Status.Punishment, "Hermes: should be in punishment status");
 
         // 0.04% of total channels amount per time unit
-        uint256 _punishmentPerUnit = round(totalStake.mul(4), 100).div(100);
+        uint256 _punishmentPerUnit = round(totalStake * 4, 100) / 100;
 
         // No punishment during first time unit
         uint256 _unit = getUnitBlocks();
         uint256 _blocksPassed = block.number - punishment.activationBlock;
-        uint256 _punishmentUnits = (round(_blocksPassed, _unit) / _unit).sub(1);
+        uint256 _punishmentUnits = round(_blocksPassed, _unit) / _unit - 1;
 
-        uint256 _punishmentAmount = _punishmentUnits.mul(_punishmentPerUnit);
-        punishment.amount = punishment.amount.add(_punishmentAmount);
+        uint256 _punishmentAmount = _punishmentUnits * _punishmentPerUnit;
+        punishment.amount = punishment.amount + _punishmentAmount;
 
-        uint256 _shouldHave = minimalExpectedBalance().add(maxStake);  // hermes should have funds for at least one maxStake settlement
+        uint256 _shouldHave = minimalExpectedBalance() + maxStake;  // hermes should have funds for at least one maxStake settlement
         uint256 _currentBalance = token.balanceOf(address(this));
 
         // If there are not enough available funds, they have to be topuped from msg.sender.
         if (_currentBalance < _shouldHave) {
-            token.transferFrom(msg.sender, address(this), _shouldHave.sub(_currentBalance));
+            token.transferFrom(msg.sender, address(this), _shouldHave - _currentBalance);
         }
 
         // Disable punishment mode
@@ -394,11 +392,11 @@ contract HermesImplementation is FundsRecovery, Utils {
 
     function increaseHermesStake(uint256 _additionalStake) public onlyOperator {
         if (availableBalance() < _additionalStake) {
-            uint256 _diff = _additionalStake.sub(availableBalance());
+            uint256 _diff = _additionalStake - availableBalance();
             token.transferFrom(msg.sender, address(this), _diff);
         }
 
-        hermesStake = hermesStake.add(_additionalStake);
+        hermesStake = hermesStake + _additionalStake;
 
         emit HermesStakeIncreased(hermesStake);
     }
@@ -421,7 +419,7 @@ contract HermesImplementation is FundsRecovery, Utils {
         if (_totalLockedAmount > _currentBalance) {
             return uint256(0);
         }
-        return _currentBalance.sub(_totalLockedAmount);
+        return _currentBalance - _totalLockedAmount;
     }
 
     // Returns true if channel is opened.
@@ -458,7 +456,7 @@ contract HermesImplementation is FundsRecovery, Utils {
         require(getStatus() == Status.Closed, "hermes have to be closed");
         require(block.number > closingTimelock, "timelock period have be already passed");
 
-        uint256 _amount = token.balanceOf(address(this)).sub(punishment.amount);
+        uint256 _amount = token.balanceOf(address(this)) - punishment.amount;
         token.transfer(_beneficiary, _amount);
     }
 
@@ -476,7 +474,7 @@ contract HermesImplementation is FundsRecovery, Utils {
 
     // Funds which always have to be holded in hermes smart contract.
     function minimalExpectedBalance() public view returns (uint256) {
-        return max(hermesStake, punishment.amount).add(totalStake);
+        return max(hermesStake, punishment.amount) + totalStake;
     }
 
     function getEmergencyTimelock() internal view virtual returns (uint256) {
