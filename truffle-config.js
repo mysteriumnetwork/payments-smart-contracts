@@ -1,8 +1,5 @@
 const HDWalletProvider = require("@truffle/hdwallet-provider");
-// const INFURA_URL = "https://ropsten.infura.io/v3/...";
-// const INFURA_URL = "https://goerli.infura.io/v3/048b64dd20b7446e9f0ce3a4c79ea13d"
-const INFURA_URL = "https://rpc-mumbai.maticvigil.com/v1/bbcd3ff12e1afcce954866c7a51a129c0cfccb5f";
-const INFURA_URL = "https://ropsten.infura.io/v3/...";
+const INFURA_URL = "https://goerli.infura.io/v3/...";
 const mnemonic = "amused glory pen avocado toilet dragon entry kitchen cliff retreat canyon danger";
 
 module.exports = {
