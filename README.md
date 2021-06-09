@@ -38,8 +38,9 @@ npm run migrate
 
 ## Current deployment (ethereum Görli and polygon Mumbai testnets)
 
-MYSTT on Görli: [0xf74a5ca65E4552CfF0f13b116113cCb493c580C5](https://goerli.etherscan.io/address/0xf74a5ca65E4552CfF0f13b116113cCb493c580C5)
-MYSTT on Mumbai: [0xB923b52b60E247E34f9afE6B3fa5aCcBAea829E8](https://explorer-mumbai.maticvigil.com/tokens/0xB923b52b60E247E34f9afE6B3fa5aCcBAea829E8/token-transfers)
+MYSTT test token:
+- on Görli: [0xf74a5ca65E4552CfF0f13b116113cCb493c580C5](https://goerli.etherscan.io/address/0xf74a5ca65E4552CfF0f13b116113cCb493c580C5)
+- on Mumbai: [0xB923b52b60E247E34f9afE6B3fa5aCcBAea829E8](https://explorer-mumbai.maticvigil.com/tokens/0xB923b52b60E247E34f9afE6B3fa5aCcBAea829E8/token-transfers)
 
 Registry smart contract:
 - Görli: [0xDFAB03C9fbDbef66dA105B88776B35bfd7743D39](https://goerli.etherscan.io/address/0xDFAB03C9fbDbef66dA105B88776B35bfd7743D39)
