@@ -36,81 +36,20 @@ npm test
 npm run migrate
 ```
 
-## Current deployment (ethereum Görli testnet)
+## Current deployment (ethereum Görli and polygon Mumbai testnets)
 
-MYSTT ERC20 Token (Mintable a la myst token): [0x7753cfAD258eFbC52A9A1452e42fFbce9bE486cb](https://goerli.etherscan.io/address/0x7753cfAD258eFbC52A9A1452e42fFbce9bE486cb)
-
-MYSTTv2 Token: [0xf74a5ca65E4552CfF0f13b116113cCb493c580C5](https://goerli.etherscan.io/address/0xf74a5ca65E4552CfF0f13b116113cCb493c580C5)
+MYSTT on Görli: [0xf74a5ca65E4552CfF0f13b116113cCb493c580C5](https://goerli.etherscan.io/address/0xf74a5ca65E4552CfF0f13b116113cCb493c580C5)
+MYSTT on Mumbai: [0xB923b52b60E247E34f9afE6B3fa5aCcBAea829E8](https://explorer-mumbai.maticvigil.com/tokens/0xB923b52b60E247E34f9afE6B3fa5aCcBAea829E8/token-transfers)
 
 Registry smart contract:
-[0x15B1281F4e58215b2c3243d864BdF8b9ddDc0DA2](https://goerli.etherscan.io/address/0x15B1281F4e58215b2c3243d864BdF8b9ddDc0DA2)
+- Görli: [0xDFAB03C9fbDbef66dA105B88776B35bfd7743D39](https://goerli.etherscan.io/address/0xDFAB03C9fbDbef66dA105B88776B35bfd7743D39)
+- Mumbai: [0xDFAB03C9fbDbef66dA105B88776B35bfd7743D39](https://explorer-mumbai.maticvigil.com/address/0xDFAB03C9fbDbef66dA105B88776B35bfd7743D39/transactions)
 
 Hermes smart contract:
-[0xD5d2f5729D4581dfacEBedF46C7014DeFda43585](https://goerli.etherscan.io/address/0xD5d2f5729D4581dfacEBedF46C7014DeFda43585)
+- Görli [0xc198d5539B335c48A0eAF49136dF2f5cED3B160d](https://goerli.etherscan.io/address/0xc198d5539B335c48A0eAF49136dF2f5cED3B160d)
+- Mumbai [0xc198d5539B335c48A0eAF49136dF2f5cED3B160d](https://explorer-mumbai.maticvigil.com/address/0xc198d5539B335c48A0eAF49136dF2f5cED3B160d/transactions)
 
-### Goerli deloyment log:
-
-    $ npm run deploy
-
-    Deploying 'MystToken'
-    ---------------------
-    > transaction hash:    0x861a8a1bd27100d16c8acbb898ff2517c56ddfd25689580d8c05b35344cdec32
-    > Blocks: 0            Seconds: 8
-    > contract address:    0xf74a5ca65E4552CfF0f13b116113cCb493c580C5
-    > block number:        3221687
-    > block timestamp:     1597382098
-    > account:             0x4b902507cc9F6C18c2f0f1cb170315276D6a7eFe
-    > balance:             58.05476766438
-    > gas used:            1741733 (0x1a93a5)
-    > gas price:           7.11 gwei
-    > value sent:          0 ETH
-    > total cost:          0.01238372163 ETH
-
-
-    Deploying 'ChannelImplementation'
-    ---------------------------------
-    > transaction hash:    0x3768aaa035b649a29851f5ce46fae81d248fb60ad1b34912fb8d80aa625ec7e6
-    > Blocks: 0            Seconds: 9
-    > contract address:    0xc49B987fB8701a41ae65Cf934a811FeA15bCC6E4
-    > block number:        3683806
-    > block timestamp:     1604329351
-    > account:             0x3D0A081720aC75fC8d66714F92f7ccc993EeB53D
-    > balance:             27.0734565148
-    > gas used:            1999086 (0x1e80ee)
-    > gas price:           1.11 gwei
-    > value sent:          0 ETH
-    > total cost:          0.00221898546 ETH
-
-    Deploying 'HermesImplementation'
-    --------------------------------
-    > transaction hash:    0x877a8cd2e35769405c98ce7a1d194c033cc750af49b65b04da194d261b066592
-    > Blocks: 2            Seconds: 26
-    > contract address:    0xcf3a0563d5A31Ea838e8a2f27825Cb8d0658b392
-    > block number:        3683809
-    > block timestamp:     1604329396
-    > account:             0x3D0A081720aC75fC8d66714F92f7ccc993EeB53D
-    > balance:             27.06741866869
-    > gas used:            3440415 (0x347f1f)
-    > gas price:           1.11 gwei
-    > value sent:          0 ETH
-    > total cost:          0.00381886065 ETH
-
-    Deploying 'Registry'
-    --------------------------------
-    > transaction hash:    0x59329b2f7dd48d385ebc1556a6833a7809dd76aea87ee965714a44d21146a43c
-    > contract address:    0x0BcAd0a5eEb569B4D0f597d6EE31ec6ae043610e
-    > block number:        4690357
-    > account:             0x891079f126b735dd650cb8bc83c1976fcf3371ba
-    > gas used:            3052834
-    > gas price:           10 gwei
-    > total cost:          0.03052834 ETH
-
-
-### Mumbai deployment log:
-
-    $ npm run deploy-matic
-
-
-    Deploying `Registry`
-    --------------------------------
-    > contract address:  0x0BcAd0a5eEb569B4D0f597d6EE31ec6ae043610e
+Implementation addresses:
+- Hermes implementation address (same on both networks): `0x72227c86B8B6C0cA292C3631679a5DdB20433cb3`
+- Channel implementation address (Görli): `0x1aDF7Ef34b9d48DCc8EBC47D989bfdE55933B6ea`
+- Channel implementation address (Mumbai): `0xf8982Ba93D3d9182D095B892DE2A7963eF9807ee`

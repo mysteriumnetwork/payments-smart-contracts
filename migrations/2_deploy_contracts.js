@@ -3,6 +3,8 @@ const { BN } = require('@openzeppelin/test-helpers')
 const MystToken = artifacts.require("MystToken")
 const Registry = artifacts.require("Registry")
 
+const deployRegistry = require("../scripts/deployRegistry")
+
 module.exports = async function (deployer, network, accounts) {
     // Run this configurations only on Görli testnet
     if (network !== 'goerli' && network !== 'mumbai') {
@@ -15,7 +17,7 @@ module.exports = async function (deployer, network, accounts) {
     const token = await MystToken.at(tokenAddress)
     const registry = await Registry.at(registryAddress)
 
-    // Register hermes with 5000 tokens stake, 15% tx fee and 5000 max channel balance
+    // Register hermes with 5000 tokens stake, 20% tx fee and 100 max channel balance
     const hermesStake = web3.utils.toWei(new BN('5000'), 'ether') // 5000 tokens
     const hermesFee = 2000 // 20.00%
     const minChannelStake = web3.utils.toWei(new BN('1'), 'ether') // 1 token
