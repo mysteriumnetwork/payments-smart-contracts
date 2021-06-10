@@ -47,8 +47,8 @@ Registry smart contract:
 - Mumbai: [0xDFAB03C9fbDbef66dA105B88776B35bfd7743D39](https://explorer-mumbai.maticvigil.com/address/0xDFAB03C9fbDbef66dA105B88776B35bfd7743D39/transactions)
 
 Hermes smart contract:
-- Görli [0xc198d5539B335c48A0eAF49136dF2f5cED3B160d](https://goerli.etherscan.io/address/0xc198d5539B335c48A0eAF49136dF2f5cED3B160d)
-- Mumbai [0xc198d5539B335c48A0eAF49136dF2f5cED3B160d](https://explorer-mumbai.maticvigil.com/address/0xc198d5539B335c48A0eAF49136dF2f5cED3B160d/transactions)
+- Görli [0x7119442C7E627438deb0ec59291e31378F88DD06](https://goerli.etherscan.io/address/0x7119442C7E627438deb0ec59291e31378F88DD06)
+- Mumbai [0x7119442C7E627438deb0ec59291e31378F88DD06](https://explorer-mumbai.maticvigil.com/address/0x7119442C7E627438deb0ec59291e31378F88DD06/transactions)
 
 Implementation addresses:
 - Hermes implementation address (same on both networks): `0x72227c86B8B6C0cA292C3631679a5DdB20433cb3`
