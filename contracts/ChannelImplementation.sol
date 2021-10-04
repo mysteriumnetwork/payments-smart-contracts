@@ -33,7 +33,7 @@ contract ChannelImplementation is FundsRecovery, Utils {
     address public operator;          // channel operator = sha3(IdentityPublicKey)[:20]
     IUniswapV2Router internal dex;    // any uniswap v2 compatible dex router address
 
-    event PromiseSettled(address beneficiary, uint256 amount, uint256 totalSettled);
+    event PromiseSettled(address beneficiary, uint256 amount, uint256 totalSettled, bytes32 lock);
     event ExitRequested(uint256 timelock);
     event Withdraw(address beneficiary, uint256 amount);
 
@@ -112,7 +112,7 @@ contract ChannelImplementation is FundsRecovery, Utils {
             token.transfer(msg.sender, _transactorFee);
         }
 
-        emit PromiseSettled(hermes.contractAddress, _unpaidAmount, hermes.settled);
+        emit PromiseSettled(hermes.contractAddress, _unpaidAmount, hermes.settled, _lock);
     }
 
     // Returns blocknumber until which exit request should be locked

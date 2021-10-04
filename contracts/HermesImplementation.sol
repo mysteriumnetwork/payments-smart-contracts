@@ -98,7 +98,7 @@ contract HermesImplementation is FundsRecovery, Utils {
         return status;
     }
 
-    event PromiseSettled(bytes32 indexed channelId, address indexed beneficiary, uint256 amountSentToBeneficiary, uint256 fees);
+    event PromiseSettled(bytes32 indexed channelId, address indexed beneficiary, uint256 amountSentToBeneficiary, uint256 fees, bytes32 lock);
     event NewStake(bytes32 indexed channelId, uint256 stakeAmount);
     event MinStakeValueUpdated(uint256 newMinStake);
     event MaxStakeValueUpdated(uint256 newMaxStake);
@@ -201,7 +201,7 @@ contract HermesImplementation is FundsRecovery, Utils {
 
         uint256 _amountToTransfer = _unpaidAmount -_fees;
 
-        emit PromiseSettled(_channelId, _beneficiary, _amountToTransfer, _fees);
+        emit PromiseSettled(_channelId, _beneficiary, _amountToTransfer, _fees, _preimage);
 
         return _amountToTransfer;
     }
