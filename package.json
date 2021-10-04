@@ -38,7 +38,7 @@
         "ganache-cli": "^6.12.2",
         "lodash": "^4.17.21",
         "secp256k1": "^4.0.2",
-        "truffle": "^5.3.9",
+        "truffle": "^5.4.13",
         "truffle-flattener": "^1.5.0"
     }
 }
