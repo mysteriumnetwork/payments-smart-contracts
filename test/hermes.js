@@ -158,7 +158,7 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
         const balanceBefore = await token.balanceOf(beneficiaryB)
 
         promise = generatePromise(amountToPay, new BN(0), channelState, operator)
-        var res =await hermes.settlePromise(identityB.address, promise.amount, promise.fee, promise.lock, promise.signature)
+        var res = await hermes.settlePromise(identityB.address, promise.amount, promise.fee, promise.lock, promise.signature)
 
         await expectEvent.inTransaction(res.receipt.transactionHash, hermes, 'PromiseSettled', {
             "4":"0x"+promise.lock.toString('hex')
