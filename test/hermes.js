@@ -358,7 +358,7 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
         // Settle all you can
         const channelState = Object.assign({}, { channelId }, await hermes.channels(channelId))
         const promise = generatePromise(amountToLend, Zero, channelState, operator, identityD.address)
-        var res =await hermes.settlePromise(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
+        var res = await hermes.settlePromise(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
 
         await expectEvent.inTransaction(res.receipt.transactionHash, hermes, 'PromiseSettled', {
             "4":"0x"+promise.lock.toString('hex')
@@ -410,7 +410,7 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
         const channelId = generateChannelId(identityC.address, hermes.address)
         const channelState = Object.assign({}, { channelId }, await hermes.channels(channelId))
         const promise = generatePromise(new BN(700), Zero, channelState, operator)
-        var res =await hermes.settlePromise(identityC.address, promise.amount, promise.fee, promise.lock, promise.signature)
+        var res = await hermes.settlePromise(identityC.address, promise.amount, promise.fee, promise.lock, promise.signature)
 
         await expectEvent.inTransaction(res.receipt.transactionHash, hermes, 'PromiseSettled', {
             "4":"0x"+promise.lock.toString('hex')
