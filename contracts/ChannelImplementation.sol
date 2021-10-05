@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.4;
+pragma solidity 0.8.9;
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IERC20Token } from "./interfaces/IERC20Token.sol";
@@ -13,7 +13,7 @@ contract ChannelImplementation is FundsRecovery, Utils {
     using ECDSA for bytes32;
 
     string constant EXIT_PREFIX = "Exit request:";
-    uint256 constant DELAY_BLOCKS = 18000;  // +/- 4 days
+    uint256 constant DELAY_SECONDS = 345600; // 4 days
 
     uint256 internal lastNonce;
 
@@ -115,9 +115,9 @@ contract ChannelImplementation is FundsRecovery, Utils {
         emit PromiseSettled(hermes.contractAddress, _unpaidAmount, hermes.settled, _lock);
     }
 
-    // Returns blocknumber until which exit request should be locked
+    // Returns timestamp until which exit request should be locked
     function getTimelock() internal view virtual returns (uint256) {
-        return block.number + DELAY_BLOCKS;
+        return block.timestamp + DELAY_SECONDS;
     }
 
     // Start withdrawal of deposited but still not settled funds
@@ -126,8 +126,8 @@ contract ChannelImplementation is FundsRecovery, Utils {
         uint256 _timelock = getTimelock();
 
         require(exitRequest.timelock == 0, "Channel: new exit can be requested only when old one was finalised");
-        require(_validUntil > block.number, "Channel: valid until have to be greater than current block number");
-        require(_timelock > _validUntil, "Channel: request have to be valid shorter than DELAY_BLOCKS");
+        require(_validUntil > block.timestamp, "Channel: valid until have to be greater than current block timestamp");
+        require(_timelock > _validUntil, "Channel: request have to be valid shorter than DELAY_SECONDS");
         require(_beneficiary != address(0), "Channel: beneficiary can't be zero address");
 
         if (msg.sender != operator) {
@@ -143,7 +143,7 @@ contract ChannelImplementation is FundsRecovery, Utils {
 
     // Anyone can finalize exit request after timelock block passed
     function finalizeExit() public {
-        require(exitRequest.timelock != 0 && block.number >= exitRequest.timelock, "Channel: exit have to be requested and timelock have to be in past");
+        require(exitRequest.timelock != 0 && block.timestamp >= exitRequest.timelock, "Channel: exit have to be requested and timelock have to be in past");
 
         // Exit with all not settled funds
         uint256 _amount = token.balanceOf(address(this));
@@ -155,7 +155,7 @@ contract ChannelImplementation is FundsRecovery, Utils {
 
     // Fast funds withdrawal is possible when hermes agrees that given amount of funds can be withdrawn
     function fastExit(uint256 _amount, uint256 _transactorFee, address _beneficiary, uint256 _validUntil, bytes memory _operatorSignature, bytes memory _hermesSignature) public {
-        require(_validUntil >= block.number, "Channel: _validUntil have to be greater than or equal to current block number");
+        require(_validUntil >= block.timestamp, "Channel: _validUntil have to be greater than or equal to current block timestamp");
 
         address _channelId = address(this);
         bytes32 _msgHash = keccak256(abi.encodePacked(EXIT_PREFIX, getChainID(), uint256(uint160(_channelId)), _amount, _transactorFee, uint256(uint160(_beneficiary)), _validUntil, lastNonce++));

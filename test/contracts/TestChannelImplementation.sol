@@ -5,7 +5,7 @@ import { ChannelImplementation } from "../../contracts/ChannelImplementation.sol
 
 // Helper functions to be used in tests
 contract TestChannelImplementation is ChannelImplementation {
-    uint256 constant TEST_DELAY_BLOCKS = 4;
+    uint256 constant TEST_DELAY_TIME = 2;
 
     // Constructor is needed only in tests where we don't use minimal Proxies and testing implementation directly
     constructor (address _token, address _dex, address _identityHash, address _hermesAddress, uint256 _fee) {
@@ -13,7 +13,7 @@ contract TestChannelImplementation is ChannelImplementation {
     }
 
     function getTimelock() internal view override returns (uint256) {
-        return block.number + TEST_DELAY_BLOCKS;
+        return block.timestamp + TEST_DELAY_TIME;
     }
 
     function getNow() public view returns (uint256) {

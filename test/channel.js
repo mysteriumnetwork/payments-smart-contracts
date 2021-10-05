@@ -20,6 +20,10 @@ const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const OneEther = web3.utils.toWei(new BN(1), 'ether')
 const Zero = new BN(0)
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) => {
     const identity = wallet.generateAccount()     // Generate identity
     const identityHash = identity.address         // identity hash = keccak(publicKey)[:20]
@@ -171,13 +175,15 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
     it("should finalise exit request and send tokens into beneficiary address", async () => {
         const beneficiary = otherAccounts[1]
         const channelTokensBefore = await token.balanceOf(channel.address)
+        const delay = 2 // seconds
 
-        // Transaction's block number should be bigger or equal to timelock block
-        const expectedTxBlockNumber = (await web3.eth.getBlock('latest')).number + 1
+        // Transaction's block time should be bigger or equal to timelock block
+        const expectedTxBlockTime = (await web3.eth.getBlock('latest')).timestamp + delay
         const timelock = (await channel.exitRequest()).timelock
-        expect(expectedTxBlockNumber).to.be.at.least(timelock.toNumber())
+        expect(expectedTxBlockTime).to.be.at.least(timelock.toNumber())
 
         // Finalise request should be successful
+        await sleep(delay * 1000) // we have to wait at least `delay` seconds before doing next transaction
         await channel.finalizeExit()
 
         // All the left in channel tokens have to be sent into beneficiary address
