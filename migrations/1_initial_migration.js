@@ -27,6 +27,9 @@ module.exports = async function (deployer, network, accounts) {
     const [registryAddress, hermesImplementationAddress] = await deployRegistry(web3, accounts[0])
     const registry = await Registry.at(registryAddress)
     await registry.initialize(tokenAddress, swapRouterAddress, 0, ChannelImplementation.address, hermesImplementationAddress, parentRegistry)
+
+    console.log('   > registry contract address: ', registryAddress, ' \n')
+    console.log('   > hermes implementation address: ', hermesImplementationAddress, ' \n')
   }
   else {
       // Deploy WETH token
@@ -37,8 +40,8 @@ module.exports = async function (deployer, network, accounts) {
 
       // Deploy Registry and Hermes implementation
       const [registryAddress, hermesImplementationAddress] = await deployRegistry(web3, accounts[0])
-    }
 
-    console.log('   > registry contract address: ', registryAddress, ' \n')
-    console.log('   > hermes implementation address: ', hermesImplementationAddress, ' \n')
+      console.log('   > registry contract address: ', registryAddress, ' \n')
+      console.log('   > hermes implementation address: ', hermesImplementationAddress, ' \n')
+    }
 }
