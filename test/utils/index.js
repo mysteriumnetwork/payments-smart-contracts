@@ -170,6 +170,10 @@ function calcFee(amount, fee = new BN(0)) {
     return amount.mul(fee).div(new BN(10000))
 }
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 module.exports = {
     genCreate2Address,
     generateChannelId,
@@ -188,5 +192,6 @@ module.exports = {
     to16BitsBuffer,
     toBytes32Buffer,
     toBuffer,
-    calcFee
+    calcFee,
+    sleep
 }

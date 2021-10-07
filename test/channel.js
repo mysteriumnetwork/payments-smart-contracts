@@ -7,7 +7,8 @@ const { BN } = require('@openzeppelin/test-helpers')
 const {
     topUpTokens,
     topUpEthers,
-    setupDEX
+    setupDEX,
+    sleep
 } = require('./utils/index.js')
 const wallet = require('./utils/wallet.js')
 const { generatePromise, signExitRequest, constructPayload } = require('./utils/client.js')
@@ -19,10 +20,6 @@ const TestHermesImplementation = artifacts.require("TestHermesImplementation")
 const OneToken = web3.utils.toWei(new BN('100000000'), 'wei')
 const OneEther = web3.utils.toWei(new BN(1), 'ether')
 const Zero = new BN(0)
-
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) => {
     const identity = wallet.generateAccount()     // Generate identity
@@ -175,7 +172,7 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
     it("should finalise exit request and send tokens into beneficiary address", async () => {
         const beneficiary = otherAccounts[1]
         const channelTokensBefore = await token.balanceOf(channel.address)
-        const delay = 2 // seconds
+        const delay = 3.5 // seconds
 
         // Transaction's block time should be bigger or equal to timelock block
         const expectedTxBlockTime = (await web3.eth.getBlock('latest')).timestamp + delay

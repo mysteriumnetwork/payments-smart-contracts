@@ -126,7 +126,7 @@ contract ChannelImplementation is FundsRecovery, Utils {
         uint256 _timelock = getTimelock();
 
         require(exitRequest.timelock == 0, "Channel: new exit can be requested only when old one was finalised");
-        require(_validUntil > block.timestamp, "Channel: valid until have to be greater than current block timestamp");
+        require(_validUntil >= block.timestamp, "Channel: valid until have to be greater than or equal to current block timestamp");
         require(_timelock > _validUntil, "Channel: request have to be valid shorter than DELAY_SECONDS");
         require(_beneficiary != address(0), "Channel: beneficiary can't be zero address");
 

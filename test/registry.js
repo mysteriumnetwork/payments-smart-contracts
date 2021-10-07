@@ -65,8 +65,8 @@ contract('Deterministic registry', ([txMaker, ...otherAccounts]) => {
         await registry.initialize(token.address, dex.address, 10, channelImplementation.address, hermesImplementation.address, ZeroAddress).should.be.rejected
     })
 
-    it('should have hermes implementation deloyed into deterministic address', async () => {
-        const expectedAddress = '0x67F73B1fb1a07Cb59631eD34D7210cF28d9a689F'
+    it('should have hermes implementation deployed into deterministic address', async () => {
+        const expectedAddress = '0x8c0EF88104A5347E7F466bA8C4D7A7bf8D1B4233'
         expect(await registry.getHermesImplementation()).to.be.equal(expectedAddress)
     })
 })
