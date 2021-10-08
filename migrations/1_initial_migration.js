@@ -5,7 +5,6 @@ const uniswap = require("../scripts/deployUniswap")
 const WETH = require("../scripts/deployWETH")
 
 const deployRegistry = require("../scripts/deployRegistry")
-const { web3 } = require("@openzeppelin/test-helpers/src/setup")
 
 const tokenAddr = {
   mumbai: '0xB923b52b60E247E34f9afE6B3fa5aCcBAea829E8',
