@@ -1,4 +1,4 @@
-const { BN } = require('@openzeppelin/test-helpers')
+const {BN} = require('web3-utils')
 const chai = require('chai')
 chai.use(require('chai-as-promised'))
 chai.use(require('chai-bn')(BN))

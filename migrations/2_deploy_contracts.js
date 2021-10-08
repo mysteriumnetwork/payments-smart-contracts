@@ -1,4 +1,4 @@
-const { BN } = require('@openzeppelin/test-helpers')
+const {BN} = require('web3-utils')
 
 const MystToken = artifacts.require("MystToken")
 const Registry = artifacts.require("Registry")

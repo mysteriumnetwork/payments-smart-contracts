@@ -1,7 +1,7 @@
 require('chai')
     .use(require('chai-as-promised'))
     .should()
-const { BN } = require('@openzeppelin/test-helpers')
+const {BN} = require('web3-utils')
 
 const { topUpTokens, setupDEX } = require('./utils/index.js')
 const {

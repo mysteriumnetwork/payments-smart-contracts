@@ -3,8 +3,9 @@
     Tested functions can be found in smart-contract code at `contracts/HermesImplementation.sol`.
 */
 
-const { BN } = require('@openzeppelin/test-helpers')
-const { randomBytes } = require('crypto')
+// const {BN} = require('web3-utils')
+const {BN} = require('web3-utils');
+// const { randomBytes } = require('crypto')
 const {
     generateChannelId,
     topUpTokens,

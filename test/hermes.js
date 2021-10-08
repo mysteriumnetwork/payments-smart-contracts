@@ -3,7 +3,7 @@
     Smart-contract code can be found in `contracts/HermesImplementation.sol`.
 */
 
-const { BN } = require('@openzeppelin/test-helpers')
+const {BN} = require('web3-utils')
 const {
     generateChannelId,
     topUpTokens,

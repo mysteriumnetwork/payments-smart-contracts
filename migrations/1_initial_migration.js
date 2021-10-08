@@ -5,7 +5,6 @@ const uniswap = require("../scripts/deployUniswap")
 const WETH = require("../scripts/deployWETH")
 
 const deployRegistry = require("../scripts/deployRegistry")
-const { web3 } = require("@openzeppelin/test-helpers/src/setup")
 
 module.exports = async function (deployer, network, accounts) {
     if (network === 'mumbai' || network === 'goerli') {

@@ -3,7 +3,7 @@
     Smart-contract code can be found in `contracts/ChannelImplementation.sol`.
 */
 
-const { BN } = require('@openzeppelin/test-helpers')
+const {BN} = require('web3-utils')
 const {
     topUpTokens,
     topUpEthers,
