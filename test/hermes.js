@@ -8,7 +8,8 @@ const {
     generateChannelId,
     topUpTokens,
     topUpEthers,
-    setupDEX
+    setupDEX,
+    sleep
 } = require('./utils/index.js')
 const wallet = require('./utils/wallet.js')
 const {
@@ -372,6 +373,10 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
 
     it("should resolve emergency", async () => {
         await topUpTokens(token, hermes.address, OneToken)
+
+        // We should sleep because ganache can do a few blocks a second and we need to simulate time.
+        await sleep(2000)
+
         await hermes.resolveEmergency()
         expect(await hermes.isHermesActive()).to.be.true
     })

@@ -2,18 +2,27 @@ const {BN} = require('web3-utils')
 
 const MystToken = artifacts.require("MystToken")
 const Registry = artifacts.require("Registry")
-
 const deployRegistry = require("../scripts/deployRegistry")
 
+const tokenAddr = {
+    mumbai: '0xB923b52b60E247E34f9afE6B3fa5aCcBAea829E8',
+    goerli: '0xf74a5ca65E4552CfF0f13b116113cCb493c580C5',
+    polygon: '0x1379e8886a944d2d9d440b3d88df536aea08d9f3',
+    ethereum: '0x4cf89ca06ad997bc732dc876ed2a7f26a9e7f361'
+}
+
+// Hermes operator is signing hermes payment promises. Change it before actual deployment.
+const HERMES_OPERATOR = "0xbFD2D96259De92B5817c83b7E1b756Ba8df1D59D"
+
 module.exports = async function (deployer, network, accounts) {
-    // Run this configurations only on Görli testnet
-    if (network !== 'goerli' && network !== 'mumbai') {
+    // Run this configurations only on Görli, Mumbai testnets or on Mainnets
+    if (network !== 'goerli' && network !== 'mumbai' && network !== 'polygon' && network !== 'ethereum') {
         return
     }
 
-    const tokenAddress = (network === 'mumbai') ? '0xB923b52b60E247E34f9afE6B3fa5aCcBAea829E8' : '0xf74a5ca65E4552CfF0f13b116113cCb493c580C5'
+    const tokenAddress = tokenAddr[network]
     const [registryAddress, _] = await deployRegistry(web3, accounts[0])
-    const hermesOperator = "0xbFD2D96259De92B5817c83b7E1b756Ba8df1D59D"
+    const hermesOperator = HERMES_OPERATOR
     const token = await MystToken.at(tokenAddress)
     const registry = await Registry.at(registryAddress)
 

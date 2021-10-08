@@ -11,7 +11,7 @@ module.exports = {
 
     compilers: {
         solc: {
-            version: "0.8.4",
+            version: "0.8.9",
             settings: {
                 optimizer: {
                     enabled: true,
@@ -38,6 +38,14 @@ module.exports = {
         goerli: {
             provider: () => new HDWalletProvider(mnemonic, INFURA_URL),
             network_id: 5,
+            gas: 5000000,
+            gasPrice: 511000000000,
+            confirmations: 1,
+            skipDryRun: true
+        },
+        polygon: {
+            provider: () => new HDWalletProvider(mnemonic, INFURA_URL),
+            network_id: 137,
             gas: 5000000,
             gasPrice: 1110000000,
             confirmations: 1,

@@ -254,8 +254,8 @@ async function settlePromise(state, hermes, promise) {
 
 async function signExitRequest(channel, beneficiary, operator) {
     const EXIT_PREFIX = "Exit request:"
-    const lastBlockNumber = (await web3.eth.getBlock('latest')).number
-    const validUntil = lastBlockNumber + 4 //DELAY_BLOCKS
+    const lastBlockTime = (await web3.eth.getBlock('latest')).timestamp
+    const validUntil = lastBlockTime + 1 //DELAY_SECONDS
 
     const message = Buffer.concat([
         Buffer.from(EXIT_PREFIX),

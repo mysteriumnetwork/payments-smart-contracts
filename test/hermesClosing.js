@@ -3,7 +3,7 @@ require('chai')
     .should()
 const {BN} = require('web3-utils')
 
-const { topUpTokens, setupDEX } = require('./utils/index.js')
+const { topUpTokens, setupDEX, sleep } = require('./utils/index.js')
 const {
     signIdentityRegistration,
     signChannelBalanceUpdate,
@@ -66,13 +66,12 @@ contract('Hermes closing', ([txMaker, operatorAddress, ...beneficiaries]) => {
 
     it('should allow to get stake back after timelock passes', async () => {
         const initialHermesBalance = await token.balanceOf(hermes.address)
-        const expectedBlockNumber = (await web3.eth.getBlock('latest')).number + 4
+        const expectedBlockTime = (await web3.eth.getBlock('latest')).timestamp + 1
 
-        // Move blockchain forward
-        for (let i = 0; i < 5; i++) {
-            await hermes.moveBlock()
-        }
-        expect((await web3.eth.getBlock('latest')).number).to.be.above(expectedBlockNumber)
+        // Wait till time will pass and procude new block
+        await sleep(3000)
+        await hermes.moveBlock()
+        expect((await web3.eth.getBlock('latest')).timestamp).to.be.above(expectedBlockTime)
 
         await hermes.getStakeBack(beneficiaries[0], { from: operatorAddress })
 

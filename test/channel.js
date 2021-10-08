@@ -7,7 +7,8 @@ const {BN} = require('web3-utils')
 const {
     topUpTokens,
     topUpEthers,
-    setupDEX
+    setupDEX,
+    sleep
 } = require('./utils/index.js')
 const wallet = require('./utils/wallet.js')
 const { generatePromise, signExitRequest, constructPayload } = require('./utils/client.js')
@@ -171,13 +172,15 @@ contract('Channel Contract Implementation tests', ([txMaker, ...otherAccounts]) 
     it("should finalise exit request and send tokens into beneficiary address", async () => {
         const beneficiary = otherAccounts[1]
         const channelTokensBefore = await token.balanceOf(channel.address)
+        const delay = 3.5 // seconds
 
-        // Transaction's block number should be bigger or equal to timelock block
-        const expectedTxBlockNumber = (await web3.eth.getBlock('latest')).number + 1
+        // Transaction's block time should be bigger or equal to timelock block
+        const expectedTxBlockTime = (await web3.eth.getBlock('latest')).timestamp + delay
         const timelock = (await channel.exitRequest()).timelock
-        expect(expectedTxBlockNumber).to.be.at.least(timelock.toNumber())
+        expect(expectedTxBlockTime).to.be.at.least(timelock.toNumber())
 
         // Finalise request should be successful
+        await sleep(delay * 1000) // we have to wait at least `delay` seconds before doing next transaction
         await channel.finalizeExit()
 
         // All the left in channel tokens have to be sent into beneficiary address
