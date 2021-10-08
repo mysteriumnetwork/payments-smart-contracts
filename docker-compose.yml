@@ -12,3 +12,4 @@ services:
       - 8545
     command: >
       --mnemonic "amused glory pen avocado toilet dragon entry kitchen cliff retreat canyon danger"
+      --port 8545
