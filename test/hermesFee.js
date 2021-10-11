@@ -1,9 +1,9 @@
 require('chai')
     .use(require('chai-as-promised'))
     .should()
-const { BN } = require('@openzeppelin/test-helpers')
+const {BN} = require('web3-utils')
 const { randomBytes } = require('crypto')
-const { topUpTokens, generateChannelId, keccak, setupDEX } = require('./utils/index.js')
+const { topUpTokens, generateChannelId, keccak, setupDEX, sleep } = require('./utils/index.js')
 const {
     signIdentityRegistration,
     createPromise
@@ -111,13 +111,12 @@ contract('Hermes fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
     it('should update hermes fee', async () => {
         const initialFee = await hermes.lastFee()
         const newFee = new BN(175) // 1.75%
-        const delayBlocks = 4
 
-        const tx = await hermes.setHermesFee(newFee, { from: operatorAddress })
-
+        await hermes.setHermesFee(newFee, { from: operatorAddress })
         const lastFee = await hermes.lastFee()
+        const delayTime = (await web3.eth.getBlock('latest')).timestamp + 2
         lastFee.value.should.be.bignumber.equal(newFee)
-        expect(lastFee.validFrom.toNumber()).to.be.equal(tx.receipt.blockNumber + delayBlocks)
+        expect(lastFee.validFrom.toNumber()).to.be.equal(delayTime)
 
         const previousFee = await hermes.previousFee()
         previousFee.value.should.be.bignumber.equal(initialFee.value)
@@ -136,10 +135,9 @@ contract('Hermes fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
     })
 
     it('should calculate new fee after validFrom block is arrived', async () => {
-        // Jump over a few blocks
-        for (let i = 0; i < 4; i++) {
-            await hermes.moveBlock()
-        }
+        // Jump over time
+        await sleep(2000)
+        await hermes.moveBlock()
 
         const oneTokenSettleFee = await hermes.calculateHermesFee(OneToken)
         fee = oneTokenSettleFee / OneToken

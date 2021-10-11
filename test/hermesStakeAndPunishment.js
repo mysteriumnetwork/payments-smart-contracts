@@ -1,10 +1,10 @@
 require('chai')
     .use(require('chai-as-promised'))
     .should()
-const { BN } = require('@openzeppelin/test-helpers')
+const {BN} = require('web3-utils')
 const { randomBytes } = require('crypto')
 
-const { topUpTokens, setupDEX, generateChannelId, keccak } = require('./utils/index.js')
+const { topUpTokens, setupDEX, generateChannelId, keccak, sleep } = require('./utils/index.js')
 const {
     signIdentityRegistration,
     signChannelLoanReturnRequest,
@@ -212,6 +212,9 @@ contract('Hermes stake and punishment management', ([txMaker, operatorAddress, .
         await topUpTokens(token, txMaker, OneToken)
         await token.approve(hermes.address, OneToken)
 
+        // Wait a little
+        await sleep(1000)
+
         await hermes.resolveEmergency()
 
         const hermesStatus = await hermes.getStatus() // 0 - Active, 1 - Paused, 2 - Punishment, 3 - Closed
@@ -287,9 +290,8 @@ contract('Hermes stake and punishment management', ([txMaker, operatorAddress, .
         const totalStake = await hermes.getTotalStake()
 
         // Move blockchain forward
-        for (let i = 0; i < 8; i++) {
-            await hermes.moveBlock()
-        }
+        await sleep(4500) // a little more than 2 units of time
+        await hermes.moveBlock()
 
         // Topup tokens into txMaker and approve hermes to use them during resolveEmergency call.
         await topUpTokens(token, txMaker, OneToken, { from: txMaker })

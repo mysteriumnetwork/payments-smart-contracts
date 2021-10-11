@@ -6,18 +6,18 @@ import { HermesImplementation } from "../../contracts/HermesImplementation.sol";
 
 // Helper functions to be used in tests
 contract TestHermesImplementation is HermesImplementation {
-    uint256 constant TEST_DELAY_BLOCKS = 4;
+    uint256 constant TEST_DELAY_SECONDS = 2;
 
     function getTimelock() internal view override returns (uint256) {
-        return block.number + TEST_DELAY_BLOCKS;
+        return block.timestamp + TEST_DELAY_SECONDS;
     }
 
     function getEmergencyTimelock() internal view override returns (uint256) {
-        return block.number + TEST_DELAY_BLOCKS;
+        return block.timestamp + TEST_DELAY_SECONDS;
     }
 
-    function getUnitBlocks() internal pure override returns (uint256) {
-        return TEST_DELAY_BLOCKS;
+    function getUnitTime() internal pure override returns (uint256) {
+        return TEST_DELAY_SECONDS;
     }
 
     function getNow() public view returns (uint256) {

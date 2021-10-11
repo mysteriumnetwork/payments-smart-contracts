@@ -3,12 +3,13 @@
     Smart-contract code can be found in `contracts/HermesImplementation.sol`.
 */
 
-const { BN } = require('@openzeppelin/test-helpers')
+const {BN} = require('web3-utils')
 const {
     generateChannelId,
     topUpTokens,
     topUpEthers,
-    setupDEX
+    setupDEX,
+    sleep
 } = require('./utils/index.js')
 const wallet = require('./utils/wallet.js')
 const {
@@ -17,6 +18,9 @@ const {
     signIdentityRegistration,
     generatePromise
 } = require('./utils/client.js')
+const {
+    assertEvent
+} = require('./utils/tests.js')
 
 const MystToken = artifacts.require("TestMystToken")
 const Registry = artifacts.require("Registry")
@@ -103,7 +107,9 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
         const balanceBefore = await token.balanceOf(beneficiaryA)
 
         promise = generatePromise(amountToPay, Zero, channelState, operator, identityA.address)
-        await hermes.settlePromise(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
+        var res = await hermes.settlePromise(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
+        
+        assertEvent(res, 'PromiseSettled',{"lock":"0x"+promise.lock.toString('hex')})
 
         const balanceAfter = await token.balanceOf(beneficiaryA)
         balanceAfter.should.be.bignumber.equal(balanceBefore.add(amountToPay))
@@ -154,7 +160,9 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
         const balanceBefore = await token.balanceOf(beneficiaryB)
 
         promise = generatePromise(amountToPay, new BN(0), channelState, operator)
-        await hermes.settlePromise(identityB.address, promise.amount, promise.fee, promise.lock, promise.signature)
+        var res = await hermes.settlePromise(identityB.address, promise.amount, promise.fee, promise.lock, promise.signature)
+
+        assertEvent(res, 'PromiseSettled',{"lock":"0x"+promise.lock.toString('hex')})
 
         const balanceAfter = await token.balanceOf(beneficiaryB)
         balanceAfter.should.be.bignumber.equal(balanceBefore.add(amountToPay))
@@ -205,7 +213,9 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
         const txMakerBalanceBefore = await token.balanceOf(txMaker)
 
         const promise = generatePromise(amountToPay, fee, channelState, operator)
-        await hermes.settlePromise(identityC.address, promise.amount, promise.fee, promise.lock, promise.signature)
+        var res =await hermes.settlePromise(identityC.address, promise.amount, promise.fee, promise.lock, promise.signature)
+
+        assertEvent(res, 'PromiseSettled',{"lock":"0x"+promise.lock.toString('hex')})
 
         const beneficiaryBalanceAfter = await token.balanceOf(beneficiaryC)
         beneficiaryBalanceAfter.should.be.bignumber.equal(beneficiaryBalanceBefore.add(amountToPay))
@@ -225,7 +235,9 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
         const fee = Zero
 
         promise = generatePromise(amountToPay, fee, channelState, operator, identityC.address)
-        await hermes.settlePromise(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
+        var res =await hermes.settlePromise(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
+
+        assertEvent(res, 'PromiseSettled',{"lock":"0x"+promise.lock.toString('hex')})
 
         const beneficiaryBalance = await token.balanceOf(beneficiaryC)
         beneficiaryBalance.should.be.bignumber.equal(initialBeneficiaryBalance.add(maxStake)) // there is not possible to settle more than maxStake in one tx
@@ -235,7 +247,10 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
         const initialBeneficiaryBalance = await token.balanceOf(beneficiaryC)
 
         // Settle previous promise to get rest of promised coins
-        await hermes.settlePromise(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
+        var res =await hermes.settlePromise(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
+
+        assertEvent(res, 'PromiseSettled',{"lock":"0x"+promise.lock.toString('hex')})
+
         const beneficiaryBalance = await token.balanceOf(beneficiaryC)
         beneficiaryBalance.should.be.bignumber.equal(initialBeneficiaryBalance.add(new BN('1000')))  // 1000 should be left after previous promise
     })
@@ -252,7 +267,9 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
         const balanceBefore = new BN(await web3.eth.getBalance(beneficiaryC))
 
         promise = generatePromise(amountToPay, new BN(0), channelState, operator, identityC.address)
-        await hermes.settleWithDEX(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
+        var res =await hermes.settleWithDEX(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
+
+        assertEvent(res, 'PromiseSettled',{"lock":"0x"+promise.lock.toString('hex')})
 
         const balanceAfter = new BN(await web3.eth.getBalance(beneficiaryC))
         balanceAfter.should.be.bignumber.equal(balanceBefore.add(expectedETHAmount))
@@ -333,7 +350,9 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
         // Settle all you can
         const channelState = Object.assign({}, { channelId }, await hermes.channels(channelId))
         const promise = generatePromise(amountToLend, Zero, channelState, operator, identityD.address)
-        await hermes.settlePromise(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
+        var res = await hermes.settlePromise(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
+
+        assertEvent(res, 'PromiseSettled',{"lock":"0x"+promise.lock.toString('hex')})
 
         // Ensure that amountToLend is bigger than stake + locked in channels funds
         let minimalExpectedBalance = await hermes.minimalExpectedBalance()
@@ -354,6 +373,10 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
 
     it("should resolve emergency", async () => {
         await topUpTokens(token, hermes.address, OneToken)
+
+        // We should sleep because ganache can do a few blocks a second and we need to simulate time.
+        await sleep(2000)
+
         await hermes.resolveEmergency()
         expect(await hermes.isHermesActive()).to.be.true
     })
@@ -381,7 +404,9 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
         const channelId = generateChannelId(identityC.address, hermes.address)
         const channelState = Object.assign({}, { channelId }, await hermes.channels(channelId))
         const promise = generatePromise(new BN(700), Zero, channelState, operator)
-        await hermes.settlePromise(identityC.address, promise.amount, promise.fee, promise.lock, promise.signature)
+        var res = await hermes.settlePromise(identityC.address, promise.amount, promise.fee, promise.lock, promise.signature)
+
+        assertEvent(res, 'PromiseSettled',{"lock":"0x"+promise.lock.toString('hex')})
 
         // Withdraw request should be rejected and no funds moved
         const initialBalance = await token.balanceOf(hermes.address)

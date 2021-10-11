@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.4;
+pragma solidity 0.8.9;
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IERC20Token } from "./interfaces/IERC20Token.sol";
@@ -51,7 +51,6 @@ contract Registry is FundsRecovery, Utils {
     // deterministic address on any EVM compatible chain. Registry should be first be deployed using
     // `deployRegistry` scripts and then initialized with wanted token and implementations.
     function initialize(address _tokenAddress, address payable _dexAddress, uint256 _minimalHermesStake, address _channelImplementation, address _hermesImplementation, address payable _parentRegistry) public onlyOwner {
-        // TODO implement additional protection so only Mysterium official multisig signed tx could initialize registry
         require(!isInitialized(), "Registry: is already initialized");
 
         minimalHermesStake = _minimalHermesStake;
@@ -59,7 +58,7 @@ contract Registry is FundsRecovery, Utils {
         require(_tokenAddress != address(0));
         token = IERC20Token(_tokenAddress);
 
-        require(_dexAddress != address(0)); // TODO add some check if this is actually RouterInterface DEX
+        require(_dexAddress != address(0));
         dex = _dexAddress;
 
         // Set initial channel implementations
@@ -93,7 +92,7 @@ contract Registry is FundsRecovery, Utils {
         // Open consumer channel
         _openChannel(_identity, _hermesId, _beneficiary, _totalFee);
 
-        // When stake is providet we're opening channel with hermes (a.k.a provider channel)
+        // If stake is provided we additionally are opening channel with hermes (a.k.a provider channel)
         if (_stakeAmount > 0) {
             IHermesContract(_hermesId).openChannel(_identity, _stakeAmount);
         }
@@ -104,7 +103,7 @@ contract Registry is FundsRecovery, Utils {
         }
     }
 
-    // Deployes consumer channel and sets beneficiary as newly created channel address
+    // Deploys consumer channel and sets beneficiary as newly created channel address
     function openConsumerChannel(address _hermesId, uint256 _transactorFee, bytes memory _signature) public {
         require(isActiveHermes(_hermesId), "Registry: provided hermes have to be active");
 

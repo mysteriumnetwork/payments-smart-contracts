@@ -22,7 +22,7 @@ npm install
 2. Run local ethereum node, e.g. `ganache`. Make sure to use version greater than 6.12.2.
 
 ```bash
-npx ganache-cli --port 7545 --mnemonic "amused glory pen avocado toilet dragon entry kitchen cliff retreat canyon danger"
+npx ganache-cli --port 8545 --mnemonic "amused glory pen avocado toilet dragon entry kitchen cliff retreat canyon danger"
 ```
 
 3. Run tests
@@ -54,3 +54,12 @@ Implementation addresses:
 - Hermes implementation address (same on both networks): `0x72227c86B8B6C0cA292C3631679a5DdB20433cb3`
 - Channel implementation address (Görli): `0x1aDF7Ef34b9d48DCc8EBC47D989bfdE55933B6ea`
 - Channel implementation address (Mumbai): `0xf8982Ba93D3d9182D095B892DE2A7963eF9807ee`
+
+## Building golang bindings
+
+To be able easily call these smart contract out of any software writen in Go you need to generate golang bindings and import [`payments`](https://github.com/mysteriumnetwork/payments) package into your software.
+
+1. Tag newest version of smart contracts on GitHub
+2. CI will build artifacts
+3. Go to [`payments`](https://github.com/mysteriumnetwork/payments) repo and in `go.gen` set tag and which artifacts to build.
+4. Run `mage generate`.

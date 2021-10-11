@@ -1,7 +1,7 @@
 require('chai')
     .use(require('chai-as-promised'))
     .should()
-const { BN } = require('@openzeppelin/test-helpers')
+const {BN} = require('web3-utils')
 
 const genCreate2Address = require('./utils/index.js').genCreate2Address
 const topUpTokens = require('./utils/index.js').topUpTokens
@@ -65,8 +65,8 @@ contract('Deterministic registry', ([txMaker, ...otherAccounts]) => {
         await registry.initialize(token.address, dex.address, 10, channelImplementation.address, hermesImplementation.address, ZeroAddress).should.be.rejected
     })
 
-    it('should have hermes implementation deloyed into deterministic address', async () => {
-        const expectedAddress = '0x67F73B1fb1a07Cb59631eD34D7210cF28d9a689F'
+    it('should have hermes implementation deployed into deterministic address', async () => {
+        const expectedAddress = '0xcAB48F48ab8bd6ccCdC7A0B661e2401cb6289Edb'
         expect(await registry.getHermesImplementation()).to.be.equal(expectedAddress)
     })
 })

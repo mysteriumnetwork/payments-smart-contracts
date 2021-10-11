@@ -1,5 +1,5 @@
 const EthereumTx = require('ethereumjs-tx')
-const { BN } = require('@openzeppelin/test-helpers')
+const {BN} = require('web3-utils')
 const {
     generatePrivateKey,
     privateToPublic,

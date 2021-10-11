@@ -1,4 +1,4 @@
-const { BN } = require('@openzeppelin/test-helpers')
+const {BN} = require('web3-utils')
 const {
     genCreate2Address,
     signMessage,

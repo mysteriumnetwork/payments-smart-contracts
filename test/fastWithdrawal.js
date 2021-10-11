@@ -3,7 +3,7 @@
     Smart-contract code can be found in `contracts/ChannelImplementation.sol`.
 */
 
-const { BN } = require('@openzeppelin/test-helpers')
+const {BN} = require('web3-utils')
 const {
     topUpTokens,
     topUpEthers,
@@ -55,13 +55,13 @@ contract('Fast withdrawal from consumer channel', ([txMaker, ...otherAccounts]) 
 
     it("should allow fast withdrawal of remaining balance", async () => {
         const beneficiary = otherAccounts[1]
-        const lastBlockNumber = (await web3.eth.getBlock('latest')).number
+        const lastBlockTime = (await web3.eth.getBlock('latest')).timestamp
         const nonce = 0
 
         const remainingBalance = await token.balanceOf(channel.address)
         expect(remainingBalance.toNumber()).to.be.greaterThan(0)
 
-        const request = signFastWithdrawal(ChainID, channel.address, OneToken, Zero, beneficiary, lastBlockNumber + 1, nonce, identity, hermes)
+        const request = signFastWithdrawal(ChainID, channel.address, OneToken, Zero, beneficiary, lastBlockTime + 1, nonce, identity, hermes)
         await channel.fastExit(request.amount, request.fee, request.beneficiary, request.validUntil, request.identitySignature, request.hermesSignature)
 
         const beneficiaryBalance = await token.balanceOf(beneficiary)
@@ -71,20 +71,20 @@ contract('Fast withdrawal from consumer channel', ([txMaker, ...otherAccounts]) 
     it("should reject fast withdrawal with wrong hermes signature", async () => {
         const randomSigner = wallet.generateAccount()
         const beneficiary = otherAccounts[1]
-        const lastBlockNumber = (await web3.eth.getBlock('latest')).number
+        const lastBlockTime = (await web3.eth.getBlock('latest')).timestamp
         const nonce = 1
 
         const remainingBalance = await token.balanceOf(channel.address)
         expect(remainingBalance.toNumber()).to.be.greaterThan(0)
 
-        const request = signFastWithdrawal(ChainID, channel.address, OneToken, Zero, beneficiary, lastBlockNumber + 1, nonce, identity, randomSigner)
+        const request = signFastWithdrawal(ChainID, channel.address, OneToken, Zero, beneficiary, lastBlockTime + 1, nonce, identity, randomSigner)
         await channel.fastExit(request.amount, request.fee, request.beneficiary, request.validUntil, request.identitySignature, request.hermesSignature).should.be.rejected
     })
 
     it("should send proper fee for transactor", async () => {
         const beneficiary = otherAccounts[1]
         const initialBeneficiaryBalance = await token.balanceOf(beneficiary)
-        const lastBlockNumber = (await web3.eth.getBlock('latest')).number
+        const lastBlockTime = (await web3.eth.getBlock('latest')).timestamp
         const nonce = 1
         const amount = OneToken
         const fee = new BN('200000') // transactor fee
@@ -92,7 +92,7 @@ contract('Fast withdrawal from consumer channel', ([txMaker, ...otherAccounts]) 
         const remainingBalance = await token.balanceOf(channel.address)
         expect(remainingBalance.toNumber()).to.be.greaterThan(0)
 
-        const request = signFastWithdrawal(ChainID, channel.address, amount, fee, beneficiary, lastBlockNumber + 10, nonce, identity, hermes)
+        const request = signFastWithdrawal(ChainID, channel.address, amount, fee, beneficiary, lastBlockTime + 2, nonce, identity, hermes)
         await channel.fastExit(request.amount, request.fee, request.beneficiary, request.validUntil, request.identitySignature, request.hermesSignature)
 
         const channelBalance = await token.balanceOf(channel.address)

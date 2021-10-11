@@ -9,7 +9,7 @@ const hermesBytecode = require('../build/contracts/HermesImplementation.json').b
 function getRawTrasaction(byteCode, gasLimit, nonce = 0) {
     return {
         nonce: nonce,
-        gasPrice: 1000000000000,        // 1000 Gwei
+        gasPrice: 100000000000,        // 100 Gwei
         gasLimit: gasLimit,
         value: 0,
         data: byteCode,
@@ -42,21 +42,21 @@ module.exports = async (web3, account = undefined) => {
     }
 
     // Deploy Registry into deterministic address
-    const registryTxMetadata = generateDeployTx(registryBytecode, 2989157)
+    const registryTxMetadata = generateDeployTx(registryBytecode, 3044575)
     const deployedCode = await web3.eth.getCode(registryTxMetadata.contractAddress)
     if (deployedCode.length <= 3) {
         await web3.eth.sendTransaction({
-            from: account, to: registryTxMetadata.sender, value: '2989157000000000000'
+            from: account, to: registryTxMetadata.sender, value: '3044575000000000000'
         })
         await web3.eth.sendSignedTransaction(registryTxMetadata.rawTx)
     }
 
     // Deploy HermesImplementation into deterministic address
-    const hermesTxMetadata = generateDeployTx(hermesBytecode, 3327541)
+    const hermesTxMetadata = generateDeployTx(hermesBytecode, 3359537)
     const deployedHermesCode = await web3.eth.getCode(hermesTxMetadata.contractAddress)
     if (deployedHermesCode.length <= 3) {
         await web3.eth.sendTransaction({
-            from: account, to: hermesTxMetadata.sender, value: '3327541000000000000'
+            from: account, to: hermesTxMetadata.sender, value: '3359537000000000000'
         })
         await web3.eth.sendSignedTransaction(hermesTxMetadata.rawTx)
     }

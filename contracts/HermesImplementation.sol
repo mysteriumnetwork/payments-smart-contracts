@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.4;
+pragma solidity 0.8.9;
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IUniswapV2Router } from "./interfaces/IUniswapV2Router.sol";
@@ -20,8 +20,9 @@ contract HermesImplementation is FundsRecovery, Utils {
     using ECDSA for bytes32;
 
     string constant STAKE_RETURN_PREFIX = "Stake return request";
-    uint256 constant DELAY_BLOCKS = 18000;     // +/- 3 days
-    uint256 constant UNIT_BLOCKS = 257;        // 1 unit = 1 hour = 257 blocks.
+    uint256 constant DELAY_SECONDS = 259200;   // 3 days
+    uint256 constant UNIT_SECONDS = 3600;      // 1 unit = 1 hour = 3600 seconds
+    uint16 constant PUNISHMENT_PERCENT = 4;    // 0.04%
 
     IdentityRegistry internal registry;
     address internal operator;                 // TODO have master operator who could change operator or manage funds
@@ -40,23 +41,23 @@ contract HermesImplementation is FundsRecovery, Utils {
 
     struct HermesFee {
         uint16 value;                      // subprocent amount. e.g. 2.5% = 250
-        uint64 validFrom;                  // block from which fee is valid
+        uint64 validFrom;                  // timestamp from which fee is valid
     }
     HermesFee public lastFee;              // default fee to look for
     HermesFee public previousFee;          // previous fee is used if last fee is still not active
 
     // Our channel don't have balance, because we're always rebalancing into stake amount.
     struct Channel {
-        uint256 settled;            // total amount already settled by provider
-        uint256 stake;              // amount staked by identity to guarante channel size, it also serves as channel balance
-        uint256 lastUsedNonce;      // last known nonce, is used to protect signature based calls from replay attack
-        uint256 timelock;           // blocknumber after which channel balance can be decreased
+        uint256 settled;                   // total amount already settled by provider
+        uint256 stake;                     // amount staked by identity to guarante channel size, it also serves as channel balance
+        uint256 lastUsedNonce;             // last known nonce, is used to protect signature based calls from replay attack
+        uint256 timelock;                  // blocknumber after which channel balance can be decreased
     }
     mapping(bytes32 => Channel) public channels;
 
     struct Punishment {
-        uint256 activationBlock;    // block number in which punishment was activated
-        uint256 amount;             // total amount of tokens locked because of punishment
+        uint256 activationBlockTime;       // block timestamp in which punishment was activated
+        uint256 amount;                    // total amount of tokens locked because of punishment
     }
     Punishment public punishment;
 
@@ -77,7 +78,7 @@ contract HermesImplementation is FundsRecovery, Utils {
     }
 
     function getActiveFee() public view returns (uint256) {
-        HermesFee memory _activeFee = (block.number >= lastFee.validFrom) ? lastFee : previousFee;
+        HermesFee memory _activeFee = (block.timestamp >= lastFee.validFrom) ? lastFee : previousFee;
         return uint256(_activeFee.value);
     }
 
@@ -98,17 +99,17 @@ contract HermesImplementation is FundsRecovery, Utils {
         return status;
     }
 
-    event PromiseSettled(bytes32 indexed channelId, address indexed beneficiary, uint256 amountSentToBeneficiary, uint256 fees);
+    event PromiseSettled(bytes32 indexed channelId, address indexed beneficiary, uint256 amountSentToBeneficiary, uint256 fees, bytes32 lock);
     event NewStake(bytes32 indexed channelId, uint256 stakeAmount);
     event MinStakeValueUpdated(uint256 newMinStake);
     event MaxStakeValueUpdated(uint256 newMaxStake);
-    event HermesFeeUpdated(uint16 newFee, uint64 validFromBlock);
-    event HermesClosed(uint256 blockNumber);
+    event HermesFeeUpdated(uint16 newFee, uint64 validFrom);
+    event HermesClosed(uint256 blockTimestamp);
     event ChannelOpeningPaused();
     event ChannelOpeningActivated();
     event FundsWithdrawned(uint256 amount, address beneficiary);
     event HermesStakeIncreased(uint256 newStake);
-    event HermesPunishmentActivated(uint256 activationBlock);
+    event HermesPunishmentActivated(uint256 activationBlockTime);
     event HermesPunishmentDeactivated();
 
     modifier onlyOperator() {
@@ -132,7 +133,7 @@ contract HermesImplementation is FundsRecovery, Utils {
         registry = IdentityRegistry(msg.sender);
         token = IERC20Token(_token);
         operator = _operator;
-        lastFee = HermesFee(_fee, uint64(block.number));
+        lastFee = HermesFee(_fee, uint64(block.timestamp));
         minStake = _minStake;
         maxStake = _maxStake;
         hermesStake = token.balanceOf(address(this));
@@ -177,8 +178,8 @@ contract HermesImplementation is FundsRecovery, Utils {
         uint256 _availableBalance = availableBalance();
         if (_availableBalance < _channel.stake) {
             status = Status.Punishment;
-            punishment.activationBlock = block.number;
-            emit HermesPunishmentActivated(block.number);
+            punishment.activationBlockTime = block.timestamp;
+            emit HermesPunishmentActivated(block.timestamp);
         }
 
         // Calculate amount of tokens to be claimed.
@@ -201,7 +202,7 @@ contract HermesImplementation is FundsRecovery, Utils {
 
         uint256 _amountToTransfer = _unpaidAmount -_fees;
 
-        emit PromiseSettled(_channelId, _beneficiary, _amountToTransfer, _fees);
+        emit PromiseSettled(_channelId, _beneficiary, _amountToTransfer, _fees, _preimage);
 
         return _amountToTransfer;
     }
@@ -324,19 +325,20 @@ contract HermesImplementation is FundsRecovery, Utils {
       ---------------------------------------------------------------------------------------------
     */
 
+    // Hermes is in Emergency situation when its status is `Punishment`.
     function resolveEmergency() public {
         require(getStatus() == Status.Punishment, "Hermes: should be in punishment status");
 
         // 0.04% of total channels amount per time unit
-        uint256 _punishmentPerUnit = round(totalStake * 4, 100) / 100;
+        uint256 _punishmentPerUnit = round(totalStake * PUNISHMENT_PERCENT, 100) / 100;
 
         // No punishment during first time unit
-        uint256 _unit = getUnitBlocks();
-        uint256 _blocksPassed = block.number - punishment.activationBlock;
-        uint256 _punishmentUnits = round(_blocksPassed, _unit) / _unit - 1;
+        uint256 _unit = getUnitTime();
+        uint256 _timePassed = block.timestamp - punishment.activationBlockTime;
+        uint256 _punishmentUnits = round(_timePassed, _unit) / _unit - 1;
 
         uint256 _punishmentAmount = _punishmentUnits * _punishmentPerUnit;
-        punishment.amount = punishment.amount + _punishmentAmount;
+        punishment.amount = punishment.amount + _punishmentAmount;  // XXX alternativelly we could send tokens into BlackHole (0x0000000...)
 
         uint256 _shouldHave = minimalExpectedBalance() + maxStake;  // hermes should have funds for at least one maxStake settlement
         uint256 _currentBalance = token.balanceOf(address(this));
@@ -352,8 +354,8 @@ contract HermesImplementation is FundsRecovery, Utils {
         emit HermesPunishmentDeactivated();
     }
 
-    function getUnitBlocks() internal pure virtual returns (uint256) {
-        return UNIT_BLOCKS;
+    function getUnitTime() internal pure virtual returns (uint256) {
+        return UNIT_SECONDS;
     }
 
     // function setHermesOperator(address _newOperator) public onlyOperator {
@@ -378,10 +380,10 @@ contract HermesImplementation is FundsRecovery, Utils {
 
     function setHermesFee(uint16 _newFee) public onlyOperator {
         require(getStatus() != Status.Closed, "Hermes: should be not closed");
-        require(_newFee <= 5000, "Hermes: fee can't be bigger that 50%");
-        require(block.number >= lastFee.validFrom, "Hermes: can't update inactive fee");
+        require(_newFee <= 5000, "Hermes: fee can't be bigger than 50%");
+        require(block.timestamp >= lastFee.validFrom, "Hermes: can't update inactive fee");
 
-        // New fee will start be valid after delay block will pass
+        // New fee will start be valid after delay time will pass
         uint64 _validFrom = uint64(getTimelock());
 
         previousFee = lastFee;
@@ -440,21 +442,21 @@ contract HermesImplementation is FundsRecovery, Utils {
     }
 
     function activateChannelOpening() public onlyOperator {
-        require(getStatus() == Status.Paused, "hermes have to be in paused state");
+        require(getStatus() == Status.Paused, "Hermes: have to be in paused state");
         status = Status.Active;
         emit ChannelOpeningActivated();
     }
 
     function closeHermes() public onlyOperator {
-        require(isHermesActive(), "hermes should be active");
+        require(isHermesActive(), "Hermes: should be active");
         status = Status.Closed;
         closingTimelock = getEmergencyTimelock();
-        emit HermesClosed(block.number);
+        emit HermesClosed(block.timestamp);
     }
 
     function getStakeBack(address _beneficiary) public onlyOperator {
-        require(getStatus() == Status.Closed, "hermes have to be closed");
-        require(block.number > closingTimelock, "timelock period have be already passed");
+        require(getStatus() == Status.Closed, "Hermes: have to be closed");
+        require(block.timestamp > closingTimelock, "Hermes: timelock period should be already passed");
 
         uint256 _amount = token.balanceOf(address(this)) - punishment.amount;
         token.transfer(_beneficiary, _amount);
@@ -463,9 +465,9 @@ contract HermesImplementation is FundsRecovery, Utils {
     /*
       ------------------------------------------ HELPERS ------------------------------------------
     */
-    // Returns blocknumber until which exit request should be locked
+    // Returns timestamp until which exit request should be locked
     function getTimelock() internal view virtual returns (uint256) {
-        return block.number + DELAY_BLOCKS;
+        return block.timestamp + DELAY_SECONDS;
     }
 
     function calculateHermesFee(uint256 _amount) public view returns (uint256) {
@@ -478,7 +480,7 @@ contract HermesImplementation is FundsRecovery, Utils {
     }
 
     function getEmergencyTimelock() internal view virtual returns (uint256) {
-        return block.number + DELAY_BLOCKS * 100; // +/- 300 days
+        return block.timestamp + DELAY_SECONDS * 100; // 300 days
     }
 
     function validatePromise(bytes32 _channelId, uint256 _amount, uint256 _transactorFee, bytes32 _preimage, bytes memory _signature) public view returns (bool) {
