@@ -28,7 +28,6 @@
         "@ethersproject/providers": "^5.4.5",
         "@ethersproject/solidity": "^5.4.0",
         "@openzeppelin/contracts": "4.3.2",
-        "@openzeppelin/test-helpers": "^0.5.13",
         "@truffle/hdwallet-provider": "1.4.0",
         "chai": "^4.3.4",
         "chai-as-promised": "^7.1.1",
@@ -39,6 +38,7 @@
         "lodash": "^4.17.21",
         "secp256k1": "^4.0.2",
         "truffle": "^5.4.13",
-        "truffle-flattener": "^1.5.0"
+        "truffle-flattener": "^1.5.0",
+        "web3-utils": "^1.6.0"
     }
 }

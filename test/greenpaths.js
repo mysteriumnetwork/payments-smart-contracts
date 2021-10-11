@@ -3,7 +3,7 @@
     on-chain and off-chain interactions from registering identity, to settlement of received funds
 */
 
-const { BN } = require('@openzeppelin/test-helpers')
+const {BN} = require('web3-utils')
 const {
     topUpTokens,
     topUpEthers,

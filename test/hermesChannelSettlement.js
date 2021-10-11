@@ -3,8 +3,9 @@
     Tested functions can be found in smart-contract code at `contracts/HermesImplementation.sol`.
 */
 
-const { BN, expectEvent } = require('@openzeppelin/test-helpers')
-const { randomBytes } = require('crypto')
+// const {BN} = require('web3-utils')
+const {BN} = require('web3-utils');
+// const { randomBytes } = require('crypto')
 const {
     generateChannelId,
     topUpTokens,
@@ -17,6 +18,10 @@ const {
     signChannelBeneficiaryChange,
     generatePromise
 } = require('./utils/client.js')
+const {
+    assertEvent
+} = require('./utils/tests.js')
+const { expect } = require('chai')
 
 const MystToken = artifacts.require("TestMystToken")
 const HermesImplementation = artifacts.require("TestHermesImplementation")
@@ -90,10 +95,8 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
         const promise = generatePromise(amountToPay, Zero, channelState, operator, providerA.address)
         var res = await hermes.settleWithBeneficiary(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature, beneficiaryA, beneficiaryChangeSignature)
 
-        await expectEvent.inTransaction(res.receipt.transactionHash, hermes, 'PromiseSettled', {
-            "4":"0x"+promise.lock.toString('hex')
-        })
-
+        assertEvent(res, 'PromiseSettled',{"lock":"0x"+promise.lock.toString('hex')})
+        
         const balanceAfter = await token.balanceOf(beneficiaryA)
         balanceAfter.should.be.bignumber.equal(balanceBefore.add(amountToPay))
 
@@ -116,9 +119,7 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
         const promise = generatePromise(amountToPay, Zero, channelState, operator, providerA.address)
         var res =await hermes.settlePromise(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
 
-        await expectEvent.inTransaction(res.receipt.transactionHash, hermes, 'PromiseSettled', {
-            "4":"0x"+promise.lock.toString('hex')
-        })
+        assertEvent(res, 'PromiseSettled',{"lock":"0x"+promise.lock.toString('hex')})
 
         // Promise can settle even more than its stake (up to maxStake)
         const balanceAfter = await token.balanceOf(beneficiaryA)
@@ -142,9 +143,7 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
 
             let res = await hermes.settlePromise(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
 
-            await expectEvent.inTransaction(res.receipt.transactionHash, hermes, 'PromiseSettled', {
-                "4":"0x"+promise.lock.toString('hex')
-            })
+            assertEvent(res, 'PromiseSettled',{"lock":"0x"+promise.lock.toString('hex')})
 
             const balanceAfter = await token.balanceOf(beneficiaryA)
             balanceAfter.should.be.bignumber.equal(balanceBefore.add(maxStake))
@@ -166,9 +165,7 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
         const promise = generatePromise(amountToPay, transactorFee, channelState, operator, providerA.address)
         var res = await hermes.settleIntoStake(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
 
-        await expectEvent.inTransaction(res.receipt.transactionHash, hermes, 'PromiseSettled', {
-            "4":"0x"+promise.lock.toString('hex')
-        })
+        assertEvent(res, 'PromiseSettled',{"lock":"0x"+promise.lock.toString('hex')})
 
         // It should have increased stake
         const channelStakeAfter = (await hermes.channels(channelId)).stake
