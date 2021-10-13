@@ -29,7 +29,6 @@ contract HermesImplementation is FundsRecovery, Utils {
 
     uint256 internal totalStake;               // total amount staked by providers
 
-    // TODO do we really need minStake?
     uint256 internal minStake;                 // minimal possible provider's stake (channel opening during promise settlement will use it)
     uint256 internal maxStake;                 // maximal allowed provider's stake
     uint256 internal hermesStake;              // hermes stake is used to prove hermes' sustainability
@@ -186,9 +185,10 @@ contract HermesImplementation is FundsRecovery, Utils {
         uint256 _unpaidAmount = _amount - _channel.settled;
         require(_unpaidAmount > _transactorFee, "Hermes: amount to settle should cover transactor fee");
 
-        // It is don't allowed to settle more than maxStake and than available balance.
-        if (_unpaidAmount > _availableBalance || _unpaidAmount > maxStake) {
-            _unpaidAmount = min(_availableBalance, maxStake);
+        // It is not allowed to settle more than maxStake / _channel.stake and than available balance.
+        uint256 _maxSettlementAmount = max(maxStake, _channel.stake);
+        if (_unpaidAmount > _availableBalance || _unpaidAmount > _maxSettlementAmount) {
+               _unpaidAmount = min(_availableBalance, _maxSettlementAmount);
         }
 
         _channel.settled = _channel.settled + _unpaidAmount;                // Increase already paid amount.

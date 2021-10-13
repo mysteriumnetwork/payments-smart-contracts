@@ -52,11 +52,11 @@ module.exports = async (web3, account = undefined) => {
     }
 
     // Deploy HermesImplementation into deterministic address
-    const hermesTxMetadata = generateDeployTx(hermesBytecode, 3359537)
+    const hermesTxMetadata = generateDeployTx(hermesBytecode, 3364969)
     const deployedHermesCode = await web3.eth.getCode(hermesTxMetadata.contractAddress)
     if (deployedHermesCode.length <= 3) {
         await web3.eth.sendTransaction({
-            from: account, to: hermesTxMetadata.sender, value: '3359537000000000000'
+            from: account, to: hermesTxMetadata.sender, value: '3364969000000000000'
         })
         await web3.eth.sendSignedTransaction(hermesTxMetadata.rawTx)
     }
