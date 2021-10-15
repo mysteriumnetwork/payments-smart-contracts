@@ -1,7 +1,7 @@
 require('chai')
     .use(require('chai-as-promised'))
     .should()
-const {BN} = require('web3-utils')
+const { BN } = require('web3-utils')
 
 const genCreate2Address = require('./utils/index.js').genCreate2Address
 const topUpTokens = require('./utils/index.js').topUpTokens
@@ -66,7 +66,7 @@ contract('Deterministic registry', ([txMaker, ...otherAccounts]) => {
     })
 
     it('should have hermes implementation deployed into deterministic address', async () => {
-        const expectedAddress = '0xcAB48F48ab8bd6ccCdC7A0B661e2401cb6289Edb'
+        const expectedAddress = '0xd7F5c4863B3455972C26CEf978e3dC503AeB58c5'
         expect(await registry.getHermesImplementation()).to.be.equal(expectedAddress)
     })
 })
