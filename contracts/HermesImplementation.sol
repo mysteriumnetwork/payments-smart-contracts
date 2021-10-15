@@ -306,6 +306,10 @@ contract HermesImplementation is FundsRecovery, Utils {
 
         uint256 _newStakeAmount = _channel.stake - _amount;
 
+        // Update channel state
+        _channel.stake = _newStakeAmount;
+        totalStake = totalStake - _amount;
+
         // Pay transacor fee then withdraw the rest
         if (_transactorFee > 0) {
             token.transfer(msg.sender, _transactorFee);
@@ -313,10 +317,6 @@ contract HermesImplementation is FundsRecovery, Utils {
 
         address _beneficiary = registry.getBeneficiary(_identity);
         token.transfer(_beneficiary, _amount - _transactorFee);
-
-        // Update channel state
-        _channel.stake = _newStakeAmount;
-        totalStake = totalStake - _amount;
 
         emit NewStake(_channelId, _newStakeAmount);
     }
