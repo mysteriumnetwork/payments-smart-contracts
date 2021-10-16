@@ -66,7 +66,7 @@ contract('Deterministic registry', ([txMaker, ...otherAccounts]) => {
     })
 
     it('should have hermes implementation deployed into deterministic address', async () => {
-        const expectedAddress = '0xd7F5c4863B3455972C26CEf978e3dC503AeB58c5'
+        const expectedAddress = '0x1Cf358922c6CE1193480bA91f31086C7147e4b32'
         expect(await registry.getHermesImplementation()).to.be.equal(expectedAddress)
     })
 })
