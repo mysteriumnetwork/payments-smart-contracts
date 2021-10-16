@@ -192,7 +192,7 @@ contract HermesImplementation is FundsRecovery, Utils {
         }
 
         _channel.settled = _channel.settled + _unpaidAmount; // Increase already paid amount.
-        uint256 _fees = _transactorFee + (_takeFee ? calculateHermesFee(_unpaidAmount) : 0);   
+        uint256 _fees = _transactorFee + (_takeFee ? calculateHermesFee(_unpaidAmount) : 0);
 
         // Pay transactor fee
         if (_transactorFee > 0) {
@@ -357,27 +357,21 @@ contract HermesImplementation is FundsRecovery, Utils {
         return UNIT_SECONDS;
     }
 
-    // function setHermesOperator(address _newOperator) public onlyOperator {
-    //     require(_newOperator != address(0), "Hermes: can't be zero address");
-    //     operator = _newOperator;
-    //     emit NewHermesOperator(_newOperator);
-    // }
-
-    function setMinStake(uint256 _newMinStake) public onlyOperator {
+    function setMinStake(uint256 _newMinStake) public onlyOwner {
         require(isHermesActive(), "Hermes: has to be active");
         require(_newMinStake < maxStake, "Hermes: minStake has to be smaller than maxStake");
         minStake = _newMinStake;
         emit MinStakeValueUpdated(_newMinStake);
     }
 
-    function setMaxStake(uint256 _newMaxStake) public onlyOperator {
+    function setMaxStake(uint256 _newMaxStake) public onlyOwner {
         require(isHermesActive(), "Hermes: has to be active");
         require(_newMaxStake > minStake, "Hermes: maxStake has to be bigger than minStake");
         maxStake = _newMaxStake;
         emit MaxStakeValueUpdated(_newMaxStake);
     }
 
-    function setHermesFee(uint16 _newFee) public onlyOperator {
+    function setHermesFee(uint16 _newFee) public onlyOwner {
         require(getStatus() != Status.Closed, "Hermes: should be not closed");
         require(_newFee <= 5000, "Hermes: fee can't be bigger than 50%");
         require(block.timestamp >= lastFee.validFrom, "Hermes: can't update inactive fee");
@@ -391,7 +385,7 @@ contract HermesImplementation is FundsRecovery, Utils {
         emit HermesFeeUpdated(_newFee, _validFrom);
     }
 
-    function increaseHermesStake(uint256 _additionalStake) public onlyOperator {
+    function increaseHermesStake(uint256 _additionalStake) public onlyOwner {
         if (availableBalance() < _additionalStake) {
             uint256 _diff = _additionalStake - availableBalance();
             token.transferFrom(msg.sender, address(this), _diff);
@@ -402,9 +396,9 @@ contract HermesImplementation is FundsRecovery, Utils {
         emit HermesStakeIncreased(hermesStake);
     }
 
-    // Hermes's available funds withdrawal. Can be done only if chanel is not closed and not in punishment mode.
+    // Hermes's available funds withdrawal. Can be done only if hermes is not closed and not in punishment mode.
     // Hermes can't withdraw stake, locked in channel funds and funds lended to him.
-    function withdraw(address _beneficiary, uint256 _amount) public onlyOperator {
+    function withdraw(address _beneficiary, uint256 _amount) public onlyOwner {
         require(isHermesActive(), "Hermes: have to be active");
         require(availableBalance() >= _amount, "Hermes: should be enough funds available to withdraw");
 
@@ -446,14 +440,14 @@ contract HermesImplementation is FundsRecovery, Utils {
         emit ChannelOpeningActivated();
     }
 
-    function closeHermes() public onlyOperator {
+    function closeHermes() public onlyOwner {
         require(isHermesActive(), "Hermes: should be active");
         status = Status.Closed;
         closingTimelock = getEmergencyTimelock();
         emit HermesClosed(block.timestamp);
     }
 
-    function getStakeBack(address _beneficiary) public onlyOperator {
+    function getStakeBack(address _beneficiary) public onlyOwner {
         require(getStatus() == Status.Closed, "Hermes: have to be closed");
         require(block.timestamp > closingTimelock, "Hermes: timelock period should be already passed");
 
@@ -487,12 +481,4 @@ contract HermesImplementation is FundsRecovery, Utils {
         address _signer = keccak256(abi.encodePacked(getChainID(), _channelId, _amount, _transactorFee, _hashlock)).recover(_signature);
         return _signer == operator;
     }
-
-    // Setting new destination of funds recovery.
-    function setFundsDestination(address payable _newDestination) public override onlyOperator {
-        require(_newDestination != address(0));
-        emit DestinationChanged(fundsDestination, _newDestination);
-        fundsDestination = _newDestination;
-    }
-
 }
