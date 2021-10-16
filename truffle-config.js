@@ -39,7 +39,15 @@ module.exports = {
             provider: () => new HDWalletProvider(mnemonic, INFURA_URL),
             network_id: 5,
             gas: 5000000,
-            gasPrice: 511000000000,
+            gasPrice: 50000000000, // 50 Gwei
+            confirmations: 1,
+            skipDryRun: true
+        },
+        ethereum: {
+            provider: () => new HDWalletProvider(mnemonic, INFURA_URL),
+            network_id: 1,
+            gas: 5000000,
+            gasPrice: 100000000000, // 100 Gwei
             confirmations: 1,
             skipDryRun: true
         },
@@ -47,7 +55,7 @@ module.exports = {
             provider: () => new HDWalletProvider(mnemonic, INFURA_URL),
             network_id: 137,
             gas: 5000000,
-            gasPrice: 1110000000,
+            gasPrice: 50000000000, // 50 Gwei
             confirmations: 1,
             skipDryRun: true
         },
@@ -55,7 +63,7 @@ module.exports = {
             provider: () => new HDWalletProvider(mnemonic, INFURA_URL),
             network_id: 80001,
             gas: 5000000,
-            gasPrice: 1110000000,
+            gasPrice: 1110000000, // 1.1 Gwei
             confirmations: 1,
             skipDryRun: true
         },
