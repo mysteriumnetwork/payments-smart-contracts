@@ -191,9 +191,8 @@ contract HermesImplementation is FundsRecovery, Utils {
                _unpaidAmount = min(_availableBalance, _maxSettlementAmount);
         }
 
-        _channel.settled = _channel.settled + _unpaidAmount;                // Increase already paid amount.
-        uint256 _hermesFee = _takeFee ? calculateHermesFee(_unpaidAmount) : 0; // Calculate hermes fee.
-        uint256 _fees = _transactorFee + _hermesFee;                        // Update channel balance.
+        _channel.settled = _channel.settled + _unpaidAmount; // Increase already paid amount.
+        uint256 _fees = _transactorFee + (_takeFee ? calculateHermesFee(_unpaidAmount) : 0);   
 
         // Pay transactor fee
         if (_transactorFee > 0) {
@@ -306,6 +305,10 @@ contract HermesImplementation is FundsRecovery, Utils {
 
         uint256 _newStakeAmount = _channel.stake - _amount;
 
+        // Update channel state
+        _channel.stake = _newStakeAmount;
+        totalStake = totalStake - _amount;
+
         // Pay transacor fee then withdraw the rest
         if (_transactorFee > 0) {
             token.transfer(msg.sender, _transactorFee);
@@ -313,10 +316,6 @@ contract HermesImplementation is FundsRecovery, Utils {
 
         address _beneficiary = registry.getBeneficiary(_identity);
         token.transfer(_beneficiary, _amount - _transactorFee);
-
-        // Update channel state
-        _channel.stake = _newStakeAmount;
-        totalStake = totalStake - _amount;
 
         emit NewStake(_channelId, _newStakeAmount);
     }

@@ -255,6 +255,16 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
         beneficiaryBalance.should.be.bignumber.equal(initialBeneficiaryBalance.add(new BN('1000')))  // 1000 should be left after previous promise
     })
 
+    it("should be reject underflowing amount", async () => {
+        const channelId = generateChannelId(identityB.address, hermes.address)
+        const channelState = Object.assign({}, { channelId }, await hermes.channels(channelId))
+        const amountToPay = new BN('0')
+        const balanceBefore = await token.balanceOf(beneficiaryB)
+        channelState.settled = new BN('0')
+        promise = generatePromise(amountToPay, new BN(0), channelState, operator)
+        await hermes.settlePromise(identityB.address, promise.amount, promise.fee, promise.lock, promise.signature).should.be.rejected
+    })
+
     /**
      * Testing promise settlement via uniswap
      */
