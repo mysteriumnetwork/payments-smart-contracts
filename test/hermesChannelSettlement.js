@@ -3,9 +3,7 @@
     Tested functions can be found in smart-contract code at `contracts/HermesImplementation.sol`.
 */
 
-// const {BN} = require('web3-utils')
-const {BN} = require('web3-utils');
-// const { randomBytes } = require('crypto')
+const { BN } = require('web3-utils');
 const {
     generateChannelId,
     topUpTokens,
@@ -40,29 +38,30 @@ const hermesURL = Buffer.from('http://test.hermes')
 const operator = wallet.generateAccount(Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8c26933e5d9f0cda92f3c3', 'hex'))  // Generate hermes operator wallet
 const providerA = wallet.generateAccount()
 
-const minStake = new BN(25)
+const minStake = new BN(0)
 const maxStake = new BN(50000)
+const hermesStake = new BN(100000)
 
 contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
-    let token, hermes, registry, promise
+    let token, hermes, registry
     before(async () => {
         token = await MystToken.new()
         const dex = await setupDEX(token, txMaker)
         const hermesImplementation = await HermesImplementation.new()
         const channelImplementation = await ChannelImplementation.new()
         registry = await Registry.new()
-        await registry.initialize(token.address, dex.address, 100, channelImplementation.address, hermesImplementation.address, ZeroAddress)
+        await registry.initialize(token.address, dex.address, hermesStake, channelImplementation.address, hermesImplementation.address, ZeroAddress)
 
         // Give some ethers for gas for operator
         await topUpEthers(txMaker, operator.address, OneEther)
 
-        // Give tokens for txMaker so it could use them registration and lending stuff
+        // Give tokens for txMaker so it could use them registration
         await topUpTokens(token, txMaker, OneToken)
         await token.approve(registry.address, OneToken)
     })
 
     it("should register and initialize hermes hub", async () => {
-        await registry.registerHermes(operator.address, 100000, Zero, minStake, maxStake, hermesURL)
+        await registry.registerHermes(operator.address, hermesStake, Zero, minStake, maxStake, hermesURL)
         const hermesId = await registry.getHermesAddress(operator.address)
         expect(await registry.isHermes(hermesId)).to.be.true
 
@@ -82,11 +81,8 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
     it("should open provider channel while settling promise", async () => {
         const nonce = new BN(1)
         const channelId = await hermes.getChannelId(providerA.address)
-        // generateChannelId(providerA.address, hermes.address)
         const channelState = Object.assign({}, { channelId }, await hermes.channels(channelId))
 
-        // const R = randomBytes(32)
-        // const hashlock = keccak(R)
         const amountToPay = new BN('15')
         const balanceBefore = await token.balanceOf(beneficiaryA)
 
@@ -95,8 +91,8 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
         const promise = generatePromise(amountToPay, Zero, channelState, operator, providerA.address)
         var res = await hermes.settleWithBeneficiary(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature, beneficiaryA, beneficiaryChangeSignature)
 
-        assertEvent(res, 'PromiseSettled',{"lock":"0x"+promise.lock.toString('hex')})
-        
+        assertEvent(res, 'PromiseSettled', { "lock": "0x" + promise.lock.toString('hex') })
+
         const balanceAfter = await token.balanceOf(beneficiaryA)
         balanceAfter.should.be.bignumber.equal(balanceBefore.add(amountToPay))
 
@@ -117,9 +113,9 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
 
         // Generate and settle promise
         const promise = generatePromise(amountToPay, Zero, channelState, operator, providerA.address)
-        var res =await hermes.settlePromise(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
+        var res = await hermes.settlePromise(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
 
-        assertEvent(res, 'PromiseSettled',{"lock":"0x"+promise.lock.toString('hex')})
+        assertEvent(res, 'PromiseSettled', { "lock": "0x" + promise.lock.toString('hex') })
 
         // Promise can settle even more than its stake (up to maxStake)
         const balanceAfter = await token.balanceOf(beneficiaryA)
@@ -143,7 +139,7 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
 
             let res = await hermes.settlePromise(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
 
-            assertEvent(res, 'PromiseSettled',{"lock":"0x"+promise.lock.toString('hex')})
+            assertEvent(res, 'PromiseSettled', { "lock": "0x" + promise.lock.toString('hex') })
 
             const balanceAfter = await token.balanceOf(beneficiaryA)
             balanceAfter.should.be.bignumber.equal(balanceBefore.add(maxStake))
@@ -165,7 +161,7 @@ contract("Channel openinig via settlement tests", ([txMaker, beneficiaryA, benef
         const promise = generatePromise(amountToPay, transactorFee, channelState, operator, providerA.address)
         var res = await hermes.settleIntoStake(promise.identity, promise.amount, promise.fee, promise.lock, promise.signature)
 
-        assertEvent(res, 'PromiseSettled',{"lock":"0x"+promise.lock.toString('hex')})
+        assertEvent(res, 'PromiseSettled', { "lock": "0x" + promise.lock.toString('hex') })
 
         // It should have increased stake
         const channelStakeAfter = (await hermes.channels(channelId)).stake
