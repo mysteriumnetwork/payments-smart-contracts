@@ -3,7 +3,7 @@
     Tested functions can be found in smart-contract code at `contracts/HermesImplementation.sol`.
 */
 
-const {BN} = require('web3-utils')
+const { BN } = require('web3-utils')
 const {
     generateChannelId,
     topUpTokens,
@@ -57,7 +57,7 @@ contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, 
     })
 
     it("should register and initialize hermes hub", async () => {
-        await registry.registerHermes(operator.address, 10, 0, 25, OneToken, hermesURL)
+        await registry.registerHermes(operator.address, 10, 0, Zero, OneToken, hermesURL)
         const hermesId = await registry.getHermesAddress(operator.address)
         expect(await registry.isHermes(hermesId)).to.be.true
 
@@ -69,16 +69,16 @@ contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, 
     })
 
     it("should register new provider and open hermes channel", async () => {
-        const amountToLend = new BN(888)
+        const stakeAmount = new BN(888)
         const expectedChannelId = generateChannelId(provider.address, hermes.address)
 
         // TopUp payment channel
         const channelAddress = await registry.getChannelAddress(provider.address, hermes.address)
-        await topUpTokens(token, channelAddress, amountToLend)
+        await topUpTokens(token, channelAddress, stakeAmount)
 
         // Register identity and open channel with hermes
-        const signature = signIdentityRegistration(registry.address, hermes.address, amountToLend, Zero, beneficiaryA, provider)
-        await registry.registerIdentity(hermes.address, amountToLend, Zero, beneficiaryA, signature)
+        const signature = signIdentityRegistration(registry.address, hermes.address, stakeAmount, Zero, beneficiaryA, provider)
+        await registry.registerIdentity(hermes.address, stakeAmount, Zero, beneficiaryA, signature)
         expect(await registry.isRegistered(provider.address)).to.be.true
         expect(await hermes.isChannelOpened(expectedChannelId)).to.be.true
     })

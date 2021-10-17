@@ -1,4 +1,4 @@
-const {BN} = require('web3-utils')
+const { BN } = require('web3-utils')
 const chai = require('chai')
 chai.use(require('chai-as-promised'))
 chai.use(require('chai-bn')(BN))
@@ -37,7 +37,7 @@ const operatorPrivKey = Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8
 const hermesOperator = wallet.generateAccount(operatorPrivKey)
 const hermesFee = new BN('1000') // hermes takes 10%
 
-const minStake = new BN(25)
+const minStake = new BN(0)
 const maxStake = new BN(1000000)
 
 

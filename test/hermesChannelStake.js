@@ -38,7 +38,7 @@ const minStake = new BN(25)
 const maxStake = new BN(50000)
 const hermesStake = new BN(100000)
 
-contract.only("Channel stake tests", ([txMaker, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
+contract("Channel stake tests", ([txMaker, beneficiaryA, beneficiaryB, beneficiaryC, ...otherAccounts]) => {
     const operator = wallet.generateAccount(operatorPrivKey)
     const providerA = wallet.generateAccount()
     const providerB = wallet.generateAccount()

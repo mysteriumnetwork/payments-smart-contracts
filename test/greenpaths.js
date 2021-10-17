@@ -3,7 +3,7 @@
     on-chain and off-chain interactions from registering identity, to settlement of received funds
 */
 
-const {BN} = require('web3-utils')
+const { BN } = require('web3-utils')
 const {
     topUpTokens,
     topUpEthers,
@@ -200,7 +200,7 @@ contract('Green path tests', ([txMaker, ...beneficiaries]) => {
     })
 
     it('should register second hermes', async () => {
-        await registry.registerHermes(operator2.address, 10, 0, 50, OneToken, hermes2URL)
+        await registry.registerHermes(operator2.address, 10, 0, 0, OneToken, hermes2URL)
         const hermesId = await registry.getHermesAddress(operator2.address)
         expect(await registry.isHermes(hermesId)).to.be.true
 
