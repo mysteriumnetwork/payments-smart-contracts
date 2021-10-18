@@ -1,7 +1,7 @@
 require('chai')
     .use(require('chai-as-promised'))
     .should()
-const {BN} = require('web3-utils')
+const { BN } = require('web3-utils')
 
 const { topUpTokens, setupDEX, sleep } = require('./utils/index.js')
 const {
@@ -43,7 +43,7 @@ contract('Hermes closing', ([txMaker, operatorAddress, ...beneficiaries]) => {
     })
 
     it('should register hermes', async () => {
-        await registry.registerHermes(hermesOperator.address, stake, Zero, 25, OneToken, hermesURL)
+        await registry.registerHermes(hermesOperator.address, stake, Zero, OneToken, hermesURL)
         const hermesId = await registry.getHermesAddress(hermesOperator.address)
         hermes = await HermesImplementation.at(hermesId)
         expect(await registry.isHermes(hermes.address)).to.be.true

@@ -1,4 +1,4 @@
-const {BN} = require('web3-utils')
+const { BN } = require('web3-utils')
 const chai = require('chai')
 chai.use(require('chai-as-promised'))
 chai.use(require('chai-bn')(BN))
@@ -36,8 +36,6 @@ const provider = wallet.generateAccount()
 const operatorPrivKey = Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8c26933e5d9f0cda92f3c3', 'hex')
 const hermesOperator = wallet.generateAccount(operatorPrivKey)
 const hermesFee = new BN('1000') // hermes takes 10%
-
-const minStake = new BN(25)
 const maxStake = new BN(1000000)
 
 
@@ -57,7 +55,7 @@ contract('Pay and settle', ([txMaker, operatorAddress, ...otherAccounts]) => {
     })
 
     it("should register and initialize hermes", async () => {
-        await registry.registerHermes(operatorAddress, OneToken, hermesFee, minStake, maxStake, hermesURL)
+        await registry.registerHermes(operatorAddress, OneToken, hermesFee, maxStake, hermesURL)
         const hermesId = await registry.getHermesAddress(operatorAddress)
         expect(await registry.isHermes(hermesId)).to.be.true
 

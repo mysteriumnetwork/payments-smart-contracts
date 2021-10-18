@@ -1,7 +1,7 @@
 require('chai')
     .use(require('chai-as-promised'))
     .should()
-const {BN} = require('web3-utils')
+const { BN } = require('web3-utils')
 const { topUpTokens, setupDEX } = require('./utils/index.js')
 const { signIdentityRegistration } = require('./utils/client.js')
 const wallet = require('./utils/wallet.js')
@@ -43,7 +43,7 @@ contract('Multi hermeses', ([txMaker, ...beneficiaries]) => {
     it('should register hermeses', async () => {
         hermeses = []
         for (const operator of operators) {
-            await registry.registerHermes(operator.address, 10, 0, 25, OneToken, hermesURL)
+            await registry.registerHermes(operator.address, 10, 0, OneToken, hermesURL)
             const id = await registry.getHermesAddress(operator.address)
             hermeses.push({ id, operator })
             expect(await registry.isHermes(id)).to.be.true

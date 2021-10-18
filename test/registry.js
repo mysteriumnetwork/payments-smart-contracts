@@ -66,7 +66,7 @@ contract('Deterministic registry', ([txMaker, ...otherAccounts]) => {
     })
 
     it('should have hermes implementation deployed into deterministic address', async () => {
-        const expectedAddress = '0x3D32855ba8889E07e9942894CCA6f799bb6E321f'
+        const expectedAddress = '0x4D011fe99Ffb30b6b1D501b815AcadC8534A5Edf'
         expect(await registry.getHermesImplementation()).to.be.equal(expectedAddress)
     })
 })
@@ -89,7 +89,7 @@ contract('Registry', ([txMaker, minter, fundsDestination, ...otherAccounts]) => 
 
     it('should register hermes', async () => {
         const hermesURL = Buffer.from('http://test.hermes')
-        await registry.registerHermes(hermesOperator, 10, 0, 25, OneToken, hermesURL)
+        await registry.registerHermes(hermesOperator, 10, 0, OneToken, hermesURL)
         hermesId = await registry.getHermesAddress(hermesOperator)
         expect(await registry.isHermes(hermesId)).to.be.true
     })
@@ -227,21 +227,21 @@ contract('Registry', ([txMaker, minter, fundsDestination, ...otherAccounts]) => 
 
     it("should be able to register hermes for previously unknown operator", async () => {
         const hermesURL = Buffer.from('http://test.hermes')
-        await registry.registerHermes(hermesOperator2, 10, 0, 25, OneToken, hermesURL)
+        await registry.registerHermes(hermesOperator2, 10, 0, OneToken, hermesURL)
         hermes2Id = await registry.getHermesAddress(hermesOperator2)
         expect(await registry.isHermes(hermes2Id)).to.be.true
     })
 
     it("same operator should be able to register second hermes with new implementations", async () => {
         const hermesURL = Buffer.from('http://test.hermes')
-        await registry.registerHermes(hermesOperator, 10, 0, 25, OneToken, hermesURL)
+        await registry.registerHermes(hermesOperator, 10, 0, OneToken, hermesURL)
         hermes3Id = await registry.getHermesAddress(hermesOperator)
         expect(await registry.isHermes(hermes3Id)).to.be.true
     })
 
     it("should fail to register one more hermes with same implementation", async () => {
         const hermesURL = Buffer.from('http://test2.hermes')
-        await registry.registerHermes(hermesOperator, 10, 0, 25, OneToken, hermesURL).should.be.rejected
+        await registry.registerHermes(hermesOperator, 10, 0, OneToken, hermesURL).should.be.rejected
     })
 
     it('should register identity with v2 channel', async () => {
@@ -305,7 +305,7 @@ contract('Registry', ([txMaker, minter, fundsDestination, ...otherAccounts]) => 
             url: Buffer.from('http://test.hermes'),
         }
 
-        await registry.registerHermes(hermes.operator.address, 10, 0, 25, OneToken, hermes.url)
+        await registry.registerHermes(hermes.operator.address, 10, 0, OneToken, hermes.url)
         hermes.identity = await registry.getHermesAddress(hermes.operator.address)
         expect(await registry.isHermes(hermes.identity)).to.be.true
 

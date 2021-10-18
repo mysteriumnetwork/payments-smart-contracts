@@ -29,7 +29,6 @@ contract HermesImplementation is FundsRecovery, Utils {
 
     uint256 internal totalStake;               // total amount staked by providers
 
-    uint256 internal minStake;                 // minimal possible provider's stake (channel opening during promise settlement will use it)
     uint256 internal maxStake;                 // maximal allowed provider's stake
     uint256 internal hermesStake;              // hermes stake is used to prove hermes' sustainability
     uint256 internal closingTimelock;          // blocknumber after which getting stake back will become possible
@@ -86,7 +85,7 @@ contract HermesImplementation is FundsRecovery, Utils {
     }
 
     function getStakeThresholds() public view returns (uint256, uint256) {
-        return (minStake, maxStake);
+        return (0, maxStake);
     }
 
     // Returns hermes state
@@ -100,7 +99,6 @@ contract HermesImplementation is FundsRecovery, Utils {
 
     event PromiseSettled(address indexed identity, bytes32 indexed channelId, address indexed beneficiary, uint256 amountSentToBeneficiary, uint256 fees, bytes32 lock);
     event NewStake(bytes32 indexed channelId, uint256 stakeAmount);
-    event MinStakeValueUpdated(uint256 newMinStake);
     event MaxStakeValueUpdated(uint256 newMaxStake);
     event HermesFeeUpdated(uint16 newFee, uint64 validFrom);
     event HermesClosed(uint256 blockTimestamp);
@@ -122,18 +120,16 @@ contract HermesImplementation is FundsRecovery, Utils {
 
     // Because of proxy pattern this function is used insted of constructor.
     // Have to be called right after proxy deployment.
-    function initialize(address _token, address _operator, uint16 _fee, uint256 _minStake, uint256 _maxStake, address payable _dexAddress) public virtual {
+    function initialize(address _token, address _operator, uint16 _fee, uint256 _maxStake, address payable _dexAddress) public virtual {
         require(!isInitialized(), "Hermes: have to be not initialized");
         require(_token != address(0), "Hermes: token can't be deployd into zero address");
         require(_operator != address(0), "Hermes: operator have to be set");
         require(_fee <= 5000, "Hermes: fee can't be bigger than 50%");
-        require(_maxStake > _minStake, "Hermes: maxStake have to be bigger than minStake");
 
         registry = IdentityRegistry(msg.sender);
         token = IERC20Token(_token);
         operator = _operator;
         lastFee = HermesFee(_fee, uint64(block.timestamp));
-        minStake = _minStake;
         maxStake = _maxStake;
         hermesStake = token.balanceOf(address(this));
 
@@ -357,16 +353,8 @@ contract HermesImplementation is FundsRecovery, Utils {
         return UNIT_SECONDS;
     }
 
-    function setMinStake(uint256 _newMinStake) public onlyOwner {
-        require(isHermesActive(), "Hermes: has to be active");
-        require(_newMinStake < maxStake, "Hermes: minStake has to be smaller than maxStake");
-        minStake = _newMinStake;
-        emit MinStakeValueUpdated(_newMinStake);
-    }
-
     function setMaxStake(uint256 _newMaxStake) public onlyOwner {
         require(isHermesActive(), "Hermes: has to be active");
-        require(_newMaxStake > minStake, "Hermes: maxStake has to be bigger than minStake");
         maxStake = _newMaxStake;
         emit MaxStakeValueUpdated(_newMaxStake);
     }

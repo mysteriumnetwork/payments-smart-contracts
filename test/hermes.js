@@ -37,7 +37,6 @@ const ChainID = 1
 
 const operatorPrivKey = Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8c26933e5d9f0cda92f3c3', 'hex')
 
-const minStake = new BN(25)
 const maxStake = new BN(100000)
 
 contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, hermesOwner, beneficiaryA, beneficiaryB, beneficiaryC, beneficiaryD, ...otherAccounts]) => {
@@ -65,7 +64,7 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, her
     })
 
     it("should register and initialize hermes", async () => {
-        await registry.registerHermes(operator.address, 10, 0, minStake, maxStake, hermesURL)
+        await registry.registerHermes(operator.address, 10, 0, maxStake, hermesURL)
         const hermesId = await registry.getHermesAddress(operator.address)
         expect(await registry.isHermes(hermesId)).to.be.true
 
@@ -443,21 +442,6 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, her
         await hermes.withdraw(beneficiary, amount).should.be.rejected
 
         initialBalance.should.be.bignumber.equal(await token.balanceOf(hermes.address))
-    })
-
-    it("hermes owner should be able to set new minStake", async () => {
-        const stakeBefore = (await hermes.getStakeThresholds())[0]
-        const newMinStake = 321
-        await hermes.setMinStake(newMinStake, { from: hermesOwner })
-
-        const stakeAfter = (await hermes.getStakeThresholds())[0]
-        expect(stakeBefore.toNumber()).to.be.equal(25)
-        expect(stakeAfter.toNumber()).to.be.equal(321)
-    })
-
-    it("not hermes owner should be not able to set new minStake", async () => {
-        const newMinStake = 1
-        await hermes.setMinStake(newMinStake).should.be.rejected
     })
 
     it("hermes owner should be able to set new maxStake", async () => {

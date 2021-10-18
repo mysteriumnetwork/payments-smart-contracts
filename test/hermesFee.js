@@ -1,7 +1,7 @@
 require('chai')
     .use(require('chai-as-promised'))
     .should()
-const {BN} = require('web3-utils')
+const { BN } = require('web3-utils')
 const { randomBytes } = require('crypto')
 const { topUpTokens, generateChannelId, keccak, setupDEX, sleep } = require('./utils/index.js')
 const {
@@ -43,7 +43,7 @@ contract('Hermes fee', ([txMaker, operatorAddress, ...beneficiaries]) => {
     it('should calculate proper fee righ after hermes registration', async () => {
         // Register hermes
         const hermesFee = 250 // 2.50%
-        await registry.registerHermes(hermesOperator.address, 100, hermesFee, 25, OneToken, hermesURL)
+        await registry.registerHermes(hermesOperator.address, 100, hermesFee, OneToken, hermesURL)
         const hermesId = await registry.getHermesAddress(hermesOperator.address)
         hermes = await HermesImplementation.at(hermesId)
 

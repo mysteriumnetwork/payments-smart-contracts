@@ -3,7 +3,7 @@
     Smart-contract code can be found in `contracts/ChannelImplementation.sol`.
 */
 
-const {BN} = require('web3-utils')
+const { BN } = require('web3-utils')
 const {
     topUpTokens,
     topUpEthers,
@@ -30,7 +30,7 @@ contract('Fast withdrawal from consumer channel', ([txMaker, ...otherAccounts]) 
         token = await MystToken.new()
         const dex = await setupDEX(token, txMaker)
         hermesImplementation = await TestHermesImplementation.new()
-        await hermesImplementation.initialize(token.address, hermes.address, 0, 0, OneToken, dex.address)
+        await hermesImplementation.initialize(token.address, hermes.address, 0, OneToken, dex.address)
         channel = await TestChannelImplementation.new(token.address, dex.address, identityHash, hermesImplementation.address, Zero)
 
         // Give some ethers for gas for hermes and some tokens for channel

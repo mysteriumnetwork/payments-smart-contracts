@@ -1,4 +1,4 @@
-const {BN} = require('web3-utils')
+const { BN } = require('web3-utils')
 const {
     deriveContractAddress,
     topUpEthers,
@@ -203,7 +203,7 @@ contract('Hermes funds recovery', ([_, txMaker, account, fundsDestination, ...ot
 
         // Deploy Hermes smart contract
         hermesImplementation = await TestHermesImplementation.new({ from: txMaker })
-        await hermesImplementation.initialize(nativeToken.address, account, 0, 25, OneToken, dex.address)
+        await hermesImplementation.initialize(nativeToken.address, account, 0, OneToken, dex.address)
         expect(hermesImplementation.address.toLowerCase()).to.be.equal(implementationAddress.toLowerCase())
 
         // Set funds destination

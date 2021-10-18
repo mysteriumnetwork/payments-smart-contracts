@@ -148,7 +148,7 @@ contract Registry is FundsRecovery, Utils {
         return address(_channel);
     }
 
-    function registerHermes(address _hermesOperator, uint256 _hermesStake, uint16 _hermesFee, uint256 _minChannelStake, uint256 _maxChannelStake, bytes memory _url) public {
+    function registerHermes(address _hermesOperator, uint256 _hermesStake, uint16 _hermesFee, uint256 _maxChannelStake, bytes memory _url) public {
         require(isInitialized(), "Registry: only initialized registry can register hermeses");
         require(_hermesOperator != address(0), "Registry: hermes operator can't be zero address");
         require(_hermesStake >= minimalHermesStake, "Registry: hermes have to stake at least minimal stake amount");
@@ -163,7 +163,7 @@ contract Registry is FundsRecovery, Utils {
         token.transferFrom(msg.sender, address(_hermes), _hermesStake);
 
         // Initialise hermes
-        _hermes.initialize(address(token), _hermesOperator, _hermesFee, _minChannelStake, _maxChannelStake, dex);
+        _hermes.initialize(address(token), _hermesOperator, _hermesFee, _maxChannelStake, dex);
 
         // Save info about newly created hermes
         hermeses[_hermesId] = Hermes(_hermesOperator, getLastImplVer(), _hermes.getStake, _url);

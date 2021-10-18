@@ -1,4 +1,4 @@
-const {BN} = require('web3-utils')
+const { BN } = require('web3-utils')
 const {
     genCreate2Address,
     signMessage,
@@ -66,7 +66,7 @@ contract('Full path (in channel using cheque) test for funds recovery', ([txMake
     })
 
     it('should register hermes', async () => {
-        await registry.registerHermes(hermesOperator, 10, 0, 25, OneEther, hermesURL)
+        await registry.registerHermes(hermesOperator, 10, 0, OneEther, hermesURL)
         expect(await registry.isHermes(hermesId)).to.be.true
     })
 

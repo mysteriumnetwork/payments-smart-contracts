@@ -3,7 +3,7 @@
     Tested functions can be found in smart-contract code at `contracts/HermesImplementation.sol`.
 */
 
-const {BN} = require('web3-utils')
+const { BN } = require('web3-utils')
 const {
     generateChannelId,
     topUpTokens,
@@ -42,7 +42,7 @@ contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, 
         token = await MystToken.new()
         const dex = await setupDEX(token, txMaker)
         const hermesImplementation = await HermesImplementation.new()
-        await hermesImplementation.initialize(token.address, operator.address, 0, 0, OneToken, dex.address)
+        await hermesImplementation.initialize(token.address, operator.address, 0, OneToken, dex.address)
         const channelImplementation = await ChannelImplementation.new()
 
         registry = await Registry.new()
@@ -57,7 +57,7 @@ contract("Setting beneficiary tests", ([txMaker, operatorAddress, beneficiaryA, 
     })
 
     it("should register and initialize hermes hub", async () => {
-        await registry.registerHermes(operator.address, 10, 0, 25, OneToken, hermesURL)
+        await registry.registerHermes(operator.address, 10, 0, OneToken, hermesURL)
         const hermesId = await registry.getHermesAddress(operator.address)
         expect(await registry.isHermes(hermesId)).to.be.true
 
