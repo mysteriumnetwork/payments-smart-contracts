@@ -35,15 +35,16 @@ async function main() {
     console.log('Hermes implementation deployed to:', hermesImplementationAddress)
 
     // Initialize registry
+    const minimalHermesStake = hre.ethers.BigNumber.from('1000000000000000000') // 1 token
     const registry = await Registry.attach(registryAddress)
-    await registry.initialize(tokenAddress, swapRouterAddress, 0, channelImplementation.address, hermesImplementationAddress, parentRegistry)
+    await registry.initialize(tokenAddress, swapRouterAddress, minimalHermesStake, channelImplementation.address, hermesImplementationAddress, parentRegistry)
 
     // Register hermes with 5000 tokens stake, 20% tx fee and 100 max channel balance
-    const hermesStake = hre.ethers.BigNumber.from('5000000000000000000000')    // 5000 tokens
+    const hermesStake = hre.ethers.BigNumber.from('100000000000000000000')    // 100 tokens
     const hermesFee = 2000 // 20.00%
     const minChannelStake = hre.ethers.BigNumber.from('1000000000000000000')   // 1 token
     const maxChannelStake = hre.ethers.BigNumber.from('100000000000000000000') // 100 tokens
-    const url = Buffer.from('68747470733a2f2f746573746e6574332d6865726d65732e6d797374657269756d2e6e6574776f726b2f', 'hex') // https://testnet3-hermes.mysterium.network/
+    const url = Buffer.from('68747470733a2f2f6865726d65732e6d797374657269756d2e6e6574776f726b2f', 'hex') // https://hermes.mysterium.network/
 
     // Approve enough tokens to registry so hermes operator could add stake
     const token = await Token.attach(tokenAddress)

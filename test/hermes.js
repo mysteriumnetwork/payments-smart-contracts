@@ -40,7 +40,7 @@ const operatorPrivKey = Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8
 const minStake = new BN(25)
 const maxStake = new BN(100000)
 
-contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, beneficiaryA, beneficiaryB, beneficiaryC, beneficiaryD, ...otherAccounts]) => {
+contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, hermesOwner, beneficiaryA, beneficiaryB, beneficiaryC, beneficiaryD, ...otherAccounts]) => {
     const operator = wallet.generateAccount(operatorPrivKey)
     const identityA = wallet.generateAccount()
     const identityB = wallet.generateAccount()
@@ -395,12 +395,30 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
      * Testing hermes's funds withdrawal functionality
      */
 
-    it("hermes operator should be able to request funds withdrawal", async () => {
+    it("should be possible to set owner and operator as separate actors", async () => {
+        await hermes.transferOwnership(hermesOwner, { from: operatorAddress })
+
+        expect(await hermes.owner()).to.be.equal(hermesOwner)
+        expect(await hermes.getOperator()).to.be.equal(operatorAddress)
+        expect(operatorAddress).to.be.not.equal(hermesOwner)
+    })
+
+    it("operator should not be able to set himself as owner", async () => {
+        await hermes.transferOwnership(hermesOwner, { from: operatorAddress }).should.be.rejected
+    })
+
+    it("hermes operator should not be able to request funds withdrawal", async () => {
+        const amount = new BN(500)
+        const beneficiary = otherAccounts[1]
+        await hermes.withdraw(beneficiary, amount, { from: operatorAddress }).should.be.rejected
+    })
+
+    it("hermes owner should be able to request funds withdrawal", async () => {
         const initialBalance = await token.balanceOf(hermes.address)
 
         const amount = new BN(500)
         const beneficiary = otherAccounts[1]
-        await hermes.withdraw(beneficiary, amount, { from: operatorAddress })
+        await hermes.withdraw(beneficiary, amount, { from: hermesOwner })
 
         const hermesBalance = await token.balanceOf(hermes.address)
         hermesBalance.should.be.bignumber.equal(initialBalance.sub(amount))
@@ -427,25 +445,25 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, ben
         initialBalance.should.be.bignumber.equal(await token.balanceOf(hermes.address))
     })
 
-    it("hermes should be able to set new minStake", async () => {
+    it("hermes owner should be able to set new minStake", async () => {
         const stakeBefore = (await hermes.getStakeThresholds())[0]
         const newMinStake = 321
-        await hermes.setMinStake(newMinStake, { from: operator.address })
+        await hermes.setMinStake(newMinStake, { from: hermesOwner })
 
         const stakeAfter = (await hermes.getStakeThresholds())[0]
         expect(stakeBefore.toNumber()).to.be.equal(25)
         expect(stakeAfter.toNumber()).to.be.equal(321)
     })
 
-    it("not hermes operator should be not able to set new minStake", async () => {
+    it("not hermes owner should be not able to set new minStake", async () => {
         const newMinStake = 1
         await hermes.setMinStake(newMinStake).should.be.rejected
     })
 
-    it("hermes should be able to set new maxStake", async () => {
+    it("hermes owner should be able to set new maxStake", async () => {
         const stakeBefore = (await hermes.getStakeThresholds())[1]
         const newMaxStake = 333
-        await hermes.setMaxStake(newMaxStake, { from: operator.address })
+        await hermes.setMaxStake(newMaxStake, { from: hermesOwner })
 
         const stakeAfter = (await hermes.getStakeThresholds())[1]
         expect(stakeBefore.toNumber()).to.be.equal(100000)
