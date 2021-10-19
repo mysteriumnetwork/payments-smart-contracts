@@ -1,3 +1,5 @@
+const { BN } = require('web3-utils')
+
 const Registry = artifacts.require("Registry")
 const ChannelImplementation = artifacts.require("ChannelImplementation")
 

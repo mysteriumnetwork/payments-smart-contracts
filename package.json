@@ -9,8 +9,9 @@
         "compile": "truffle compile",
         "migrate": "truffle migrate",
         "flatten": "sh flattener.sh",
-        "deploy": "truffle deploy --network goerli",
-        "deploy-matic": "truffle deploy --network mumbai"
+        "deploy-goerli": "truffle deploy --network goerli",
+        "deploy-mumbai": "truffle deploy --network mumbai",
+        "deploy-polygon": "truffle deploy --network polygon"
     },
     "repository": {
         "type": "git",
@@ -28,7 +29,7 @@
         "@ethersproject/providers": "^5.4.5",
         "@ethersproject/solidity": "^5.4.0",
         "@openzeppelin/contracts": "4.3.2",
-        "@truffle/hdwallet-provider": "1.4.0",
+        "@truffle/hdwallet-provider": "1.5.1",
         "chai": "^4.3.4",
         "chai-as-promised": "^7.1.1",
         "chai-bn": "^0.2.1",
@@ -37,7 +38,7 @@
         "ganache-cli": "^6.12.2",
         "lodash": "^4.17.21",
         "secp256k1": "^4.0.2",
-        "truffle": "^5.4.13",
+        "truffle": "^5.4.15",
         "truffle-flattener": "^1.5.0",
         "web3-utils": "^1.6.0"
     }

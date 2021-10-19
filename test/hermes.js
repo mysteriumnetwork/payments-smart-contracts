@@ -37,7 +37,7 @@ const ChainID = 1
 
 const operatorPrivKey = Buffer.from('d6dd47ec61ae1e85224cec41885eec757aa77d518f8c26933e5d9f0cda92f3c3', 'hex')
 
-const minStake = new BN(25)
+const minStake = new BN(0)
 const maxStake = new BN(100000)
 
 contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, hermesOwner, beneficiaryA, beneficiaryB, beneficiaryC, beneficiaryD, ...otherAccounts]) => {
@@ -118,30 +118,30 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, her
     it("should be possible to open channel during registering identity into registry", async () => {
         const initialHermesBalance = await token.balanceOf(hermes.address)
         const expectedChannelId = generateChannelId(identityB.address, hermes.address)
-        const amountToLend = new BN(777)
+        const stakeAmount = new BN(777)
 
         // TopUp channel -> send or mint tokens into channel address
         const channelAddress = await registry.getChannelAddress(identityB.address, hermes.address)
-        await token.mint(channelAddress, amountToLend)
-        expect(Number(await token.balanceOf(channelAddress))).to.be.equal(amountToLend.toNumber())
+        await token.mint(channelAddress, stakeAmount)
+        expect(Number(await token.balanceOf(channelAddress))).to.be.equal(stakeAmount.toNumber())
 
         // Register identity and open channel with hermes
-        const signature = signIdentityRegistration(registry.address, hermes.address, amountToLend, Zero, beneficiaryB, identityB)
-        await registry.registerIdentity(hermes.address, amountToLend, Zero, beneficiaryB, signature)
+        const signature = signIdentityRegistration(registry.address, hermes.address, stakeAmount, Zero, beneficiaryB, identityB)
+        await registry.registerIdentity(hermes.address, stakeAmount, Zero, beneficiaryB, signature)
         expect(await registry.isRegistered(identityB.address)).to.be.true
         expect(await hermes.isChannelOpened(expectedChannelId)).to.be.true
 
-        // Tokens to lend should be transfered from channel address to hermes contract
+        // Stake should be transfered from channel address to hermes contract
         const channelBalance = await token.balanceOf(channelAddress)
         channelBalance.should.be.bignumber.equal(Zero)
 
         const hermesTokenBalance = await token.balanceOf(hermes.address)
-        hermesTokenBalance.should.be.bignumber.equal(initialHermesBalance.add(amountToLend))
+        hermesTokenBalance.should.be.bignumber.equal(initialHermesBalance.add(stakeAmount))
 
         // Channel have to be opened with proper state
         const channel = await hermes.channels(expectedChannelId)
         expect(channel.settled.toNumber()).to.be.equal(0)
-        expect(channel.stake.toNumber()).to.be.equal(amountToLend.toNumber())
+        expect(channel.stake.toNumber()).to.be.equal(stakeAmount.toNumber())
         expect(channel.lastUsedNonce.toNumber()).to.be.equal(0)
 
         // Hermes available (not locked in any channel) funds should be not incresed
@@ -451,7 +451,7 @@ contract('Hermes Contract Implementation tests', ([txMaker, operatorAddress, her
         await hermes.setMinStake(newMinStake, { from: hermesOwner })
 
         const stakeAfter = (await hermes.getStakeThresholds())[0]
-        expect(stakeBefore.toNumber()).to.be.equal(25)
+        expect(stakeBefore.toNumber()).to.be.equal(0)
         expect(stakeAfter.toNumber()).to.be.equal(321)
     })
 
