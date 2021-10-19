@@ -1,6 +1,5 @@
 const HDWalletProvider = require("@truffle/hdwallet-provider");
-const INFURA_URL = "https://goerli.infura.io/v3/...";
-const mnemonic = "amused glory pen avocado toilet dragon entry kitchen cliff retreat canyon danger";
+const INFURA_KEY = "...";
 
 module.exports = {
     // Uncommenting the defaults below
@@ -28,7 +27,7 @@ module.exports = {
             disableConfirmationListener: true
         },
         ropsten: {
-            provider: () => new HDWalletProvider(mnemonic, INFURA_URL),
+            provider: () => new HDWalletProvider(mnemonic, "https://ropsten.infura.io/v3/"+INFURA_KEY),
             network_id: 3,
             gas: 5000000,
             gasPrice: 3000000000,
@@ -36,7 +35,7 @@ module.exports = {
             sipDryRun: true
         },
         goerli: {
-            provider: () => new HDWalletProvider(mnemonic, INFURA_URL),
+            provider: () => new HDWalletProvider(mnemonic, "https://goerli.infura.io/v3/"+INFURA_KEY),
             network_id: 5,
             gas: 5000000,
             gasPrice: 50000000000, // 50 Gwei
@@ -44,7 +43,7 @@ module.exports = {
             skipDryRun: true
         },
         ethereum: {
-            provider: () => new HDWalletProvider(mnemonic, INFURA_URL),
+            provider: () => new HDWalletProvider(mnemonic, "https://mainnet.infura.io/v3/"+INFURA_KEY),
             network_id: 1,
             gas: 5000000,
             gasPrice: 100000000000, // 100 Gwei
@@ -52,7 +51,7 @@ module.exports = {
             skipDryRun: true
         },
         polygon: {
-            provider: () => new HDWalletProvider(mnemonic, INFURA_URL),
+            provider: () => new HDWalletProvider(mnemonic, "https://polygon-mainnet.infura.io/v3/"+INFURA_KEY),
             network_id: 137,
             gas: 5000000,
             gasPrice: 50000000000, // 50 Gwei
@@ -60,7 +59,7 @@ module.exports = {
             skipDryRun: true
         },
         mumbai: {
-            provider: () => new HDWalletProvider(mnemonic, INFURA_URL),
+            provider: () => new HDWalletProvider(mnemonic, "https://polygon-mumbai.infura.io/v3/"+INFURA_KEY),
             network_id: 80001,
             gas: 5000000,
             gasPrice: 1110000000, // 1.1 Gwei
