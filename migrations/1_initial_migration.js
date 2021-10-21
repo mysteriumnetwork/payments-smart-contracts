@@ -17,32 +17,34 @@ const tokenAddr = {
 const supportedBlockchains = Object.keys(tokenAddr)
 
 module.exports = async function (deployer, network, accounts) {
+    const account = accounts[0]
+
     if (supportedBlockchains.includes(network)) {
         const parentRegistry = '0x0000000000000000000000000000000000000000'
         const tokenAddress = tokenAddr[network]
         const swapRouterAddress = '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff'  // uniswap v2 || quickswap router address
 
         // Deploy Channel implementation into blockchain
-        await deployer.deploy(ChannelImplementation)
+        await deployer.deploy(ChannelImplementation, { from: account })
 
         // Deploy Registry and Hermes implementation into deterministic address, same on any chain
         const minimalHermesStake = web3.utils.toWei(new BN('100'), 'ether') // 100 MYST
-        const [registryAddress, hermesImplementationAddress] = await deployRegistry(web3, accounts[0])
+        const [registryAddress, hermesImplementationAddress] = await deployRegistry(web3, account)
         const registry = await Registry.at(registryAddress)
-        await registry.initialize(tokenAddress, swapRouterAddress, minimalHermesStake, ChannelImplementation.address, hermesImplementationAddress, parentRegistry)
+        await registry.initialize(tokenAddress, swapRouterAddress, minimalHermesStake, ChannelImplementation.address, hermesImplementationAddress, parentRegistry, { from: account })
 
-        console.log('   > registry contract address: ', registryAddress)
+        console.log('\n   > registry contract address: ', registryAddress)
         console.log('   > hermes implementation address: ', hermesImplementationAddress, '\n')
     }
     else {
         // Deploy WETH token
-        await WETH.deploy(web3, accounts[0])
+        await WETH.deploy(web3, account)
 
         // Deploy Uniswap smart contracts: Factory, Router, Migrator
-        await uniswap.deploy(web3, accounts[0])
+        await uniswap.deploy(web3, account)
 
         // Deploy Registry and Hermes implementation
-        const [registryAddress, hermesImplementationAddress] = await deployRegistry(web3, accounts[0])
+        const [registryAddress, hermesImplementationAddress] = await deployRegistry(web3, account)
 
         console.log('   > registry contract address: ', registryAddress)
         console.log('   > hermes implementation address: ', hermesImplementationAddress, '\n')

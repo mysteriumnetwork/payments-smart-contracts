@@ -55,6 +55,24 @@ Implementation addresses:
 - Channel implementation address (Görli): `0x1aDF7Ef34b9d48DCc8EBC47D989bfdE55933B6ea`
 - Channel implementation address (Mumbai): `0xf8982Ba93D3d9182D095B892DE2A7963eF9807ee`
 
+
+## MainNet beta deployment
+
+Registry smart contract:
+- Polygon [0x87F0F4b7e0FAb14A565C87BAbbA6c40c92281b51](https://polygonscan.com/address/0x87F0F4b7e0FAb14A565C87BAbbA6c40c92281b51)
+- Ethereum [0x87F0F4b7e0FAb14A565C87BAbbA6c40c92281b51](https://etherscan.io/address/0x87f0f4b7e0fab14a565c87babba6c40c92281b51)
+
+Hermes smart contract
+- Polygon [0xa62a2A75949d25e17C6F08a7818e7bE97c18a8d2](https://polygonscan.com/address/0xa62a2a75949d25e17c6f08a7818e7be97c18a8d2)
+- Ethereum [0xa62a2A75949d25e17C6F08a7818e7bE97c18a8d2](https://etherscan.io/address/0xa62a2A75949d25e17C6F08a7818e7bE97c18a8d2)
+
+
+Implementation addresses:
+- Hermes implementation address (same on both networks): `0x213a1B1d08F2715aE054ade98DEEd8a8F1cc937E`
+- Channel implementation address (Polygon): `0x25882f4966065ca13b7bac15cc48391d9a4124f6`
+- Channel implementation address (Ethereum): `0xBd20839B331A7A8d10e34CDf7219edf334814c4f`
+
+
 ## Building golang bindings
 
 To be able easily call these smart contract out of any software writen in Go you need to generate golang bindings and import [`payments`](https://github.com/mysteriumnetwork/payments) package into your software.

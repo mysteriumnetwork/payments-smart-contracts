@@ -42,21 +42,21 @@ module.exports = async (web3, account = undefined) => {
     }
 
     // Deploy Registry into deterministic address
-    const registryTxMetadata = generateDeployTx(registryBytecode, 3121666)
+    const registryTxMetadata = generateDeployTx(registryBytecode, 3123766)
     const deployedCode = await web3.eth.getCode(registryTxMetadata.contractAddress)
     if (deployedCode.length <= 3) {
         await web3.eth.sendTransaction({
-            from: account, to: registryTxMetadata.sender, value: '312166600000000000'
+            from: account, to: registryTxMetadata.sender, value: '312376600000000000'
         })
         await web3.eth.sendSignedTransaction(registryTxMetadata.rawTx)
     }
 
     // Deploy HermesImplementation into deterministic address
-    const hermesTxMetadata = generateDeployTx(hermesBytecode, 3607737)
+    const hermesTxMetadata = generateDeployTx(hermesBytecode, 3608745)
     const deployedHermesCode = await web3.eth.getCode(hermesTxMetadata.contractAddress)
     if (deployedHermesCode.length <= 3) {
         await web3.eth.sendTransaction({
-            from: account, to: hermesTxMetadata.sender, value: '360773700000000000'
+            from: account, to: hermesTxMetadata.sender, value: '360874500000000000'
         })
         await web3.eth.sendSignedTransaction(hermesTxMetadata.rawTx)
     }

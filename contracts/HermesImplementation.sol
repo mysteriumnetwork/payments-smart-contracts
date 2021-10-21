@@ -140,8 +140,6 @@ contract HermesImplementation is FundsRecovery, Utils {
         // Approving all myst for dex, because MYST token's `transferFrom` is cheaper when there is approval of uint(-1)
         token.approve(_dexAddress, type(uint256).max);
         dex = IUniswapV2Router(_dexAddress);
-
-        transferOwnership(_operator);
     }
 
     function isInitialized() public view returns (bool) {

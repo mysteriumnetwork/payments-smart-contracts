@@ -1,5 +1,6 @@
 const HDWalletProvider = require("@truffle/hdwallet-provider");
 const INFURA_KEY = "...";
+const mnemonic = "...";
 
 module.exports = {
     // Uncommenting the defaults below
@@ -45,16 +46,16 @@ module.exports = {
         ethereum: {
             provider: () => new HDWalletProvider(mnemonic, "https://mainnet.infura.io/v3/"+INFURA_KEY),
             network_id: 1,
-            gas: 5000000,
-            gasPrice: 100000000000, // 100 Gwei
+            gas: 4000000,
+            gasPrice: 80000000000, // 80 Gwei
             confirmations: 1,
             skipDryRun: true
         },
         polygon: {
             provider: () => new HDWalletProvider(mnemonic, "https://polygon-mainnet.infura.io/v3/"+INFURA_KEY),
             network_id: 137,
-            gas: 5000000,
-            gasPrice: 50000000000, // 50 Gwei
+            gas: 4000000,
+            gasPrice: 40000000000, // 40 Gwei
             confirmations: 1,
             skipDryRun: true
         },
