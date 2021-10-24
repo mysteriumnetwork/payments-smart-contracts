@@ -11,7 +11,8 @@
         "flatten": "sh flattener.sh",
         "deploy-goerli": "truffle deploy --network goerli",
         "deploy-mumbai": "truffle deploy --network mumbai",
-        "deploy-polygon": "truffle deploy --network polygon"
+        "deploy-polygon": "truffle deploy --network polygon",
+        "deploy-ethereum": "truffle deploy --network ethereum"
     },
     "repository": {
         "type": "git",
