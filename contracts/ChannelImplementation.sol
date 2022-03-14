@@ -13,7 +13,6 @@ contract ChannelImplementation is FundsRecovery, Utils {
     using ECDSA for bytes32;
 
     string constant EXIT_PREFIX = "Exit request:";
-    uint256 constant DELAY_SECONDS = 345600; // 4 days
 
     uint256 internal lastNonce;
 
@@ -113,44 +112,6 @@ contract ChannelImplementation is FundsRecovery, Utils {
         }
 
         emit PromiseSettled(hermes.contractAddress, _unpaidAmount, hermes.settled, _lock);
-    }
-
-    // Returns timestamp until which exit request should be locked
-    function getTimelock() internal view virtual returns (uint256) {
-        return block.timestamp + DELAY_SECONDS;
-    }
-
-    // Start withdrawal of deposited but still not settled funds
-    // NOTE _validUntil is needed for replay protection
-    function requestExit(address _beneficiary, uint256 _validUntil, bytes memory _signature) public {
-        uint256 _timelock = getTimelock();
-
-        require(exitRequest.timelock == 0, "Channel: new exit can be requested only when old one was finalised");
-        require(_validUntil >= block.timestamp, "Channel: valid until have to be greater than or equal to current block timestamp");
-        require(_timelock > _validUntil, "Channel: request have to be valid shorter than DELAY_SECONDS");
-        require(_beneficiary != address(0), "Channel: beneficiary can't be zero address");
-
-        if (msg.sender != operator) {
-            address _channelId = address(this);
-            address _signer = keccak256(abi.encodePacked(EXIT_PREFIX, _channelId, _beneficiary, _validUntil)).recover(_signature);
-            require(_signer == operator, "Channel: have to be signed by operator");
-        }
-
-        exitRequest = ExitRequest(_timelock, _beneficiary);
-
-        emit ExitRequested(_timelock);
-    }
-
-    // Anyone can finalize exit request after timelock block passed
-    function finalizeExit() public {
-        require(exitRequest.timelock != 0 && block.timestamp >= exitRequest.timelock, "Channel: exit have to be requested and timelock have to be in past");
-
-        // Exit with all not settled funds
-        uint256 _amount = token.balanceOf(address(this));
-        token.transfer(exitRequest.beneficiary, _amount);
-        emit Withdraw(exitRequest.beneficiary, _amount);
-
-        exitRequest = ExitRequest(0, address(0));  // deleting request
     }
 
     // Fast funds withdrawal is possible when hermes agrees that given amount of funds can be withdrawn

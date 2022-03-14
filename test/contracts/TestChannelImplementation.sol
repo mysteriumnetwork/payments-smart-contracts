@@ -12,10 +12,6 @@ contract TestChannelImplementation is ChannelImplementation {
         initialize(_token, _dex, _identityHash, _hermesAddress, _fee);
     }
 
-    function getTimelock() internal view override returns (uint256) {
-        return block.timestamp + TEST_DELAY_TIME;
-    }
-
     function getNow() public view returns (uint256) {
         return block.timestamp;
     }
