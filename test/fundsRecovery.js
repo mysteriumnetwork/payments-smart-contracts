@@ -54,7 +54,7 @@ contract('General tests for funds recovery', ([txMaker, owner, fundsDestination,
     it('anyone should successfully claim ethers', async () => {
         const initialBalance = await web3.eth.getBalance(fundsDestination)
 
-        await contract.claimEthers().should.be.fulfilled
+        await contract.claimNativeCoin().should.be.fulfilled
 
         const expectedBalance = Number(initialBalance) + topupAmount
         expect(await web3.eth.getBalance(fundsDestination)).to.be.equal(expectedBalance.toString())
@@ -112,7 +112,7 @@ contract('Registry funds recovery', ([_, txMaker, identity, account, fundsDestin
     it('should recover ethers sent to registry before its deployment', async () => {
         const initialBalance = new BN(await web3.eth.getBalance(fundsDestination))
         const amount = new BN(topupAmount.toString())
-        await registry.claimEthers().should.be.fulfilled
+        await registry.claimNativeCoin().should.be.fulfilled
         const expectedBalance = initialBalance.add(amount)
         expect(await web3.eth.getBalance(fundsDestination)).to.be.equal(expectedBalance.toString())
     })
@@ -161,7 +161,7 @@ contract('Channel implementation funds recovery', ([_, txMaker, identity, identi
     it('should recover ethers sent to identity implementation before its deployment', async () => {
         const initialBalance = new BN(await web3.eth.getBalance(fundsDestination))
         const amount = new BN(topupAmount.toString())
-        await channelImplementation.claimEthers().should.be.fulfilled
+        await channelImplementation.claimNativeCoin().should.be.fulfilled
 
         const expectedBalance = initialBalance.add(amount)
         expect(await web3.eth.getBalance(fundsDestination)).to.be.equal(expectedBalance.toString())
@@ -214,7 +214,7 @@ contract('Hermes funds recovery', ([_, txMaker, account, fundsDestination, ...ot
         const initialBalance = new BN(await web3.eth.getBalance(fundsDestination))
 
         topupAmount = new BN(topupAmount.toString())
-        await hermesImplementation.claimEthers().should.be.fulfilled
+        await hermesImplementation.claimNativeCoin().should.be.fulfilled
 
         const expectedBalance = topupAmount.add(new BN(initialBalance))
         expect(await web3.eth.getBalance(fundsDestination)).to.be.equal(expectedBalance.toString())

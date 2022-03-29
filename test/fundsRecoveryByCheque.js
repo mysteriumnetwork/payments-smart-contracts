@@ -80,7 +80,7 @@ contract('Full path (in channel using cheque) test for funds recovery', ([txMake
 
     it('should fail recovering funds when destination is not set', async () => {
         channel = await ChannelImplementation.at(expectedAddress)
-        await channel.claimEthers().should.be.rejected
+        await channel.claimNativeCoin().should.be.rejected
         expect(await channel.getFundsDestination()).to.be.equal(ZeroAddress)
     })
 
@@ -107,7 +107,7 @@ contract('Full path (in channel using cheque) test for funds recovery', ([txMake
     it('should recover ethers', async () => {
         const initialBalance = await web3.eth.getBalance(fundsDestination)
 
-        await channel.claimEthers({ from: otherAccounts[1] }).should.be.fulfilled
+        await channel.claimNativeCoin({ from: otherAccounts[1] }).should.be.fulfilled
 
         const expectedBalance = Number(initialBalance) + topupAmount
         expect(await web3.eth.getBalance(fundsDestination)).to.be.equal(expectedBalance.toString())
