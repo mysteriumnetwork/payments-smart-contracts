@@ -110,6 +110,7 @@ contract HermesImplementation is FundsRecovery, Utils {
     event HermesStakeIncreased(uint256 newStake);
     event HermesPunishmentActivated(uint256 activationBlockTime);
     event HermesPunishmentDeactivated();
+    event HermesStakeReturned(address beneficiary);
 
     /*
       ------------------------------------------- SETUP -------------------------------------------
@@ -463,6 +464,8 @@ contract HermesImplementation is FundsRecovery, Utils {
 
         uint256 _amount = token.balanceOf(address(this)) - punishment.amount;
         token.transfer(_beneficiary, _amount);
+
+        emit HermesStakeReturned(_beneficiary);
     }
 
     /*
