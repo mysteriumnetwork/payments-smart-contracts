@@ -183,7 +183,7 @@ contract HermesImplementation is FundsRecovery, Utils {
         Channel storage _channel = channels[_channelId];
         require(_channel.settled > 0 || _channel.stake >= minStake || _ignoreStake, "Hermes: not enough stake");
 
-        // If there are not enought funds to rebalance we have to enable punishment mode.
+        // If there are not enough funds to rebalance we have to enable punishment mode.
         uint256 _availableBalance = availableBalance();
         if (_availableBalance < _channel.stake) {
             status = Status.Punishment;
@@ -293,7 +293,7 @@ contract HermesImplementation is FundsRecovery, Utils {
 
     // Anyone can increase channel's capacity by staking more into hermes
     function increaseStake(bytes32 _channelId, uint256 _amount) public {
-        require(getStatus() != Status.Closed, "hermes should be not closed");
+        require(getStatus() != Status.Closed, "Hermes: should be not closed");
         _increaseStake(_channelId, _amount, false);
     }
 
@@ -326,7 +326,7 @@ contract HermesImplementation is FundsRecovery, Utils {
         _channel.stake = _newStakeAmount;
         totalStake = totalStake - _amount;
 
-        // Pay transacor fee then withdraw the rest
+        // Pay transactor fee then withdraw the rest
         if (_transactorFee > 0) {
             token.transfer(msg.sender, _transactorFee);
         }
@@ -359,7 +359,7 @@ contract HermesImplementation is FundsRecovery, Utils {
         uint256 _shouldHave = minimalExpectedBalance() + maxStake;  // hermes should have funds for at least one maxStake settlement
         uint256 _currentBalance = token.balanceOf(address(this));
 
-        // If there are not enough available funds, they have to be topuped from msg.sender.
+        // If there are not enough available funds, they have to be topupped from msg.sender.
         if (_currentBalance < _shouldHave) {
             token.transferFrom(msg.sender, address(this), _shouldHave - _currentBalance);
         }

@@ -53,7 +53,7 @@ contract('Pay and settle', ([txMaker, operatorAddress, ...otherAccounts]) => {
 
         // Topup some tokens into txMaker address so it could register hermes
         await topUpTokens(token, txMaker, OneToken)
-        await token.approve(registry.address, OneToken.add(OneToken))   // approve enought so it would enought for any case
+        await token.approve(registry.address, OneToken.add(OneToken))   // approve enough so it would enough for any case
     })
 
     it("should register and initialize hermes", async () => {

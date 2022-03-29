@@ -44,10 +44,10 @@ contract('Hermes stake and punishment management', ([txMaker, operatorAddress, .
 
         // Topup some tokens into txMaker address so it could register hermes
         await topUpTokens(token, txMaker, OneToken)
-        await token.approve(registry.address, OneToken)   // approve a lot so it would enought for any case
+        await token.approve(registry.address, OneToken)   // approve a lot so it would enough for any case
     })
 
-    it('should reject hermes registration if he do not pay enought stake', async () => {
+    it('should reject hermes registration if he do not pay enough stake', async () => {
         const stateAmount = stake - 1
         await registry.registerHermes(hermesOperator.address, stateAmount, Zero, 25, OneToken, hermesURL).should.be.rejected
     })
@@ -172,7 +172,7 @@ contract('Hermes stake and punishment management', ([txMaker, operatorAddress, .
         const channelId = generateChannelId(provider.address, hermes.address)
         const initialChannelStake = (await hermes.channels(channelId)).stake
 
-        // txMaker should have enought tokens
+        // txMaker should have enough tokens
         await topUpTokens(token, txMaker, amountToStake)
         await token.approve(hermes.address, amountToStake)
 
@@ -221,7 +221,7 @@ contract('Hermes stake and punishment management', ([txMaker, operatorAddress, .
         expect(hermesStatus.toNumber()).to.be.equal(0)
         expect(await hermes.isHermesActive()).to.be.true
 
-        // Because emergency was resolved fast enought, punishment amount should be not increased
+        // Because emergency was resolved fast enough, punishment amount should be not increased
         const punishmentAmount = (await hermes.punishment()).amount
         punishmentAmount.should.be.bignumber.equal(initialPunishmentAmount)
     })
@@ -242,7 +242,7 @@ contract('Hermes stake and punishment management', ([txMaker, operatorAddress, .
         let signature = signIdentityRegistration(registry.address, hermes.address, channelStake, Zero, beneficiaries[1], newProvider)
         await registry.registerIdentity(hermes.address, channelStake, Zero, beneficiaries[1], signature)
 
-        // Ensure that hermes has enought funds
+        // Ensure that hermes has enough funds
         await topUpTokens(token, hermes.address, OneToken)
 
         // Should be able to settle promise
