@@ -345,15 +345,13 @@ contract HermesImplementation is FundsRecovery, Utils {
     function resolveEmergency() public {
         require(getStatus() == Status.Punishment, "Hermes: should be in punishment status");
 
-        // 0.04% of total channels amount per time unit
-        uint256 _punishmentPerUnit = round(totalStake * PUNISHMENT_PERCENT, 100) / 100;
-
         // No punishment during first time unit
         uint256 _unit = getUnitTime();
         uint256 _timePassed = block.timestamp - punishment.activationBlockTime;
         uint256 _punishmentUnits = round(_timePassed, _unit) / _unit - 1;
 
-        uint256 _punishmentAmount = _punishmentUnits * _punishmentPerUnit;
+        // Using 0.04% of total channels amount per time unit
+        uint256 _punishmentAmount = _punishmentUnits * round(totalStake * PUNISHMENT_PERCENT, 100) / 100;
         punishment.amount = punishment.amount + _punishmentAmount;  // XXX alternativelly we could send tokens into BlackHole (0x0000000...)
 
         uint256 _shouldHave = minimalExpectedBalance() + maxStake;  // hermes should have funds for at least one maxStake settlement
