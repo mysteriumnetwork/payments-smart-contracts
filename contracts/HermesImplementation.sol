@@ -111,11 +111,6 @@ contract HermesImplementation is FundsRecovery, Utils {
     event HermesPunishmentActivated(uint256 activationBlockTime);
     event HermesPunishmentDeactivated();
 
-    modifier onlyOperator() {
-        require(msg.sender == operator, "Hermes: only hermes operator can call this function");
-        _;
-    }
-
     /*
       ------------------------------------------- SETUP -------------------------------------------
     */
@@ -443,13 +438,13 @@ contract HermesImplementation is FundsRecovery, Utils {
         return _status != Status.Punishment && _status != Status.Closed;
     }
 
-    function pauseChannelOpening() public onlyOperator {
+    function pauseChannelOpening() public onlyOwner {
         require(getStatus() == Status.Active, "Hermes: have to be in active state");
         status = Status.Paused;
         emit ChannelOpeningPaused();
     }
 
-    function activateChannelOpening() public onlyOperator {
+    function activateChannelOpening() public onlyOwner {
         require(getStatus() == Status.Paused, "Hermes: have to be in paused state");
         status = Status.Active;
         emit ChannelOpeningActivated();
