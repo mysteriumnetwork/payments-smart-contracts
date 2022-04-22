@@ -30,7 +30,7 @@ contract FundsRecovery is Ownable, ReentrancyGuard {
     /**
      * Possibility to recover funds in case they were sent to this address before smart contract deployment
      */
-    function claimEthers() public nonReentrant {
+    function claimNativeCoin() public nonReentrant {
         require(fundsDestination != address(0));
         fundsDestination.transfer(address(this).balance);
     }

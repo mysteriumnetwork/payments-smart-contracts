@@ -110,11 +110,7 @@ contract HermesImplementation is FundsRecovery, Utils {
     event HermesStakeIncreased(uint256 newStake);
     event HermesPunishmentActivated(uint256 activationBlockTime);
     event HermesPunishmentDeactivated();
-
-    modifier onlyOperator() {
-        require(msg.sender == operator, "Hermes: only hermes operator can call this function");
-        _;
-    }
+    event HermesStakeReturned(address beneficiary);
 
     /*
       ------------------------------------------- SETUP -------------------------------------------
@@ -183,7 +179,7 @@ contract HermesImplementation is FundsRecovery, Utils {
         Channel storage _channel = channels[_channelId];
         require(_channel.settled > 0 || _channel.stake >= minStake || _ignoreStake, "Hermes: not enough stake");
 
-        // If there are not enought funds to rebalance we have to enable punishment mode.
+        // If there are not enough funds to rebalance we have to enable punishment mode.
         uint256 _availableBalance = availableBalance();
         if (_availableBalance < _channel.stake) {
             status = Status.Punishment;
@@ -293,7 +289,7 @@ contract HermesImplementation is FundsRecovery, Utils {
 
     // Anyone can increase channel's capacity by staking more into hermes
     function increaseStake(bytes32 _channelId, uint256 _amount) public {
-        require(getStatus() != Status.Closed, "hermes should be not closed");
+        require(getStatus() != Status.Closed, "Hermes: should be not closed");
         _increaseStake(_channelId, _amount, false);
     }
 
@@ -326,7 +322,7 @@ contract HermesImplementation is FundsRecovery, Utils {
         _channel.stake = _newStakeAmount;
         totalStake = totalStake - _amount;
 
-        // Pay transacor fee then withdraw the rest
+        // Pay transactor fee then withdraw the rest
         if (_transactorFee > 0) {
             token.transfer(msg.sender, _transactorFee);
         }
@@ -345,21 +341,19 @@ contract HermesImplementation is FundsRecovery, Utils {
     function resolveEmergency() public {
         require(getStatus() == Status.Punishment, "Hermes: should be in punishment status");
 
-        // 0.04% of total channels amount per time unit
-        uint256 _punishmentPerUnit = round(totalStake * PUNISHMENT_PERCENT, 100) / 100;
-
         // No punishment during first time unit
         uint256 _unit = getUnitTime();
         uint256 _timePassed = block.timestamp - punishment.activationBlockTime;
         uint256 _punishmentUnits = round(_timePassed, _unit) / _unit - 1;
 
-        uint256 _punishmentAmount = _punishmentUnits * _punishmentPerUnit;
+        // Using 0.04% of total channels amount per time unit
+        uint256 _punishmentAmount = _punishmentUnits * round(totalStake * PUNISHMENT_PERCENT, 100) / 100;
         punishment.amount = punishment.amount + _punishmentAmount;  // XXX alternativelly we could send tokens into BlackHole (0x0000000...)
 
         uint256 _shouldHave = minimalExpectedBalance() + maxStake;  // hermes should have funds for at least one maxStake settlement
         uint256 _currentBalance = token.balanceOf(address(this));
 
-        // If there are not enough available funds, they have to be topuped from msg.sender.
+        // If there are not enough available funds, they have to be topupped from msg.sender.
         if (_currentBalance < _shouldHave) {
             token.transferFrom(msg.sender, address(this), _shouldHave - _currentBalance);
         }
@@ -445,13 +439,13 @@ contract HermesImplementation is FundsRecovery, Utils {
         return _status != Status.Punishment && _status != Status.Closed;
     }
 
-    function pauseChannelOpening() public onlyOperator {
+    function pauseChannelOpening() public onlyOwner {
         require(getStatus() == Status.Active, "Hermes: have to be in active state");
         status = Status.Paused;
         emit ChannelOpeningPaused();
     }
 
-    function activateChannelOpening() public onlyOperator {
+    function activateChannelOpening() public onlyOwner {
         require(getStatus() == Status.Paused, "Hermes: have to be in paused state");
         status = Status.Active;
         emit ChannelOpeningActivated();
@@ -470,6 +464,8 @@ contract HermesImplementation is FundsRecovery, Utils {
 
         uint256 _amount = token.balanceOf(address(this)) - punishment.amount;
         token.transfer(_beneficiary, _amount);
+
+        emit HermesStakeReturned(_beneficiary);
     }
 
     /*

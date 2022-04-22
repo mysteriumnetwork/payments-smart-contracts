@@ -17,7 +17,7 @@ contract Registry is FundsRecovery, Utils {
     uint256 public lastNonce;
     address payable public dex;     // Any uniswap v2 compatible DEX router address
     uint256 public minimalHermesStake;
-    Registry public parentRegistry; // If there is parent registry, we will check for
+    Registry public parentRegistry; // Contract could have parent registry if Registry SC was already upgraded
 
     struct Implementation {
         address channelImplAddress;
@@ -87,7 +87,7 @@ contract Registry is FundsRecovery, Utils {
 
         // Tokens amount to get from channel to cover tx fee and provider's stake
         uint256 _totalFee = _stakeAmount + _transactorFee;
-        require(_totalFee <= token.balanceOf(getChannelAddress(_identity, _hermesId)), "Registry: not enought funds in channel to cover fees");
+        require(_totalFee <= token.balanceOf(getChannelAddress(_identity, _hermesId)), "Registry: not enough funds in channel to cover fees");
 
         // Open consumer channel
         _openChannel(_identity, _hermesId, _beneficiary, _totalFee);
@@ -111,7 +111,7 @@ contract Registry is FundsRecovery, Utils {
         address _identity = keccak256(abi.encodePacked(getChainID(), address(this), _hermesId, _transactorFee)).recover(_signature);
         require(_identity != address(0), "Registry: wrong channel openinig signature");
 
-        require(_transactorFee <= token.balanceOf(getChannelAddress(_identity, _hermesId)), "Registry: not enought funds in channel to cover fees");
+        require(_transactorFee <= token.balanceOf(getChannelAddress(_identity, _hermesId)), "Registry: not enough funds in channel to cover fees");
 
         _openChannel(_identity, _hermesId, address(0), _transactorFee);
     }
