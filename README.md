@@ -46,12 +46,15 @@ Hermes smart contract
 - V1 on Polygon [0xa62a2A75949d25e17C6F08a7818e7bE97c18a8d2](https://polygonscan.com/address/0xa62a2a75949d25e17c6f08a7818e7be97c18a8d2)
 - V1 on Ethereum [0xa62a2A75949d25e17C6F08a7818e7bE97c18a8d2](https://etherscan.io/address/0xa62a2A75949d25e17C6F08a7818e7bE97c18a8d2)
 - V2 on Polygon [0xDe82990405aCc36B4Fd53c94A24D1010fcc1F83d](https://polygonscan.com/address/0xDe82990405aCc36B4Fd53c94A24D1010fcc1F83d)
+- V3 on Polygon [0x80ed28d84792d8b153bf2f25f0c4b7a1381de4ab](https://polygonscan.com/address/0x80ed28d84792d8b153bf2f25f0c4b7a1381de4ab)
 
 
 Implementation addresses:
 - Hermes implementation address (same on both networks): `0x213a1B1d08F2715aE054ade98DEEd8a8F1cc937E`
+- Hermes implementation v3 address (Polygon only): `0x4f7265afc1373317975a306023574BE5Ec87157A`
 - Channel implementation address (Polygon): `0x25882f4966065ca13b7bac15cc48391d9a4124f6`
 - Channel implementation v2 address (Polygon): `0x813d3A0ef42FD4F25F2854811A64D5842EF3F8D1`
+- Channel implementation v3 address (Polygon): `0x6b423D3885B4877b5760E149364f85f185f477aD`
 - Channel implementation address (Ethereum): `0xBd20839B331A7A8d10e34CDf7219edf334814c4f`
 
 ## Testnet3 deployment (ethereum Görli and polygon Mumbai testnets)
