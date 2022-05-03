@@ -307,7 +307,7 @@ interface IERC20 {
 // File: contracts/interfaces/IERC20Token.sol
 
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity >=0.8.4;
+pragma solidity 0.8.9;
 
 
 abstract contract IERC20Token is IERC20 {
@@ -317,7 +317,7 @@ abstract contract IERC20Token is IERC20 {
 // File: contracts/interfaces/IHermesContract.sol
 
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity >=0.7.6;
+pragma solidity 0.8.9;
 
 interface IHermesContract {
     enum Status { Active, Paused, Punishment, Closed }
@@ -331,7 +331,7 @@ interface IHermesContract {
 // File: contracts/interfaces/IUniswapV2Router.sol
 
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity >=0.8.4;
+pragma solidity 0.8.9;
 
 interface IUniswapV2Router {
     function factory() external pure returns (address);
@@ -551,7 +551,7 @@ contract FundsRecovery is Ownable, ReentrancyGuard {
     /**
      * Possibility to recover funds in case they were sent to this address before smart contract deployment
      */
-    function claimEthers() public nonReentrant {
+    function claimNativeCoin() public nonReentrant {
         require(fundsDestination != address(0));
         fundsDestination.transfer(address(this).balance);
     }
