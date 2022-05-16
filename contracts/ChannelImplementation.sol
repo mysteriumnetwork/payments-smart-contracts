@@ -16,24 +16,17 @@ contract ChannelImplementation is FundsRecovery, Utils {
 
     uint256 internal lastNonce;
 
-    struct ExitRequest {
-        uint256 timelock;          // block number after which exit can be finalized
-        address beneficiary;       // address where funds will be send after finalizing exit request
-    }
-
     struct Hermes {
         address operator;          // signing address
         address contractAddress;   // hermes smart contract address, funds will be send there
         uint256 settled;           // total amount already settled by hermes
     }
 
-    ExitRequest public exitRequest;
     Hermes public hermes;
     address public operator;          // channel operator = sha3(IdentityPublicKey)[:20]
     IUniswapV2Router internal dex;    // any uniswap v2 compatible dex router address
 
     event PromiseSettled(address beneficiary, uint256 amount, uint256 totalSettled, bytes32 lock);
-    event ExitRequested(uint256 timelock);
     event Withdraw(address beneficiary, uint256 amount);
 
     /*
