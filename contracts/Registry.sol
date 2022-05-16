@@ -55,10 +55,10 @@ contract Registry is FundsRecovery, Utils {
 
         minimalHermesStake = _minimalHermesStake;
 
-        require(_tokenAddress != address(0));
+        require(_tokenAddress != address(0), "Registry: token smart contract can't be deployed into 0x0 address");
         token = IERC20Token(_tokenAddress);
 
-        require(_dexAddress != address(0));
+        require(_dexAddress != address(0), "Registry: dex can't be deployed into 0x0 address");
         dex = _dexAddress;
 
         // Set initial channel implementations
