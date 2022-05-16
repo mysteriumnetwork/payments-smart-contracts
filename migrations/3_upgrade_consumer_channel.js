@@ -17,7 +17,7 @@ const tokenAddr = {
 const HERMES_OPERATOR = '0xbb322f4a93f4001d3f2dd07aa957c3e8361e8976'
 const MEGA_OWNER = '0xd1beE7b6C062b01815e7F8934Ce264C1c1cd250d'
 
-const deployNewImplementation = true
+const deployNewImplementation = false
 module.exports = async function (deployer, network, accounts) {
     const account = accounts[0]
 
@@ -25,7 +25,7 @@ module.exports = async function (deployer, network, accounts) {
         // Deploy Channel and Hermes implementations into blockchain
         await deployer.deploy(ChannelImplementation, { from: account })
         console.log('  :> ChannelImplementation:', ChannelImplementation.address)
-        
+
         await deployer.deploy(HermesImplementation, { from: account })
         console.log('  :> HermesImplementation:', HermesImplementation.address)
 
