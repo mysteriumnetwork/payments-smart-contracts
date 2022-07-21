@@ -29,7 +29,7 @@
         "@ethersproject/contracts": "^5.4.1",
         "@ethersproject/providers": "^5.4.5",
         "@ethersproject/solidity": "^5.4.0",
-        "@openzeppelin/contracts": "4.3.2",
+        "@openzeppelin/contracts": "4.7.1",
         "@truffle/hdwallet-provider": "1.5.1",
         "chai": "^4.3.4",
         "chai-as-promised": "^7.1.1",
