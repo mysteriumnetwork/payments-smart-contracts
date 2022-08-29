@@ -66,16 +66,21 @@ MYSTT test token:
 Registry smart contract:
 - Görli: [0xDFAB03C9fbDbef66dA105B88776B35bfd7743D39](https://goerli.etherscan.io/address/0xDFAB03C9fbDbef66dA105B88776B35bfd7743D39)
 - Mumbai: [0xDFAB03C9fbDbef66dA105B88776B35bfd7743D39](https://explorer-mumbai.maticvigil.com/address/0xDFAB03C9fbDbef66dA105B88776B35bfd7743D39/transactions)
+- Mumbai (new for v3): [0x1ba2DF26371E83D87Afee2F27a42f5A7FE9e5219](https://mumbai.polygonscan.com/address/0x1ba2df26371e83d87afee2f27a42f5a7fe9e5219)
 
 Hermes smart contract:
 - Görli [0x7119442C7E627438deb0ec59291e31378F88DD06](https://goerli.etherscan.io/address/0x7119442C7E627438deb0ec59291e31378F88DD06)
 - Mumbai [0x7119442C7E627438deb0ec59291e31378F88DD06](https://explorer-mumbai.maticvigil.com/address/0x7119442C7E627438deb0ec59291e31378F88DD06/transactions)
+- Mumbai v3: [0xcAeF9A6E9C2d9C0Ee3333529922c280580365b51](https://mumbai.polygonscan.com/address/0xcaef9a6e9c2d9c0ee3333529922c280580365b51)
 
 Implementation addresses:
 - Hermes implementation address (same on both networks): `0x72227c86B8B6C0cA292C3631679a5DdB20433cb3`
 - Channel implementation address (Görli): `0x1aDF7Ef34b9d48DCc8EBC47D989bfdE55933B6ea`
 - Channel implementation address (Mumbai): `0xf8982Ba93D3d9182D095B892DE2A7963eF9807ee`
+- Hermes implementation address (Mumbai v3): `0xaC69E0C98A688E35698630Eb0c741eB2A2fc5eF1`
+- Channel implementation address (Mumbai v3): `0x6FE3E5e5008e49821BF7282870eC831BA9694dDB`
 
+All v3 related Smart Contracts are deployed by Hermes Operator
 
 ## Building golang bindings
 
